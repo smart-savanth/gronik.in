@@ -10,7 +10,9 @@ import Footer from './component/layout/Footer';
 import ContactSection from './component/pages/ContactSection';
 import CartSection from './component/pages/CartSection';
 import WishlistPage from './component/pages/WishlsitSection';
-import ProductSection from './component/pages/ProductSection'; // Import your ProductSection
+import ProductSection from './component/pages/ProductSection';
+import ProfileSection from './component/pages/ProfileSection';
+import LibraryPage from './component/pages/LibrarySection';
 
 // Home page component with product view state
 const HomePage = () => {
@@ -87,6 +89,55 @@ const HomePage = () => {
   );
 };
 
+// Library page wrapper component to handle state
+const LibraryPageWrapper = () => {
+  const [cart, setCart] = useState([]);
+  const [wishlist, setWishlist] = useState([]);
+
+  // Handle Add to Cart
+  const handleAddToCart = (book) => {
+    setCart(prevCart => {
+      const existingItem = prevCart.find(item => item.id === book.id);
+      if (existingItem) {
+        return prevCart.map(item =>
+          item.id === book.id 
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
+        );
+      } else {
+        return [...prevCart, { ...book, quantity: 1 }];
+      }
+    });
+    console.log('Added to cart:', book.title);
+  };
+
+  // Handle Add to Wishlist
+  const handleAddToWishlist = (book) => {
+    setWishlist(prevWishlist => {
+      const isAlreadyInWishlist = prevWishlist.find(item => item.id === book.id);
+      if (!isAlreadyInWishlist) {
+        return [...prevWishlist, book];
+      }
+      return prevWishlist;
+    });
+    console.log('Added to wishlist:', book.title);
+  };
+
+  // Handle Quick View (you can navigate to product page or show modal)
+  const handleQuickView = (book) => {
+    console.log('Quick view for:', book.title);
+    // You can implement navigation to product page or show a modal here
+  };
+
+  return (
+    <LibraryPage
+      onAddToCart={handleAddToCart}
+      onAddToWishlist={handleAddToWishlist}
+      onQuickView={handleQuickView}
+    />
+  );
+};
+
 function App() {
   return (
     <Router>
@@ -94,9 +145,11 @@ function App() {
         <Navbar/>
         <Routes>
           <Route path="/" element={<HomePage />} />
+          <Route path="/library" element={<LibraryPageWrapper />} />
           <Route path="/contact" element={<ContactSection />} />
           <Route path="/wishlist" element={<WishlistPage />} />
           <Route path="/cart" element={<CartSection />} />
+          <Route path="/profile" element={<ProfileSection/>} />
         </Routes>
         <Footer/>
       </div>

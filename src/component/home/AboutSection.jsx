@@ -24,23 +24,28 @@ const AboutSection = () => {
           <div className="bg-gronik-shadow/30 backdrop-blur-sm rounded-3xl p-8 lg:p-12 border border-gronik-accent/20 hover:border-gronik-accent/40 transition-all duration-300">
             <div className="space-y-6 lg:space-y-8 text-center lg:text-left">
               <p className="text-lg lg:text-xl text-gronik-light/90 leading-relaxed">
-                <span className="text-gronik-accent font-semibold">Welcome to Gronik</span>, your digital library for endless knowledge and imagination. 
-                We're on a mission to make reading more accessible, affordable, and enjoyable for everyone. 
-                Whether you're a passionate bookworm, a student looking for academic resources, 
-                or someone exploring new interests — we've got something for you.
+                <span className="text-gronik-accent font-semibold">We didn't build Gronik to just sell eBooks.</span> We built it because real growth is disappearing. 
+                In a world of scrolls, reels, and surface-level advice, people have stopped thinking deeply. 
+                Shortcuts replaced learning. Hype replaced clarity.
               </p>
 
               <p className="text-lg lg:text-xl text-gronik-light/90 leading-relaxed">
-                Explore our curated collection of eBooks across genres and topics. Whether you're 
-                here to study, grow, or simply enjoy a good read, our platform makes it easy to 
-                access knowledge anytime, anywhere. 
-                <span className="text-gronik-accent font-semibold"> Start your digital reading journey today.</span>
+                <span className="text-gronik-accent font-semibold">Gronik is for those who are done with that.</span> Here, you won't find fluff or fake motivation. 
+                You'll find tested guides that actually help you grow — in mindset, fitness, finance, and life. 
+                Every guide is built from real experience. Every word is written to move you forward.
               </p>
 
               <p className="text-lg lg:text-xl text-gronik-light/90 leading-relaxed">
-                Our platform is designed to be simple, fast, and reader-friendly — because we believe 
-                books should be easy to access, not hard to find. We're not just building an eBook site, 
-                we're creating a community of curious minds who believe in the power of reading.
+                If you're serious about becoming better — not just sounding smart or feeling inspired — 
+                <span className="text-gronik-accent font-semibold"> Welcome to Gronik.</span> 
+                A space for those who are ready to grow for real. We believe in substance over sensation, 
+                depth over distraction, and authentic transformation over temporary inspiration.
+              </p>
+
+              <p className="text-lg lg:text-xl text-gronik-light/90 leading-relaxed">
+                Our carefully curated collection isn't just about reading — it's about implementing. 
+                Each resource is selected for its proven ability to create lasting change in your life. 
+                <span className="text-gronik-accent font-semibold"> This is where serious growth begins.</span>
               </p>
 
               {/* Call to Action */}

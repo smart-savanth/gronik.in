@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Search, ShoppingCart, User, Menu, X, BookOpen, Heart } from 'lucide-react';
 
 const Navbar = () => {
@@ -7,7 +7,10 @@ const Navbar = () => {
   const [scrollY, setScrollY] = useState(0);
   const [cartCount, setCartCount] = useState(3); // Sample cart count
   const [wishlistCount, setWishlistCount] = useState(2); // Sample wishlist count
+  const [searchQuery, setSearchQuery] = useState('');
+  
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     const handleScroll = () => setScrollY(window.scrollY);
@@ -16,9 +19,22 @@ const Navbar = () => {
   }, []);
 
   const scrollToSection = (sectionId) => {
-    const element = document.getElementById(sectionId);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
+    // First navigate to home page if not already there
+    if (location.pathname !== '/') {
+      navigate('/');
+      // Wait for navigation to complete, then scroll
+      setTimeout(() => {
+        const element = document.getElementById(sectionId);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 100);
+    } else {
+      // Already on home page, just scroll
+      const element = document.getElementById(sectionId);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
+      }
     }
     setIsMenuOpen(false);
   };
@@ -32,58 +48,87 @@ const Navbar = () => {
     setIsMenuOpen(false);
   };
 
+  const handleSearchSubmit = () => {
+    if (searchQuery.trim()) {
+      console.log('Searching for:', searchQuery);
+      // Add your search logic here
+      setSearchQuery('');
+    }
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      handleSearchSubmit();
+    }
+  };
+
   return (
-    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-      scrollY > 50 ? 'bg-gronik-primary/95 backdrop-blur-md shadow-lg border-b border-gronik-secondary/20' : 'bg-transparent'
-    }`}>
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-gronik-primary/95 backdrop-blur-md shadow-lg border-b border-gronik-secondary/20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between h-20">
           {/* Logo */}
-          <div className="flex items-center space-x-2 cursor-pointer" onClick={() => handleNavigation('page', '/')}>
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center shadow-lg transform hover:scale-110 transition-transform duration-200 overflow-hidden">
+          <Link to="/" className="flex items-center space-x-2 cursor-pointer">
+            <div className="w-16 h-16 flex items-center justify-center">
               <img 
                 src="/logo.png" 
                 alt="Gronik Logo"
                 className="w-full h-full object-contain"
               />
             </div>
-          </div>
+          </Link>
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
-            <button 
-              onClick={() => handleNavigation('page', '/')}
+            <Link 
+              to="/"
               className="text-gronik-light hover:text-gronik-accent transition-colors duration-200 font-medium hover:scale-105 transform"
             >
               Home
-            </button>
-            <button 
-              onClick={() => handleNavigation('section', 'featured-books')}
+            </Link>
+            <Link 
+              to="/library"
               className="text-gronik-light hover:text-gronik-accent transition-colors duration-200 font-medium hover:scale-105 transform"
             >
               Library
-            </button>
+            </Link>
             <button 
-              onClick={() => handleNavigation('section', 'about')}
+              onClick={() => scrollToSection('about')}
               className="text-gronik-light hover:text-gronik-accent transition-colors duration-200 font-medium hover:scale-105 transform"
             >
               About
             </button>
-            <button 
-              onClick={() => handleNavigation('page', '/contact')}
+            <Link 
+              to="/contact"
               className="text-gronik-light hover:text-gronik-accent transition-colors duration-200 font-medium hover:scale-105 transform"
             >
               Contact
-            </button>
+            </Link>
           </div>
 
           {/* Desktop Actions */}
           <div className="hidden md:flex items-center space-x-4">
-            <button className="p-2 hover:bg-gronik-secondary/20 rounded-lg transition-colors duration-200 group">
-              <Search className="w-5 h-5 text-gronik-light group-hover:text-gronik-accent transition-colors duration-200" />
-            </button>
-            <button 
-              onClick={() => handleNavigation('page', '/wishlist')}
+            {/* Search Section */}
+            <div className="relative">
+              <div className="flex items-center">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder="Search books..."
+                  className="bg-gronik-secondary/20 text-gronik-light placeholder-gronik-light/60 px-4 py-2 pr-10 rounded-lg border border-gronik-secondary/30 focus:outline-none focus:border-gronik-accent focus:bg-gronik-secondary/30 focus:shadow-lg transition-all duration-200 w-64"
+                />
+                <button
+                  onClick={handleSearchSubmit}
+                  className="absolute right-2 p-1 hover:bg-gronik-accent/20 rounded transition-all duration-200 hover:shadow-md"
+                >
+                  <Search className="w-4 h-4 text-gronik-light hover:text-gronik-accent" />
+                </button>
+              </div>
+            </div>
+
+            <Link 
+              to="/wishlist"
               className="p-2 hover:bg-gronik-secondary/20 rounded-lg transition-colors duration-200 relative group"
             >
               <Heart className="w-5 h-5 text-gronik-light group-hover:text-gronik-accent transition-colors duration-200" />
@@ -92,9 +137,10 @@ const Navbar = () => {
                   {wishlistCount}
                 </span>
               )}
-            </button>
-             <button 
-              onClick={() => handleNavigation('page', '/cart')}
+            </Link>
+            
+            <Link 
+              to="/cart"
               className="p-2 hover:bg-gronik-secondary/20 rounded-lg transition-colors duration-200 relative group"
             >
               <ShoppingCart className="w-5 h-5 text-gronik-light group-hover:text-gronik-accent transition-colors duration-200" />
@@ -103,11 +149,26 @@ const Navbar = () => {
                   {cartCount}
                 </span>
               )}
-            </button>
-            <button className="bg-gradient-to-r from-gronik-accent to-gronik-secondary hover:from-gronik-secondary hover:to-gronik-accent text-white px-6 py-2 rounded-lg transition-all duration-200 transform hover:scale-105 font-medium shadow-lg">
+            </Link>
+
+            {/* Profile Button */}
+            <Link 
+              to="/profile"
+              className="p-2 hover:bg-gronik-secondary/20 rounded-lg transition-colors duration-200 group"
+            >
+              <User className="w-5 h-5 text-gronik-light group-hover:text-gronik-accent transition-colors duration-200" />
+            </Link>
+
+            <button 
+              onClick={() => handleNavigation('page', '/login')}
+              className="bg-gradient-to-r from-gronik-accent to-gronik-secondary hover:from-gronik-secondary hover:to-gronik-accent text-white px-6 py-2 rounded-lg transition-all duration-200 transform hover:scale-105 font-medium shadow-lg"
+            >
               Login
             </button>
-            <button className="bg-gradient-to-r from-gronik-accent to-gronik-secondary hover:from-gronik-secondary hover:to-gronik-accent text-white px-6 py-2 rounded-lg transition-all duration-200 transform hover:scale-105 font-medium shadow-lg">
+            <button 
+              onClick={() => handleNavigation('page', '/admin')}
+              className="bg-gradient-to-r from-gronik-accent to-gronik-secondary hover:from-gronik-secondary hover:to-gronik-accent text-white px-6 py-2 rounded-lg transition-all duration-200 transform hover:scale-105 font-medium shadow-lg"
+            >
               Admin
             </button>
           </div>
@@ -124,36 +185,60 @@ const Navbar = () => {
         {/* Mobile Menu */}
         {isMenuOpen && (
           <div className="md:hidden bg-gronik-primary/95 backdrop-blur-md rounded-lg mt-2 p-4 space-y-4 border border-gronik-secondary/20 shadow-lg animate-fade-in">
-            <button 
-              onClick={() => handleNavigation('page', '/')}
+            <Link 
+              to="/"
+              onClick={() => setIsMenuOpen(false)}
               className="block w-full text-left text-gronik-light hover:text-gronik-accent transition-colors duration-200 py-2 font-medium hover:scale-105 transform"
             >
               Home
-            </button>
-            <button 
-              onClick={() => handleNavigation('section', 'featured-books')}
+            </Link>
+            <Link 
+              to="/library"
+              onClick={() => setIsMenuOpen(false)}
               className="block w-full text-left text-gronik-light hover:text-gronik-accent transition-colors duration-200 py-2 font-medium hover:scale-105 transform"
             >
               Library
-            </button>
+            </Link>
             <button 
-              onClick={() => handleNavigation('section', 'about')}
+              onClick={() => scrollToSection('about')}
               className="block w-full text-left text-gronik-light hover:text-gronik-accent transition-colors duration-200 py-2 font-medium hover:scale-105 transform"
             >
               About
             </button>
-            <button 
-              onClick={() => handleNavigation('page', '/contact')}
+            <Link 
+              to="/contact"
+              onClick={() => setIsMenuOpen(false)}
               className="block w-full text-left text-gronik-light hover:text-gronik-accent transition-colors duration-200 py-2 font-medium hover:scale-105 transform"
             >
               Contact
-            </button>
+            </Link>
+            
+            {/* Mobile Search */}
+            <div className="pt-4 border-t border-gronik-secondary/20">
+              <div className="mb-4">
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    placeholder="Search books..."
+                    className="w-full bg-gronik-secondary/20 text-gronik-light placeholder-gronik-light/60 px-4 py-2 pr-10 rounded-lg border border-gronik-secondary/30 focus:outline-none focus:border-gronik-accent focus:bg-gronik-secondary/30 transition-all duration-200"
+                  />
+                  <button
+                    onClick={handleSearchSubmit}
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 p-1 hover:bg-gronik-secondary/20 rounded transition-colors duration-200"
+                  >
+                    <Search className="w-4 h-4 text-gronik-light hover:text-gronik-accent" />
+                  </button>
+                </div>
+              </div>
+            </div>
+
             <div className="flex items-center space-x-4 pt-4 border-t border-gronik-secondary/20">
-              <button className="p-2 hover:bg-gronik-secondary/20 rounded-lg transition-colors duration-200 group">
-                <Search className="w-5 h-5 text-gronik-light group-hover:text-gronik-accent transition-colors duration-200" />
-              </button>
-              <button 
-                onClick={() => handleNavigation('page', '/wishlist')}
+              <Link 
+                to="/wishlist"
+                onClick={() => setIsMenuOpen(false)}
                 className="p-2 hover:bg-gronik-secondary/20 rounded-lg transition-colors duration-200 relative group"
               >
                 <Heart className="w-5 h-5 text-gronik-light group-hover:text-gronik-accent transition-colors duration-200" />
@@ -162,9 +247,10 @@ const Navbar = () => {
                     {wishlistCount}
                   </span>
                 )}
-              </button>
-              <button 
-                onClick={() => handleNavigation('page', '/cart')}
+              </Link>
+              <Link 
+                to="/cart"
+                onClick={() => setIsMenuOpen(false)}
                 className="p-2 hover:bg-gronik-secondary/20 rounded-lg transition-colors duration-200 relative group"
               >
                 <ShoppingCart className="w-5 h-5 text-gronik-light group-hover:text-gronik-accent transition-colors duration-200" />
@@ -173,9 +259,19 @@ const Navbar = () => {
                     {cartCount}
                   </span>
                 )}
-              </button>
+              </Link>
+              <Link 
+                to="/profile"
+                onClick={() => setIsMenuOpen(false)}
+                className="p-2 hover:bg-gronik-secondary/20 rounded-lg transition-colors duration-200 group"
+              >
+                <User className="w-5 h-5 text-gronik-light group-hover:text-gronik-accent transition-colors duration-200" />
+              </Link>
             </div>
-            <button className="w-full bg-gradient-to-r from-gronik-accent to-gronik-secondary hover:from-gronik-secondary hover:to-gronik-accent text-white px-6 py-3 rounded-lg transition-all duration-200 font-medium shadow-lg">
+            <button 
+              onClick={() => handleNavigation('page', '/login')}
+              className="w-full bg-gradient-to-r from-gronik-accent to-gronik-secondary hover:from-gronik-secondary hover:to-gronik-accent text-white px-6 py-3 rounded-lg transition-all duration-200 font-medium shadow-lg"
+            >
               Login
             </button>
           </div>

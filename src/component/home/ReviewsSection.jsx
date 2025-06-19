@@ -275,27 +275,6 @@ const ReviewsSection = () => {
             <h3 className="text-2xl font-bold text-[#2D1B3D] mb-6">Share Your Experience</h3>
             
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-[#2D1B3D] mb-2">Your Name</label>
-                <input
-                  type="text"
-                  value={newReview.name}
-                  onChange={(e) => setNewReview({...newReview, name: e.target.value})}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#9B7BB8] focus:border-transparent transition-all"
-                  placeholder="Enter your name"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-[#2D1B3D] mb-2">Position/Title</label>
-                <input
-                  type="text"
-                  value={newReview.position}
-                  onChange={(e) => setNewReview({...newReview, position: e.target.value})}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#9B7BB8] focus:border-transparent transition-all"
-                  placeholder="Your position or title"
-                />
-              </div>
               
               <div>
                 <label className="block text-sm font-medium text-[#2D1B3D] mb-2">Rating</label>

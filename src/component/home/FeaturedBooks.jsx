@@ -1,12 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { ShoppingCart, Heart, Star, Eye, ArrowRight, Sparkles, BookOpen } from 'lucide-react';
 
-const FeaturedBooksSection = ({ onAddToCart, onAddToWishlist, onQuickView }) => {
+const FeaturedBooksSection = ({ onAddToCart, onAddToWishlist, onQuickView, onViewAllBooks }) => {
   const [hoveredBook, setHoveredBook] = useState(null);
   const [addedToCart, setAddedToCart] = useState({});
   const [addedToWishlist, setAddedToWishlist] = useState({});
 
-  const featuredBooks = [
+  // All books data - only featured ones will show in this section
+  const allBooks = [
     {
       id: 1,
       title: "Think and Grow Rich",
@@ -19,7 +20,8 @@ const FeaturedBooksSection = ({ onAddToCart, onAddToWishlist, onQuickView }) => 
       image: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=300&h=400&fit=crop",
       description: "Transform your mindset and unlock the secrets to wealth and success.",
       badge: "BESTSELLER",
-      discount: "25% OFF"
+      discount: "25% OFF",
+      featured: true
     },
     {
       id: 2,
@@ -33,7 +35,8 @@ const FeaturedBooksSection = ({ onAddToCart, onAddToWishlist, onQuickView }) => 
       image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&h=400&fit=crop",
       description: "Master the art of power and influence in every aspect of life.",
       badge: "TRENDING",
-      discount: "20% OFF"
+      discount: "20% OFF",
+      featured: true
     },
     {
       id: 3,
@@ -47,15 +50,63 @@ const FeaturedBooksSection = ({ onAddToCart, onAddToWishlist, onQuickView }) => 
       image: "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=300&h=400&fit=crop",
       description: "Build good habits, break bad ones, and get 1% better every day.",
       badge: "NEW RELEASE",
-      discount: "22% OFF"
+      discount: "22% OFF",
+      featured: true
+    },
+    {
+      id: 4,
+      title: "The 7 Habits of Highly Effective People",
+      author: "Stephen Covey",
+      category: "Self Development",
+      price: 180,
+      originalPrice: 220,
+      rating: 4.7,
+      reviews: 312,
+      image: "https://images.unsplash.com/photo-1532012197267-da84d127e765?w=300&h=400&fit=crop",
+      description: "A powerful lesson in personal change and effectiveness.",
+      badge: "CLASSIC",
+      discount: "18% OFF",
+      featured: false
+    },
+    {
+      id: 5,
+      title: "Mindset: The New Psychology of Success",
+      author: "Carol Dweck",
+      category: "Psychology",
+      price: 160,
+      originalPrice: 190,
+      rating: 4.5,
+      reviews: 278,
+      image: "https://images.unsplash.com/photo-1553729459-efe14ef6055d?w=300&h=400&fit=crop",
+      description: "Learn how to fulfill your potential with the right mindset.",
+      badge: "POPULAR",
+      discount: "16% OFF",
+      featured: false
+    },
+    {
+      id: 6,
+      title: "Getting Things Done",
+      author: "David Allen",
+      category: "Productivity",
+      price: 170,
+      originalPrice: 200,
+      rating: 4.4,
+      reviews: 198,
+      image: "https://images.unsplash.com/photo-1589829085413-56de8ae18c73?w=300&h=400&fit=crop",
+      description: "The art of stress-free productivity and time management.",
+      badge: "RECOMMENDED",
+      discount: "15% OFF",
+      featured: false
     }
   ];
+
+  // Filter only featured books (exactly 3 books)
+  const featuredBooks = allBooks.filter(book => book.featured).slice(0, 3);
 
   const handleAddToCart = (book) => {
     onAddToCart && onAddToCart(book);
     setAddedToCart(prev => ({ ...prev, [book.id]: true }));
     
-    // Reset the animation after 2 seconds
     setTimeout(() => {
       setAddedToCart(prev => ({ ...prev, [book.id]: false }));
     }, 2000);
@@ -63,17 +114,17 @@ const FeaturedBooksSection = ({ onAddToCart, onAddToWishlist, onQuickView }) => 
 
   const handleAddToWishlist = (book) => {
     onAddToWishlist && onAddToWishlist(book);
-    setAddedToWishlist(prev => ({ ...prev, [book.id]: true }));
-    
-    // Reset the animation after 2 seconds
-    setTimeout(() => {
-      setAddedToWishlist(prev => ({ ...prev, [book.id]: false }));
-    }, 2000);
+    setAddedToWishlist(prev => ({ ...prev, [book.id]: !prev[book.id] }));
   };
 
   const handleQuickView = (book) => {
-    // Call the parent component's onQuickView function to navigate to ProductSection
+    // Navigate to individual product page
     onQuickView && onQuickView(book);
+  };
+
+  const handleViewAllBooks = () => {
+    // Navigate to Library page
+    onViewAllBooks && onViewAllBooks();
   };
 
   return (
@@ -106,51 +157,58 @@ const FeaturedBooksSection = ({ onAddToCart, onAddToWishlist, onQuickView }) => 
           </p>
         </div>
 
-        {/* Books Grid - Bigger cards to fill screen properly */}
+        {/* Books Grid - Fixed Card Dimensions */}
         <div className="flex justify-center mb-12">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 max-w-full px-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl">
             {featuredBooks.map((book, index) => (
               <div
                 key={book.id}
-                className="group relative flex justify-center"
+                className="group relative"
                 onMouseEnter={() => setHoveredBook(book.id)}
                 onMouseLeave={() => setHoveredBook(null)}
                 style={{ animationDelay: `${index * 200}ms` }}
               >
-                {/* Main Card - Much bigger and fills screen better */}
-                <div className="relative bg-[#1A0F2E]/80 backdrop-blur-md rounded-3xl p-8 border border-white/10 hover:border-white/30 transition-all duration-500 transform hover:scale-105 hover:-translate-y-2 shadow-2xl hover:shadow-[0_25px_50px_rgba(0,0,0,0.4)] w-full max-w-[400px] min-w-[350px]">
+                {/* Fixed Size Card - Book Proportions */}
+                <div className="relative bg-[#1A0F2E]/80 backdrop-blur-md rounded-3xl p-6 border border-white/10 hover:border-white/30 transition-all duration-500 transform hover:scale-105 hover:-translate-y-2 shadow-2xl hover:shadow-[0_25px_50px_rgba(0,0,0,0.4)] w-[320px] h-[520px] flex flex-col">
                   
+                  {/* Featured Badge */}
+                  <div className="absolute -top-3 right-4 z-20">
+                    <div className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">
+                      FEATURED
+                    </div>
+                  </div>
+
                   {/* Category Badge */}
-                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-20">
-                    <div className="bg-gradient-to-r from-[#2D1B3D] to-[#3D2A54] text-white px-6 py-3 rounded-full text-sm font-bold shadow-lg border border-white/20">
+                  <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 z-20">
+                    <div className="bg-gradient-to-r from-[#2D1B3D] to-[#3D2A54] text-white px-4 py-2 rounded-full text-xs font-bold shadow-lg border border-white/20">
                       {book.category}
                     </div>
                   </div>
 
-                  {/* Book Image Container */}
-                  <div className="relative mb-8 flex justify-center mt-4">
+                  {/* Book Image Container - Fixed Book Dimensions */}
+                  <div className="relative mb-4 flex justify-center mt-4">
                     <div className="relative group-hover:transform group-hover:scale-105 transition-transform duration-500">
                       {/* Glow Effect */}
-                      <div className="absolute inset-0 bg-gradient-to-b from-white/20 to-transparent rounded-2xl blur-lg group-hover:blur-xl transition-all duration-500"></div>
+                      <div className="absolute inset-0 bg-gradient-to-b from-white/20 to-transparent rounded-xl blur-lg group-hover:blur-xl transition-all duration-500"></div>
                       
-                      {/* Book Image - Much bigger */}
-                      <div className="relative w-56 h-72 rounded-2xl overflow-hidden shadow-2xl">
+                      {/* Book Image - Fixed Book Proportions (3:4 ratio) */}
+                      <div className="relative w-48 h-64 rounded-xl overflow-hidden shadow-2xl">
                         <img 
                           src={book.image} 
                           alt={book.title}
                           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                         />
                         
-                        {/* Overlay on Hover with Working Quick View Button */}
+                        {/* Quick View Overlay */}
                         <div className={`absolute inset-0 bg-gradient-to-t from-[#2D1B3D]/80 via-transparent to-transparent transition-opacity duration-300 ${
                           hoveredBook === book.id ? 'opacity-100' : 'opacity-0'
                         }`}>
-                          <div className="absolute bottom-6 left-6 right-6">
+                          <div className="absolute bottom-4 left-4 right-4">
                             <button 
                               onClick={() => handleQuickView(book)}
-                              className="w-full bg-white/90 backdrop-blur-sm text-[#2D1B3D] py-3 rounded-lg font-semibold flex items-center justify-center space-x-2 hover:bg-white transition-colors duration-200 text-base transform hover:scale-105"
+                              className="w-full bg-white/90 backdrop-blur-sm text-[#2D1B3D] py-2 rounded-lg font-semibold flex items-center justify-center space-x-2 hover:bg-white transition-colors duration-200 text-sm transform hover:scale-105"
                             >
-                              <Eye className="w-5 h-5" />
+                              <Eye className="w-4 h-4" />
                               <span>Quick View</span>
                             </button>
                           </div>
@@ -159,60 +217,62 @@ const FeaturedBooksSection = ({ onAddToCart, onAddToWishlist, onQuickView }) => 
                     </div>
                   </div>
 
-                  {/* Book Details */}
-                  <div className="text-center space-y-5">
+                  {/* Book Details - Flexible Space */}
+                  <div className="text-center space-y-3 flex-1 flex flex-col justify-between">
                     {/* Title & Author */}
                     <div>
-                      <h3 className="text-2xl font-bold text-white mb-3 group-hover:text-white/90 transition-colors duration-300 leading-tight">
+                      <h3 className="text-lg font-bold text-white mb-2 group-hover:text-white/90 transition-colors duration-300 leading-tight line-clamp-2">
                         {book.title}
                       </h3>
-                      <p className="text-white/70 font-medium text-base">by {book.author}</p>
+                      <p className="text-white/70 font-medium text-sm">by {book.author}</p>
                     </div>
 
-                    {/* Rating and Price in one line */}
-                    <div className="flex items-center justify-between px-4">
+                    {/* Rating and Price */}
+                    <div className="flex items-center justify-between px-2">
                       {/* Rating */}
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-1">
                         <div className="flex items-center">
                           {[...Array(5)].map((_, i) => (
                             <Star 
                               key={i} 
-                              className={`w-5 h-5 ${i < Math.floor(book.rating) ? 'text-yellow-400 fill-current' : 'text-white/30'}`} 
+                              className={`w-4 h-4 ${i < Math.floor(book.rating) ? 'text-yellow-400 fill-current' : 'text-white/30'}`} 
                             />
                           ))}
                         </div>
-                        <span className="text-white/80 text-base font-medium">{book.rating}</span>
+                        <span className="text-white/80 text-sm font-medium">{book.rating}</span>
                       </div>
                       
                       {/* Price */}
                       <div className="text-right">
-                        <span className="text-2xl font-bold text-white">${book.price}</span>
-                        <div className="text-sm text-white/50 line-through">${book.originalPrice}</div>
+                        <span className="text-xl font-bold text-white">${book.price}</span>
+                        <div className="text-xs text-white/50 line-through">${book.originalPrice}</div>
                       </div>
                     </div>
 
                     {/* Action Buttons */}
-                    <div className="flex items-center space-x-4 pt-3">
+                    <div className="flex items-center space-x-3">
                       <button 
                         onClick={() => handleAddToCart(book)}
-                        className={`flex-1 bg-gradient-to-r from-[#2D1B3D] to-[#3D2A54] hover:from-[#3D2A54] hover:to-[#2D1B3D] text-white py-4 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl font-semibold text-base flex items-center justify-center space-x-2 ${
-                          addedToCart[book.id] ? 'bg-green-500 hover:bg-green-600' : ''
+                        className={`flex-1 py-3 px-4 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl font-semibold text-sm flex items-center justify-center space-x-2 ${
+                          addedToCart[book.id] 
+                            ? 'bg-green-500 hover:bg-green-600 text-white' 
+                            : 'bg-gradient-to-r from-[#2D1B3D] to-[#3D2A54] hover:from-[#3D2A54] hover:to-[#2D1B3D] text-white'
                         }`}
-                        title={addedToCart[book.id] ? 'Added to Cart!' : 'Add to Cart'}
                       >
-                        <ShoppingCart className="w-5 h-5" />
+                        <ShoppingCart className="w-4 h-4" />
                         <span>{addedToCart[book.id] ? 'Added!' : 'Add to Cart'}</span>
                       </button>
                       
                       <button 
                         onClick={() => handleAddToWishlist(book)}
-                        className={`p-4 bg-white/10 backdrop-blur-sm hover:bg-white/20 border border-white/20 hover:border-white/40 rounded-xl transition-all duration-300 transform hover:scale-105 ${
-                          addedToWishlist[book.id] ? 'bg-red-500/20 border-red-500/40' : ''
+                        className={`p-3 backdrop-blur-sm border rounded-xl transition-all duration-300 transform hover:scale-105 ${
+                          addedToWishlist[book.id] 
+                            ? 'bg-red-500/20 border-red-500/60 text-red-400' 
+                            : 'bg-white/10 hover:bg-white/20 border-white/20 hover:border-white/40 text-white hover:text-red-400'
                         }`}
-                        title={addedToWishlist[book.id] ? 'Added to Wishlist!' : 'Add to Wishlist'}
                       >
-                        <Heart className={`w-6 h-6 text-white transition-colors duration-300 ${
-                          addedToWishlist[book.id] ? 'fill-red-500 text-red-500' : 'hover:text-red-400'
+                        <Heart className={`w-5 h-5 transition-colors duration-300 ${
+                          addedToWishlist[book.id] ? 'fill-current' : ''
                         }`} />
                       </button>
                     </div>
@@ -225,7 +285,10 @@ const FeaturedBooksSection = ({ onAddToCart, onAddToWishlist, onQuickView }) => 
 
         {/* View All Books Button */}
         <div className="text-center">
-          <button className="bg-white/10 backdrop-blur-md hover:bg-white/20 border border-white/20 hover:border-white/40 text-white px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-300 transform hover:scale-105 flex items-center space-x-3 mx-auto shadow-lg hover:shadow-xl">
+          <button 
+            onClick={handleViewAllBooks}
+            className="bg-white/10 backdrop-blur-md hover:bg-white/20 border border-white/20 hover:border-white/40 text-white px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-300 transform hover:scale-105 flex items-center space-x-3 mx-auto shadow-lg hover:shadow-xl"
+          >
             <BookOpen className="w-6 h-6" />
             <span>View All Books</span>
             <ArrowRight className="w-5 h-5" />
