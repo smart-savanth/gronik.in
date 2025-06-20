@@ -68,9 +68,9 @@ const Navbar = () => {
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2 cursor-pointer">
-            <div className="w-16 h-16 flex items-center justify-center">
+            <div className="w-20 h-20 md:w-24 md:h-24 flex items-center justify-center">
               <img 
-                src="/logo.png" 
+                src="/images/logo.png" 
                 alt="Gronik Logo"
                 className="w-full h-full object-contain"
               />
