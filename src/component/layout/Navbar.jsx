@@ -65,14 +65,14 @@ const Navbar = () => {
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-gronik-primary/95 backdrop-blur-md shadow-lg border-b border-gronik-secondary/20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-20">
-          {/* Logo */}
-          <Link to="/" className="flex items-center space-x-2 cursor-pointer">
-            <div className="w-20 h-20 md:w-24 md:h-24 flex items-center justify-center">
+        <div className="flex items-center justify-between h-24">
+          {/* Logo - Significantly Increased Size */}
+          <Link to="/" className="flex items-center justify-center cursor-pointer">
+           <div className="w-20 h-8 xs:w-22 xs:h-9 sm:w-24 sm:h-10 md:w-28 md:h-11 lg:w-32 lg:h-12 flex items-center justify-center">
               <img 
                 src="/images/logo.png" 
                 alt="Gronik Logo"
-                className="w-full h-full object-contain"
+                className="w-full h-full object-contain max-w-full max-h-full"
               />
             </div>
           </Link>
@@ -159,8 +159,9 @@ const Navbar = () => {
               <User className="w-5 h-5 text-gronik-light group-hover:text-gronik-accent transition-colors duration-200" />
             </Link>
 
+            {/* Updated Login Button - Now navigates to /login */}
             <button 
-              onClick={() => handleNavigation('page', '/login')}
+              onClick={() => navigate('/login')}
               className="bg-gradient-to-r from-gronik-accent to-gronik-secondary hover:from-gronik-secondary hover:to-gronik-accent text-white px-6 py-2 rounded-lg transition-all duration-200 transform hover:scale-105 font-medium shadow-lg"
             >
               Login
@@ -268,8 +269,12 @@ const Navbar = () => {
                 <User className="w-5 h-5 text-gronik-light group-hover:text-gronik-accent transition-colors duration-200" />
               </Link>
             </div>
+            {/* Updated Mobile Login Button - Now navigates to /login */}
             <button 
-              onClick={() => handleNavigation('page', '/login')}
+              onClick={() => {
+                navigate('/login');
+                setIsMenuOpen(false);
+              }}
               className="w-full bg-gradient-to-r from-gronik-accent to-gronik-secondary hover:from-gronik-secondary hover:to-gronik-accent text-white px-6 py-3 rounded-lg transition-all duration-200 font-medium shadow-lg"
             >
               Login

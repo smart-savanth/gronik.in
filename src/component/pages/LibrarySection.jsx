@@ -165,7 +165,7 @@ export const centralizedBooksData = [
   }
 ];
 
-const LibraryPage = ({ onAddToCart, onAddToWishlist, onNavigateToProduct }) => {
+const LibraryPage = ({ onAddToCart, onAddToWishlist, onNavigateToProduct, onQuickView }) => {
   const [hoveredBook, setHoveredBook] = useState(null);
   const [addedToCart, setAddedToCart] = useState({});
   const [addedToWishlist, setAddedToWishlist] = useState({});
@@ -199,14 +199,7 @@ const LibraryPage = ({ onAddToCart, onAddToWishlist, onNavigateToProduct }) => {
   };
 
   const handleQuickView = (book) => {
-    // Navigate to ProductSection - you can adjust the path as needed
-    if (onNavigateToProduct) {
-      onNavigateToProduct(book);
-    } else {
-      // For now, just navigate to ProductSection
-      // You can replace this with your actual navigation logic
-      window.location.href = '/ProductSection.jsx';
-    }
+    onQuickView && onQuickView(book);
   };
 
   return (
@@ -218,13 +211,14 @@ const LibraryPage = ({ onAddToCart, onAddToWishlist, onNavigateToProduct }) => {
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-60 h-60 bg-[#2D1B3D] rounded-full blur-3xl"></div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 relative z-10">
-        {/* Header Section */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8 gap-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 lg:pt-32 relative z-10">
+        {/* Header Section - Fixed mobile spacing */}
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8 lg:mb-16 gap-6 pt-16 lg:pt-0">
           <div className="flex-1">
+            {/* You can add a title here if needed */}
           </div>
 
-          {/* Filters - Centered on mobile */}
+          {/* Filters - Centered properly */}
           <div className="flex items-center justify-center lg:justify-end">
             {/* Category Filter */}
             <div className="relative">
@@ -261,9 +255,9 @@ const LibraryPage = ({ onAddToCart, onAddToWishlist, onNavigateToProduct }) => {
           </div>
         </div>
 
-        {/* Books Grid - Improved mobile spacing */}
+        {/* Books Grid - Improved mobile layout */}
         <div className="flex justify-center mb-12">
-          <div className="grid gap-3 sm:gap-4 lg:gap-8 grid-cols-2 lg:grid-cols-4 w-full max-w-7xl">
+          <div className="grid gap-4 lg:gap-8 grid-cols-2 lg:grid-cols-4 w-full max-w-7xl">
             {filteredBooks.map((book, index) => (
               <div
                 key={book.id}
@@ -272,46 +266,46 @@ const LibraryPage = ({ onAddToCart, onAddToWishlist, onNavigateToProduct }) => {
                 onMouseLeave={() => setHoveredBook(null)}
                 style={{ animationDelay: `${index * 100}ms` }}
               >
-                {/* Book Card - Optimized for mobile */}
-                <div className="relative bg-[#1A0F2E]/80 backdrop-blur-md rounded-xl lg:rounded-3xl border border-white/10 hover:border-white/30 transition-all duration-500 transform hover:scale-105 hover:-translate-y-2 shadow-2xl hover:shadow-[0_25px_50px_rgba(0,0,0,0.4)] w-full h-[350px] lg:h-[520px] p-2 lg:p-6 flex flex-col">
+                {/* Book Card - Improved mobile design */}
+                <div className="relative bg-[#1A0F2E]/80 backdrop-blur-md rounded-xl lg:rounded-3xl border border-white/10 hover:border-white/30 transition-all duration-500 transform hover:scale-105 hover:-translate-y-2 shadow-2xl hover:shadow-[0_25px_50px_rgba(0,0,0,0.4)] w-full h-[300px] lg:h-[520px] p-3 lg:p-6 flex flex-col">
                   
-                  {/* Category Badge */}
-                  <div className="absolute -top-2 lg:-top-3 left-1/2 transform -translate-x-1/2 z-20">
+                  {/* Category Badge - Hidden on mobile, visible on desktop */}
+                  <div className="absolute -top-2 lg:-top-3 left-1/2 transform -translate-x-1/2 z-20 hidden lg:block">
                     <div className="bg-gradient-to-r from-[#2D1B3D] to-[#3D2A54] text-white px-2 lg:px-4 py-1 lg:py-2 rounded-full text-xs font-bold shadow-lg border border-white/20">
                       {book.category}
                     </div>
                   </div>
 
-                  {/* Book Image - Larger on mobile */}
-                  <div className="mb-2 lg:mb-4 flex justify-center mt-2 lg:mt-4">
-                    <div className="relative w-20 h-28 lg:w-48 lg:h-64 rounded-lg lg:rounded-xl overflow-hidden shadow-2xl group-hover:scale-105 transition-transform duration-500">
+                  {/* Book Image - Optimized sizing */}
+                  <div className="mb-2 lg:mb-4 flex justify-center mt-1 lg:mt-4">
+                    <div className="relative w-16 h-24 lg:w-48 lg:h-64 rounded-lg lg:rounded-xl overflow-hidden shadow-2xl group-hover:scale-105 transition-transform duration-500">
                       <img 
                         src={book.image} 
                         alt={book.title}
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                       />
                       
-                      {/* Quick View Overlay */}
-                      <div className={`absolute inset-0 bg-gradient-to-t from-[#2D1B3D]/80 via-transparent to-transparent transition-opacity duration-300 ${
+                      {/* Quick View Overlay - Desktop only */}
+                      <div className={`absolute inset-0 bg-gradient-to-t from-[#2D1B3D]/80 via-transparent to-transparent transition-opacity duration-300 hidden sm:block ${
                         hoveredBook === book.id ? 'opacity-100' : 'opacity-0'
                       }`}>
-                        <div className="absolute bottom-1 left-1 right-1">
+                        <div className="absolute bottom-2 sm:bottom-3 left-2 sm:left-3 right-2 sm:right-3">
                           <button 
                             onClick={() => handleQuickView(book)}
-                            className="w-full bg-white/90 backdrop-blur-sm text-[#2D1B3D] py-1 lg:py-2 rounded-md lg:rounded-lg font-semibold flex items-center justify-center space-x-1 hover:bg-white transition-colors duration-200 text-xs lg:text-sm transform hover:scale-105"
+                            className="w-full bg-white/90 backdrop-blur-sm text-[#2D1B3D] py-1.5 sm:py-3 rounded-lg font-semibold flex items-center justify-center space-x-1 sm:space-x-2 hover:bg-white transition-colors duration-200 text-xs sm:text-sm transform hover:scale-105"
                           >
-                            <Eye className="w-3 h-3 lg:w-4 lg:h-4" />
-                            <span>View</span>
+                            <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
+                            <span>Quick View</span>
                           </button>
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  {/* Book Details - Compressed spacing */}
+                  {/* Book Details - Cleaner mobile layout */}
                   <div className="text-center space-y-1 lg:space-y-3 flex-1 flex flex-col justify-between">
-                    {/* Title & Author - Reduced spacing */}
-                    <div className="space-y-1">
+                    {/* Title & Author */}
+                    <div className="space-y-0.5 lg:space-y-1">
                       <h3 className="font-bold text-white group-hover:text-white/90 transition-colors duration-300 leading-tight text-xs lg:text-lg line-clamp-2">
                         {book.title}
                       </h3>
@@ -320,46 +314,46 @@ const LibraryPage = ({ onAddToCart, onAddToWishlist, onNavigateToProduct }) => {
                       </p>
                     </div>
 
-                    {/* Rating and Price - Tighter spacing */}
-                    <div className="flex items-center justify-between px-1">
-                      {/* Rating */}
+                    {/* Rating and Price - Minimal mobile design */}
+                    <div className="flex items-center justify-between px-1 lg:px-0">
+                      {/* Rating - Minimal on mobile */}
                       <div className="flex flex-col items-start space-y-0.5">
                         <div className="flex items-center space-x-0.5">
                           {[...Array(5)].map((_, i) => (
                             <Star 
                               key={i} 
-                              className={`w-2.5 h-2.5 lg:w-4 lg:h-4 ${i < Math.floor(book.rating) ? 'text-yellow-400 fill-current' : 'text-white/30'}`} 
+                              className={`w-2 h-2 lg:w-4 lg:h-4 ${i < Math.floor(book.rating) ? 'text-yellow-400 fill-current' : 'text-white/30'}`} 
                             />
                           ))}
                         </div>
                         <span className="text-white/80 text-xs lg:text-sm font-medium">{book.rating}</span>
                       </div>
                       
-                      {/* Price */}
+                      {/* Price - Clean mobile layout */}
                       <div className="text-right">
                         <span className="text-sm lg:text-xl font-bold text-white">${book.price}</span>
-                        <div className="text-xs text-white/50 line-through">${book.originalPrice}</div>
+                        <div className="text-xs lg:text-sm text-white/50 line-through">${book.originalPrice}</div>
                       </div>
                     </div>
 
-                    {/* Action Buttons - Reduced padding */}
-                    <div className="flex items-center space-x-1.5 lg:space-x-3">
+                    {/* Action Buttons - Minimal and clean mobile design */}
+                    <div className="flex items-center space-x-1 lg:space-x-3 mt-2">
                       <button 
                         onClick={() => handleAddToCart(book)}
-                        className={`flex-1 py-1.5 lg:py-3 px-2 lg:px-4 rounded-lg lg:rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl font-semibold text-xs lg:text-sm flex items-center justify-center space-x-1 ${
+                        className={`flex-1 py-1.5 lg:py-3 px-1 lg:px-4 rounded-md lg:rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl font-semibold text-xs lg:text-sm flex items-center justify-center space-x-1 ${
                           addedToCart[book.id] 
                             ? 'bg-green-500 hover:bg-green-600 text-white' 
                             : 'bg-gradient-to-r from-[#2D1B3D] to-[#3D2A54] hover:from-[#3D2A54] hover:to-[#2D1B3D] text-white'
                         }`}
                       >
                         <ShoppingCart className="w-3 h-3 lg:w-4 lg:h-4" />
-                        <span className="hidden sm:inline">{addedToCart[book.id] ? 'Added!' : 'Add To Cart'}</span>
-                        <span className="sm:hidden">{addedToCart[book.id] ? '✓' : '+'}</span>
+                        <span className="hidden sm:inline lg:inline">{addedToCart[book.id] ? 'Added!' : 'Cart'}</span>
+                        <span className="sm:hidden lg:hidden">{addedToCart[book.id] ? '✓' : '+'}</span>
                       </button>
                       
                       <button 
                         onClick={() => handleAddToWishlist(book)}
-                        className={`p-1.5 lg:p-3 backdrop-blur-sm border rounded-lg lg:rounded-xl transition-all duration-300 transform hover:scale-105 ${
+                        className={`p-1.5 lg:p-3 backdrop-blur-sm border rounded-md lg:rounded-xl transition-all duration-300 transform hover:scale-105 ${
                           addedToWishlist[book.id] 
                             ? 'bg-red-500/20 border-red-500/60 text-red-400' 
                             : 'bg-white/10 hover:bg-white/20 border-white/20 hover:border-white/40 text-white hover:text-red-400'

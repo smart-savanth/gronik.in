@@ -13,6 +13,7 @@ import WishlistPage from './component/pages/WishlsitSection';
 import ProductSection from './component/pages/ProductSection';
 import ProfileSection from './component/pages/ProfileSection';
 import LibraryPage from './component/pages/LibrarySection';
+import LoginSection from './component/pages/LoginSection';
 
 // Home page component with product view state
 const HomePage = () => {
@@ -27,7 +28,7 @@ const HomePage = () => {
     setCurrentView('product');
   };
 
-  // Handle Go Back - return to books view
+  // Handle Go Back - return to library view
   const handleGoBack = () => {
     setCurrentView('books');
     setSelectedBook(null);
@@ -91,6 +92,8 @@ const HomePage = () => {
 
 // Library page wrapper component to handle state
 const LibraryPageWrapper = () => {
+  const [currentView, setCurrentView] = useState('library');
+  const [selectedBook, setSelectedBook] = useState(null);
   const [cart, setCart] = useState([]);
   const [wishlist, setWishlist] = useState([]);
 
@@ -123,12 +126,31 @@ const LibraryPageWrapper = () => {
     console.log('Added to wishlist:', book.title);
   };
 
-  // Handle Quick View (you can navigate to product page or show modal)
+  // Handle Quick View - navigate to product details
   const handleQuickView = (book) => {
-    console.log('Quick view for:', book.title);
-    // You can implement navigation to product page or show a modal here
+    setSelectedBook(book);
+    setCurrentView('product');
   };
 
+  // Handle Go Back - return to library view
+  const handleGoBack = () => {
+    setCurrentView('library');
+    setSelectedBook(null);
+  };
+
+  // Conditional rendering based on current view
+  if (currentView === 'product' && selectedBook) {
+    return (
+      <ProductSection 
+        book={selectedBook}
+        onGoBack={handleGoBack}
+        onAddToCart={handleAddToCart}
+        onAddToWishlist={handleAddToWishlist}
+      />
+    );
+  }
+
+  // Default library page view
   return (
     <LibraryPage
       onAddToCart={handleAddToCart}
@@ -150,6 +172,7 @@ function App() {
           <Route path="/wishlist" element={<WishlistPage />} />
           <Route path="/cart" element={<CartSection />} />
           <Route path="/profile" element={<ProfileSection/>} />
+          <Route path="/login" element={<LoginSection/>} />
         </Routes>
         <Footer/>
       </div>
