@@ -7,6 +7,7 @@ import AboutSection from './component/home/AboutSection';
 import FeaturedBooks from './component/home/FeaturedBooks';
 import ReviewsSection from './component/home/ReviewsSection';
 import Footer from './component/layout/Footer';
+import WhyEbooksButton from './component/layout/Button';
 import ContactSection from './component/pages/ContactSection';
 import CartSection from './component/pages/CartSection';
 import WishlistPage from './component/pages/WishlsitSection';
@@ -175,6 +176,9 @@ function App() {
           <Route path="/login" element={<LoginSection/>} />
         </Routes>
         <Footer/>
+        
+        {/* Fixed Floating Button - Available on All Pages */}
+        <WhyEbooksButton />
       </div>
     </Router>
   );
