@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import AdminLayout from './Adminlayout';
 import { 
   BookOpen, 
   Plus, 
@@ -193,210 +194,214 @@ const BooksManagement = () => {
 
   return (
     <AdminLayout currentPage="Books">
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
-          <div>
-            <h2 className="text-2xl font-bold text-white">Books Management</h2>
-            <p className="text-purple-200 mt-1">Manage your e-book collection and inventory</p>
-          </div>
-          <div className="flex items-center space-x-3">
-            <button className="px-4 py-2 bg-purple-700/30 text-purple-200 rounded-lg border border-purple-600/30 hover:bg-purple-700/50 transition-all duration-200 flex items-center space-x-2">
-              <Download className="w-4 h-4" />
-              <span>Export</span>
-            </button>
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-lg hover:from-purple-600 hover:to-indigo-600 transition-all duration-200 flex items-center space-x-2"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Add Book</span>
-            </button>
-          </div>
-        </div>
+      <div className="min-h-[calc(100vh-5rem)] bg-gradient-to-br from-[#E9D8FD] via-[#F3E8FF] to-[#E9D8FD] py-10 px-2 sm:px-6 lg:px-8">
+        <div className="bg-[#2D1B3D]/90 rounded-2xl p-6 border border-gronik-secondary/20 shadow-xl">
+          <h2 className="text-2xl font-bold text-white mb-6">Books Management</h2>
+          <div className="space-y-6">
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+              <div>
+                <p className="text-purple-200 mt-1">Manage your e-book collection and inventory</p>
+              </div>
+              <div className="flex items-center space-x-3">
+                <button className="px-4 py-2 bg-purple-700/30 text-purple-200 rounded-lg border border-purple-600/30 hover:bg-purple-700/50 transition-all duration-200 flex items-center space-x-2">
+                  <Download className="w-4 h-4" />
+                  <span>Export</span>
+                </button>
+                <button
+                  onClick={() => setShowAddModal(true)}
+                  className="px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-lg hover:from-purple-600 hover:to-indigo-600 transition-all duration-200 flex items-center space-x-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Add Book</span>
+                </button>
+              </div>
+            </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div className="bg-gradient-to-r from-purple-800/50 to-indigo-800/50 rounded-xl p-6 border border-purple-600/20">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-purple-200 text-sm">Total Books</p>
-                <p className="text-2xl font-bold text-white">1,234</p>
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              <div className="bg-gradient-to-r from-purple-800/50 to-indigo-800/50 rounded-xl p-6 border border-purple-600/20">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-purple-200 text-sm">Total Books</p>
+                    <p className="text-2xl font-bold text-white">1,234</p>
+                  </div>
+                  <BookOpen className="w-8 h-8 text-purple-400" />
+                </div>
               </div>
-              <BookOpen className="w-8 h-8 text-purple-400" />
-            </div>
-          </div>
-          <div className="bg-gradient-to-r from-green-800/50 to-emerald-800/50 rounded-xl p-6 border border-green-600/20">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-green-200 text-sm">Active Books</p>
-                <p className="text-2xl font-bold text-white">987</p>
+              <div className="bg-gradient-to-r from-green-800/50 to-emerald-800/50 rounded-xl p-6 border border-green-600/20">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-green-200 text-sm">Active Books</p>
+                    <p className="text-2xl font-bold text-white">987</p>
+                  </div>
+                  <Eye className="w-8 h-8 text-green-400" />
+                </div>
               </div>
-              <Eye className="w-8 h-8 text-green-400" />
-            </div>
-          </div>
-          <div className="bg-gradient-to-r from-blue-800/50 to-cyan-800/50 rounded-xl p-6 border border-blue-600/20">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-blue-200 text-sm">Total Sales</p>
-                <p className="text-2xl font-bold text-white">$45,678</p>
+              <div className="bg-gradient-to-r from-blue-800/50 to-cyan-800/50 rounded-xl p-6 border border-blue-600/20">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-blue-200 text-sm">Total Sales</p>
+                    <p className="text-2xl font-bold text-white">$45,678</p>
+                  </div>
+                  <DollarSign className="w-8 h-8 text-blue-400" />
+                </div>
               </div>
-              <DollarSign className="w-8 h-8 text-blue-400" />
-            </div>
-          </div>
-          <div className="bg-gradient-to-r from-orange-800/50 to-red-800/50 rounded-xl p-6 border border-orange-600/20">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-orange-200 text-sm">Top Rated</p>
-                <p className="text-2xl font-bold text-white">4.8★</p>
+              <div className="bg-gradient-to-r from-orange-800/50 to-red-800/50 rounded-xl p-6 border border-orange-600/20">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-orange-200 text-sm">Top Rated</p>
+                    <p className="text-2xl font-bold text-white">4.8★</p>
+                  </div>
+                  <Star className="w-8 h-8 text-orange-400" />
+                </div>
               </div>
-              <Star className="w-8 h-8 text-orange-400" />
             </div>
-          </div>
-        </div>
 
-        {/* Filters and Search */}
-        <div className="bg-gradient-to-r from-purple-800/30 to-indigo-800/30 rounded-xl p-6 border border-purple-600/20">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
-            <div className="flex flex-col sm:flex-row sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-purple-300 w-4 h-4" />
-                <input
-                  type="text"
-                  placeholder="Search books..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="bg-purple-700/30 border border-purple-600/30 rounded-lg pl-10 pr-4 py-2 text-white placeholder-purple-300 focus:outline-none focus:border-purple-400 w-full sm:w-64"
-                />
-              </div>
-              <select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                className="bg-purple-700/30 border border-purple-600/30 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-purple-400"
-              >
-                {statuses.map(status => (
-                  <option key={status} value={status}>
-                    {status.charAt(0).toUpperCase() + status.slice(1)}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className="flex items-center space-x-2 px-4 py-2 bg-purple-700/30 text-purple-200 rounded-lg border border-purple-600/30 hover:bg-purple-700/50 transition-all duration-200"
-            >
-              <Filter className="w-4 h-4" />
-              <span>More Filters</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Books Table */}
-        <div className="bg-gradient-to-r from-purple-800/30 to-indigo-800/30 rounded-xl border border-purple-600/20 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-purple-700/50 border-b border-purple-600/20">
-                <tr>
-                  <th className="px-6 py-4 text-left">
+            {/* Filters and Search */}
+            <div className="bg-gradient-to-r from-purple-800/30 to-indigo-800/30 rounded-xl p-6 border border-purple-600/20">
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
+                <div className="flex flex-col sm:flex-row sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-purple-300 w-4 h-4" />
                     <input
-                      type="checkbox"
-                      checked={selectedBooks.length === books.length}
-                      onChange={handleSelectAll}
-                      className="rounded border-purple-500 text-purple-500 focus:ring-purple-500"
+                      type="text"
+                      placeholder="Search books..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="bg-purple-700/30 border border-purple-600/30 rounded-lg pl-10 pr-4 py-2 text-white placeholder-purple-300 focus:outline-none focus:border-purple-400 w-full sm:w-64"
                     />
-                  </th>
-                  <th className="px-6 py-4 text-left text-purple-200 font-medium">Book</th>
-                  <th className="px-6 py-4 text-left text-purple-200 font-medium">Category</th>
-                  <th className="px-6 py-4 text-left text-purple-200 font-medium">Price</th>
-                  <th className="px-6 py-4 text-left text-purple-200 font-medium">Sales</th>
-                  <th className="px-6 py-4 text-left text-purple-200 font-medium">Rating</th>
-                  <th className="px-6 py-4 text-left text-purple-200 font-medium">Status</th>
-                  <th className="px-6 py-4 text-left text-purple-200 font-medium">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-purple-600/20">
-                {books.map((book) => (
-                  <tr key={book.id} className="hover:bg-purple-700/20 transition-colors duration-200">
-                    <td className="px-6 py-4">
-                      <input
-                        type="checkbox"
-                        checked={selectedBooks.includes(book.id)}
-                        onChange={() => handleSelectBook(book.id)}
-                        className="rounded border-purple-500 text-purple-500 focus:ring-purple-500"
-                      />
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center space-x-3">
-                        <img
-                          src={book.image}
-                          alt={book.title}
-                          className="w-12 h-16 object-cover rounded-lg"
-                        />
-                        <div>
-                          <p className="text-white font-medium">{book.title}</p>
-                          <p className="text-purple-300 text-sm">{book.author}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="px-3 py-1 bg-purple-600/30 text-purple-200 rounded-full text-sm">
-                        {book.category}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-white font-medium">${book.price}</div>
-                      {book.originalPrice > book.price && (
-                        <div className="text-purple-300 text-sm line-through">${book.originalPrice}</div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center space-x-1">
-                        <Users className="w-4 h-4 text-purple-400" />
-                        <span className="text-white">{book.sales}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center space-x-1">
-                        <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                        <span className="text-white">{book.rating}</span>
-                        <span className="text-purple-300 text-sm">({book.reviews})</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(book.status)}`}>
-                        {book.status.toUpperCase()}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center space-x-2">
-                        <button className="p-2 text-purple-300 hover:text-purple-100 hover:bg-purple-700/30 rounded-lg transition-all duration-200">
-                          <Eye className="w-4 h-4" />
-                        </button>
-                        <button className="p-2 text-purple-300 hover:text-purple-100 hover:bg-purple-700/30 rounded-lg transition-all duration-200">
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        <button className="p-2 text-red-400 hover:text-red-300 hover:bg-red-500/20 rounded-lg transition-all duration-200">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Pagination */}
-          <div className="px-6 py-4 border-t border-purple-600/20 flex items-center justify-between">
-            <div className="text-purple-200 text-sm">
-              Showing 1 to 4 of 1,234 results
+                  </div>
+                  <select
+                    value={filterStatus}
+                    onChange={(e) => setFilterStatus(e.target.value)}
+                    className="bg-purple-700/30 border border-purple-600/30 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-purple-400"
+                  >
+                    {statuses.map(status => (
+                      <option key={status} value={status}>
+                        {status.charAt(0).toUpperCase() + status.slice(1)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <button
+                  onClick={() => setShowFilters(!showFilters)}
+                  className="flex items-center space-x-2 px-4 py-2 bg-purple-700/30 text-purple-200 rounded-lg border border-purple-600/30 hover:bg-purple-700/50 transition-all duration-200"
+                >
+                  <Filter className="w-4 h-4" />
+                  <span>More Filters</span>
+                </button>
+              </div>
             </div>
-            <div className="flex items-center space-x-2">
-              <button className="px-3 py-1 text-purple-300 hover:text-white transition-colors">Previous</button>
-              <button className="px-3 py-1 bg-purple-500 text-white rounded">1</button>
-              <button className="px-3 py-1 text-purple-300 hover:text-white transition-colors">2</button>
-              <button className="px-3 py-1 text-purple-300 hover:text-white transition-colors">3</button>
-              <button className="px-3 py-1 text-purple-300 hover:text-white transition-colors">Next</button>
+
+            {/* Books Table */}
+            <div className="bg-gradient-to-r from-purple-800/30 to-indigo-800/30 rounded-xl border border-purple-600/20 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-purple-700/50 border-b border-purple-600/20">
+                    <tr>
+                      <th className="px-6 py-4 text-left">
+                        <input
+                          type="checkbox"
+                          checked={selectedBooks.length === books.length}
+                          onChange={handleSelectAll}
+                          className="rounded border-purple-500 text-purple-500 focus:ring-purple-500"
+                        />
+                      </th>
+                      <th className="px-6 py-4 text-left text-purple-200 font-medium">Book</th>
+                      <th className="px-6 py-4 text-left text-purple-200 font-medium">Category</th>
+                      <th className="px-6 py-4 text-left text-purple-200 font-medium">Price</th>
+                      <th className="px-6 py-4 text-left text-purple-200 font-medium">Sales</th>
+                      <th className="px-6 py-4 text-left text-purple-200 font-medium">Rating</th>
+                      <th className="px-6 py-4 text-left text-purple-200 font-medium">Status</th>
+                      <th className="px-6 py-4 text-left text-purple-200 font-medium">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-purple-600/20">
+                    {books.map((book) => (
+                      <tr key={book.id} className="hover:bg-purple-700/20 transition-colors duration-200">
+                        <td className="px-6 py-4">
+                          <input
+                            type="checkbox"
+                            checked={selectedBooks.includes(book.id)}
+                            onChange={() => handleSelectBook(book.id)}
+                            className="rounded border-purple-500 text-purple-500 focus:ring-purple-500"
+                          />
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center space-x-3">
+                            <img
+                              src={book.image}
+                              alt={book.title}
+                              className="w-12 h-16 object-cover rounded-lg"
+                            />
+                            <div>
+                              <p className="text-white font-medium">{book.title}</p>
+                              <p className="text-purple-300 text-sm">{book.author}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="px-3 py-1 bg-purple-600/30 text-purple-200 rounded-full text-sm">
+                            {book.category}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-white font-medium">${book.price}</div>
+                          {book.originalPrice > book.price && (
+                            <div className="text-purple-300 text-sm line-through">${book.originalPrice}</div>
+                          )}
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center space-x-1">
+                            <Users className="w-4 h-4 text-purple-400" />
+                            <span className="text-white">{book.sales}</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center space-x-1">
+                            <Star className="w-4 h-4 text-yellow-400 fill-current" />
+                            <span className="text-white">{book.rating}</span>
+                            <span className="text-purple-300 text-sm">({book.reviews})</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(book.status)}`}>
+                            {book.status.toUpperCase()}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center space-x-2">
+                            <button className="p-2 text-purple-300 hover:text-purple-100 hover:bg-purple-700/30 rounded-lg transition-all duration-200">
+                              <Eye className="w-4 h-4" />
+                            </button>
+                            <button className="p-2 text-purple-300 hover:text-purple-100 hover:bg-purple-700/30 rounded-lg transition-all duration-200">
+                              <Edit className="w-4 h-4" />
+                            </button>
+                            <button className="p-2 text-red-400 hover:text-red-300 hover:bg-red-500/20 rounded-lg transition-all duration-200">
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Pagination */}
+              <div className="px-6 py-4 border-t border-purple-600/20 flex items-center justify-between">
+                <div className="text-purple-200 text-sm">
+                  Showing 1 to 4 of 1,234 results
+                </div>
+                <div className="flex items-center space-x-2">
+                  <button className="px-3 py-1 text-purple-300 hover:text-white transition-colors">Previous</button>
+                  <button className="px-3 py-1 bg-purple-500 text-white rounded">1</button>
+                  <button className="px-3 py-1 text-purple-300 hover:text-white transition-colors">2</button>
+                  <button className="px-3 py-1 text-purple-300 hover:text-white transition-colors">3</button>
+                  <button className="px-3 py-1 text-purple-300 hover:text-white transition-colors">Next</button>
+                </div>
+              </div>
             </div>
           </div>
         </div>

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ShoppingCart, Heart, Star, Filter, ChevronDown } from 'lucide-react';
 
 // Centralized Books Data - This will be your single source of truth
@@ -17,7 +18,8 @@ export const centralizedBooksData = [
     badge: "BESTSELLER",
     discount: "25% OFF",
     featured: true,
-    hero: true
+    hero: true,
+    inStock: true
   },
   {
     id: 2,
@@ -33,7 +35,8 @@ export const centralizedBooksData = [
     badge: "TRENDING",
     discount: "20% OFF",
     featured: true,
-    hero: true
+    hero: true,
+    inStock: true
   },
   {
     id: 3,
@@ -49,7 +52,8 @@ export const centralizedBooksData = [
     badge: "NEW RELEASE",
     discount: "22% OFF",
     featured: true,
-    hero: true
+    hero: true,
+    inStock: true
   },
   {
     id: 4,
@@ -65,7 +69,8 @@ export const centralizedBooksData = [
     badge: "CLASSIC",
     discount: "18% OFF",
     featured: false,
-    hero: true
+    hero: true,
+    inStock: true
   },
   {
     id: 5,
@@ -81,7 +86,8 @@ export const centralizedBooksData = [
     badge: "POPULAR",
     discount: "16% OFF",
     featured: false,
-    hero: true
+    hero: true,
+    inStock: true
   },
   {
     id: 6,
@@ -97,7 +103,8 @@ export const centralizedBooksData = [
     badge: "RECOMMENDED",
     discount: "15% OFF",
     featured: false,
-    hero: false
+    hero: false,
+    inStock: false
   },
   {
     id: 7,
@@ -113,7 +120,8 @@ export const centralizedBooksData = [
     badge: "RECOMMENDED",
     discount: "15% OFF",
     featured: false,
-    hero: false
+    hero: false,
+    inStock: true
   },
   {
     id: 8,
@@ -129,7 +137,8 @@ export const centralizedBooksData = [
     badge: "POPULAR",
     discount: "16% OFF",
     featured: false,
-    hero: false
+    hero: false,
+    inStock: true
   },
   {
     id: 9,
@@ -145,7 +154,8 @@ export const centralizedBooksData = [
     badge: "BESTSELLER",
     discount: "21% OFF",
     featured: false,
-    hero: false
+    hero: false,
+    inStock: false
   },
   {
     id: 10,
@@ -161,15 +171,17 @@ export const centralizedBooksData = [
     badge: "INSPIRING",
     discount: "17% OFF",
     featured: false,
-    hero: false
+    hero: false,
+    inStock: true
   }
 ];
 
-const LibraryPage = ({ onAddToCart, onAddToWishlist, onNavigateToProduct }) => {
-  const [addedToCart, setAddedToCart] = useState({});
-  const [addedToWishlist, setAddedToWishlist] = useState({});
+const LibraryPage = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCart, onAddToWishlist, onRemoveFromWishlist, onQuickView }) => {
+  const [hoveredBook, setHoveredBook] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [addedBookIds, setAddedBookIds] = useState({});
+  const navigate = useNavigate();
 
   // Use centralized books data
   const allBooks = centralizedBooksData;
@@ -183,24 +195,30 @@ const LibraryPage = ({ onAddToCart, onAddToWishlist, onNavigateToProduct }) => {
     return matchesCategory;
   });
 
+  // Helper functions to check if a book is in cart/wishlist
+  const isInCart = (book) => cart.some(item => item.id === book.id);
+  const isInWishlist = (book) => wishlist.some(item => item.id === book.id);
+
   const handleAddToCart = (e, book) => {
-    e.stopPropagation(); // Prevent card click
+    e.stopPropagation();
     onAddToCart && onAddToCart(book);
-    setAddedToCart(prev => ({ ...prev, [book.id]: true }));
-    
+    setAddedBookIds(prev => ({ ...prev, [book.id]: true }));
     setTimeout(() => {
-      setAddedToCart(prev => ({ ...prev, [book.id]: false }));
-    }, 2000);
+      setAddedBookIds(prev => ({ ...prev, [book.id]: false }));
+    }, 1500);
   };
 
   const handleAddToWishlist = (e, book) => {
-    e.stopPropagation(); // Prevent card click
-    onAddToWishlist && onAddToWishlist(book);
-    setAddedToWishlist(prev => ({ ...prev, [book.id]: !prev[book.id] }));
+    e.stopPropagation();
+    if (isInWishlist(book)) {
+      onRemoveFromWishlist && onRemoveFromWishlist(book);
+    } else {
+      onAddToWishlist && onAddToWishlist(book);
+    }
   };
 
   const handleCardClick = (book) => {
-    onNavigateToProduct && onNavigateToProduct(book);
+    navigate(`/product/${book.id}`, { state: { from: 'library' } });
   };
 
   return (
@@ -262,11 +280,13 @@ const LibraryPage = ({ onAddToCart, onAddToWishlist, onNavigateToProduct }) => {
               <div
                 key={book.id}
                 className="group relative cursor-pointer"
+                onMouseEnter={() => setHoveredBook(book.id)}
+                onMouseLeave={() => setHoveredBook(null)}
                 onClick={() => handleCardClick(book)}
                 style={{ animationDelay: `${index * 100}ms` }}
               >
                 {/* Book Card - Mobile first, perfect spacing */}
-                <div className="relative bg-[#1A0F2E]/80 backdrop-blur-md rounded-xl lg:rounded-3xl border border-white/10 hover:border-white/30 transition-all duration-500 transform hover:scale-105 hover:-translate-y-2 shadow-2xl hover:shadow-[0_25px_50px_rgba(0,0,0,0.4)] w-full p-3 sm:p-4 lg:p-6 flex flex-col">
+                <div className={`relative bg-[#1A0F2E]/80 backdrop-blur-md rounded-xl lg:rounded-3xl border border-white/10 hover:border-white/30 transition-all duration-500 transform hover:scale-105 hover:-translate-y-2 shadow-2xl hover:shadow-[0_25px_50px_rgba(0,0,0,0.4)] w-full p-3 sm:p-4 lg:p-6 flex flex-col card-hover-gold ${hoveredBook === book.id ? 'gold-glow' : ''}`}>
                   
                   {/* Category Badge - Desktop only */}
                   <div className="absolute -top-2 lg:-top-3 left-1/2 transform -translate-x-1/2 z-20 hidden lg:block">
@@ -326,28 +346,30 @@ const LibraryPage = ({ onAddToCart, onAddToWishlist, onNavigateToProduct }) => {
                     {/* Action Buttons */}
                     <div className="flex items-center space-x-2 mt-auto">
                       <button 
+                        type="button"
                         onClick={(e) => handleAddToCart(e, book)}
                         className={`flex-1 py-2 sm:py-2.5 lg:py-3 px-2 sm:px-3 lg:px-4 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl font-semibold text-xs sm:text-xs lg:text-sm flex items-center justify-center space-x-1 ${
-                          addedToCart[book.id] 
-                            ? 'bg-green-500 hover:bg-green-600 text-white' 
+                          addedBookIds[book.id]
+                            ? 'bg-green-600 text-white border-2 border-green-700 scale-105'
                             : 'bg-gradient-to-r from-[#2D1B3D] to-[#3D2A54] hover:from-[#3D2A54] hover:to-[#2D1B3D] text-white'
                         }`}
+                        aria-label="Add to Cart"
                       >
                         <ShoppingCart className="w-3 h-3 sm:w-3.5 sm:h-3.5 lg:w-4 lg:h-4" />
-                        <span className="hidden sm:inline lg:inline">{addedToCart[book.id] ? 'Added!' : 'Cart'}</span>
-                        <span className="sm:hidden">{addedToCart[book.id] ? '✓' : '+'}</span>
+                        <span className="hidden sm:inline lg:inline font-bold">{addedBookIds[book.id] ? 'Added!' : 'Add to Cart'}</span>
+                        <span className="sm:hidden font-bold">{addedBookIds[book.id] ? 'Added!' : '+'}</span>
                       </button>
-                      
                       <button 
                         onClick={(e) => handleAddToWishlist(e, book)}
-                        className={`p-2 sm:p-2.5 lg:p-3 backdrop-blur-sm border rounded-lg transition-all duration-300 transform hover:scale-105 ${
-                          addedToWishlist[book.id] 
-                            ? 'bg-red-500/20 border-red-500/60 text-red-400' 
-                            : 'bg-white/10 hover:bg-white/20 border-white/20 hover:border-white/40 text-white hover:text-red-400'
+                        className={`flex-1 sm:flex-none flex items-center justify-center py-2 sm:py-2.5 lg:py-3 px-0 sm:px-2.5 lg:px-3 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl font-semibold text-xs sm:text-xs lg:text-sm ${
+                          isInWishlist(book)
+                            ? 'bg-red-500/20 border-red-500/60 text-red-400 border' 
+                            : 'bg-white/10 hover:bg-white/20 border-white/20 hover:border-white/40 text-white hover:text-red-400 border'
                         }`}
+                        style={{ minWidth: '0' }}
                       >
                         <Heart className={`w-3 h-3 sm:w-3.5 sm:h-3.5 lg:w-5 lg:h-5 transition-colors duration-300 ${
-                          addedToWishlist[book.id] ? 'fill-current' : ''
+                          isInWishlist(book) ? 'fill-current' : ''
                         }`} />
                       </button>
                     </div>
@@ -376,6 +398,18 @@ const LibraryPage = ({ onAddToCart, onAddToWishlist, onNavigateToProduct }) => {
           </div>
         )}
       </div>
+      <style jsx>{`
+        .card-hover-gold:hover, .card-hover-gold.gold-glow {
+          box-shadow: 0 0 0 2px #ffe9b3, 0 4px 24px 0 #ffe9b3cc, 0 1.5px 8px 0 #fff7c1;
+          /* border: 1.5px solid #FFD70080 !important; */
+        }
+        @media (hover: none) and (pointer: coarse) {
+          .card-hover-gold:active {
+            box-shadow: 0 0 0 2px #ffe9b3, 0 4px 24px 0 #ffe9b3cc, 0 1.5px 8px 0 #fff7c1;
+            /* border: 1.5px solid #FFD70080 !important; */
+          }
+        }
+      `}</style>
     </div>
   );
 };

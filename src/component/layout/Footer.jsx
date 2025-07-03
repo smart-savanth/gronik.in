@@ -1,7 +1,25 @@
 import React from 'react';
 import { BookOpen, Mail, Phone, MapPin, Heart } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const Footer = () => {
+  const navigate = useNavigate();
+  const handleAboutClick = () => {
+    if (window.location.pathname !== '/') {
+      navigate('/');
+      setTimeout(() => {
+        const aboutSection = document.getElementById('about-section');
+        if (aboutSection) {
+          aboutSection.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 100);
+    } else {
+      const aboutSection = document.getElementById('about-section');
+      if (aboutSection) {
+        aboutSection.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+  };
   return (
     <footer className="bg-[#2D1B3D] backdrop-blur-md border-t border-gronik-secondary/20 py-12 sm:py-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -39,22 +57,22 @@ const Footer = () => {
             <div>
               <h4 className="font-bold text-gronik-light mb-4 sm:mb-6 text-base sm:text-lg">Quick Links</h4>
               <ul className="space-y-2 sm:space-y-3">
-                <li><a href="#" className="text-gronik-light/70 hover:text-gronik-accent transition-colors duration-200 flex items-center space-x-2 group text-sm sm:text-base">
+                <li><button onClick={() => navigate('/')} className="text-gronik-light/70 hover:text-gronik-accent transition-colors duration-200 flex items-center space-x-2 group text-sm sm:text-base bg-transparent border-0 outline-none cursor-pointer w-full text-left">
                   <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-gronik-accent rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200"></span>
                   <span>Home</span>
-                </a></li>
-                <li><a href="#" className="text-gronik-light/70 hover:text-gronik-accent transition-colors duration-200 flex items-center space-x-2 group text-sm sm:text-base">
+                </button></li>
+                <li><button onClick={() => navigate('/library')} className="text-gronik-light/70 hover:text-gronik-accent transition-colors duration-200 flex items-center space-x-2 group text-sm sm:text-base bg-transparent border-0 outline-none cursor-pointer w-full text-left">
                   <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-gronik-accent rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200"></span>
                   <span>Library</span>
-                </a></li>
-                <li><a href="#" className="text-gronik-light/70 hover:text-gronik-accent transition-colors duration-200 flex items-center space-x-2 group text-sm sm:text-base">
+                </button></li>
+                <li><button onClick={handleAboutClick} className="text-gronik-light/70 hover:text-gronik-accent transition-colors duration-200 flex items-center space-x-2 group text-sm sm:text-base bg-transparent border-0 outline-none cursor-pointer w-full text-left">
                   <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-gronik-accent rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200"></span>
                   <span>About</span>
-                </a></li>
-                <li><a href="#" className="text-gronik-light/70 hover:text-gronik-accent transition-colors duration-200 flex items-center space-x-2 group text-sm sm:text-base">
+                </button></li>
+                <li><button onClick={() => navigate('/contact')} className="text-gronik-light/70 hover:text-gronik-accent transition-colors duration-200 flex items-center space-x-2 group text-sm sm:text-base bg-transparent border-0 outline-none cursor-pointer w-full text-left">
                   <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-gronik-accent rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200"></span>
                   <span>Contact</span>
-                </a></li>
+                </button></li>
               </ul>
             </div>
             

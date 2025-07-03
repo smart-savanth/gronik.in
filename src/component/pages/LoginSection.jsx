@@ -177,7 +177,7 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#9B7BB8] relative overflow-hidden flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-gronik-primary via-gronik-bg to-gronik-secondary relative overflow-hidden flex items-center justify-center p-4">
       {/* Animated background elements with glow effects */}
       <div className="absolute inset-0">
         <div className="absolute top-10 left-10 w-40 h-40 bg-[#2D1B3D]/20 rounded-full blur-3xl animate-pulse shadow-2xl shadow-[#2D1B3D]/30"></div>
@@ -188,10 +188,10 @@ const LoginPage = () => {
       </div>
 
       {/* Centered Login Container */}
-      <div className="relative z-10 w-full max-w-sm">
+      <div className="relative z-10 w-full max-w-sm sm:max-w-lg">
         {/* Form Container */}
         <div className="bg-[#2D1B3D]/90 backdrop-blur-xl rounded-3xl border border-[#2D1B3D]/50 shadow-2xl shadow-[#2D1B3D]/20 overflow-hidden">
-          <div className="p-6 sm:p-8">
+          <div className="p-6 sm:p-10">
             {/* Logo/Title */}
             <div className="text-center mb-8">
               <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2 drop-shadow-lg">
@@ -211,7 +211,7 @@ const LoginPage = () => {
                   <div className="grid grid-cols-2 gap-3 mb-6">
                     <button
                       onClick={() => setLoginMethod('email')}
-                      className={`p-3 rounded-xl border-2 transition-all duration-300 ${
+                      className={`p-3 rounded-xl border-2 transition-all duration-300 hover-gold-border ${
                         loginMethod === 'email'
                           ? 'border-white bg-white/10 text-white shadow-lg shadow-white/20'
                           : 'border-white/30 bg-white/5 text-white/70 hover:border-white/50 hover:shadow-lg hover:shadow-white/10'
@@ -222,7 +222,7 @@ const LoginPage = () => {
                     </button>
                     <button
                       onClick={() => setLoginMethod('mobile')}
-                      className={`p-3 rounded-xl border-2 transition-all duration-300 ${
+                      className={`p-3 rounded-xl border-2 transition-all duration-300 hover-gold-border ${
                         loginMethod === 'mobile'
                           ? 'border-white bg-white/10 text-white shadow-lg shadow-white/20'
                           : 'border-white/30 bg-white/5 text-white/70 hover:border-white/50 hover:shadow-lg hover:shadow-white/10'
@@ -237,14 +237,14 @@ const LoginPage = () => {
                 <div className="space-y-3">
                   <button
                     onClick={() => setCurrentStep('signup')}
-                    className="w-full bg-white text-[#2D1B3D] hover:bg-white/90 font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-[1.02] shadow-lg shadow-white/40 hover:shadow-xl hover:shadow-white/50 flex items-center justify-center space-x-2"
+                    className="w-full bg-[#1A0F2E]/80 backdrop-blur-md text-white hover:bg-[#1A0F2E] font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-[1.02] shadow-lg hover:shadow-xl border border-white/20 hover:border-white/40 flex items-center justify-center space-x-2 primary-button-animated"
                   >
                     <span>Create Account</span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => setCurrentStep('login')}
-                    className="w-full bg-white/10 hover:bg-white/15 text-white py-3 px-6 rounded-xl font-semibold transition-all duration-300 border border-white/20 hover:border-white/40 hover:shadow-lg hover:shadow-white/20"
+                    className="w-full bg-white/10 hover:bg-white/15 text-white py-3 px-6 rounded-xl font-semibold transition-all duration-300 border border-white/20 hover:border-white/40 hover:shadow-lg hover:shadow-white/20 hover-gold-border"
                   >
                     Sign In
                   </button>
@@ -316,11 +316,11 @@ const LoginPage = () => {
                 <button
                   onClick={handleSignup}
                   disabled={isLoading}
-                  className="w-full bg-white text-[#2D1B3D] hover:bg-white/90 font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-[1.02] shadow-lg shadow-white/40 hover:shadow-xl hover:shadow-white/50 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center space-x-2 mt-6"
+                  className="w-full bg-[#1A0F2E]/80 backdrop-blur-md text-white hover:bg-[#1A0F2E] font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-[1.02] shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center space-x-2 mt-6 primary-button-animated"
                 >
                   {isLoading ? (
                     <>
-                      <div className="w-4 h-4 border-2 border-[#2D1B3D] border-t-transparent rounded-full animate-spin"></div>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                       <span>CREATING...</span>
                     </>
                   ) : (
@@ -412,11 +412,11 @@ const LoginPage = () => {
                 <button
                   onClick={handleLogin}
                   disabled={isLoading}
-                  className="w-full bg-white text-[#2D1B3D] hover:bg-white/90 font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-[1.02] shadow-lg shadow-white/40 hover:shadow-xl hover:shadow-white/50 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center space-x-2 mt-6"
+                  className="w-full bg-[#1A0F2E]/80 backdrop-blur-md text-white hover:bg-[#1A0F2E] font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-[1.02] shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center space-x-2 mt-6 primary-button-animated"
                 >
                   {isLoading ? (
                     <>
-                      <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                       <span>SIGNING IN...</span>
                     </>
                   ) : (
@@ -435,6 +435,88 @@ const LoginPage = () => {
           </div>
         </div>
       </div>
+
+      <style jsx>{`
+          /* Primary buttons (white buttons) with animated border circulation */
+.primary-button-animated {
+  position: relative;
+  overflow: hidden;
+  background: rgba(26, 15, 46, 0.8) !important;
+}
+
+.primary-button-animated::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  right: -4px;
+  bottom: -4px;
+  background: linear-gradient(
+    45deg,
+    #FFD700,
+    #1A0F2E,
+    #FFD700,
+    #1A0F2E,
+    #FFD700,
+    #1A0F2E,
+    #FFD700,
+    #1A0F2E
+  );
+  background-size: 400% 400%;
+  animation: borderCirculation 3s linear infinite;
+  border-radius: 0.75rem;
+  z-index: -1;
+}
+
+.primary-button-animated:hover {
+  border-color: #FFD700 !important;
+  box-shadow: 0 0 0 2px #ffe9b3, 0 4px 24px 0 #ffe9b3cc, 0 1.5px 8px 0 #fff7c1 !important;
+}
+
+.primary-button-animated:hover::before {
+  animation: none;
+  background: transparent;
+}
+
+@keyframes borderCirculation {
+  0% { 
+    background-position: 0% 0%;
+  }
+  25% { 
+    background-position: 100% 0%;
+  }
+  50% { 
+    background-position: 100% 100%;
+  }
+  75% { 
+    background-position: 0% 100%;
+  }
+  100% { 
+    background-position: 0% 0%;
+  }
+}
+
+/* Hover gold border effect for other buttons */
+.hover-gold-border:hover {
+  border-color: #FFD700 !important;
+  box-shadow: 0 0 0 2px #ffe9b3, 0 4px 24px 0 #ffe9b3cc, 0 1.5px 8px 0 #fff7c1 !important;
+}
+
+@media (max-width: 640px) {
+  .primary-button-animated, .hover-gold-border {
+    font-size: 1rem;
+    border-radius: 0.9rem;
+  }
+  
+  .primary-button-animated::before {
+    border-radius: 0.9rem;
+  }
+  
+  .primary-button-animated::after {
+    border-radius: 0.8rem;
+  }
+}
+      `}</style>
     </div>
   );
 };
