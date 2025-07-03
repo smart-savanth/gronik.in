@@ -11,7 +11,7 @@ const adminMenu = [
 ];
 
 const AdminNavbar = ({ currentPage }) => (
-  <nav className="fixed top-0 left-0 right-0 z-50 bg-gronik-primary/95 backdrop-blur-md shadow-lg border-b border-gronik-secondary/20">
+  <nav className="fixed top-0 left-0 right-0 z-50 bg-gronik-primary/95 backdrop-blur-md shadow-lg">
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
       <div className="flex items-center justify-between h-20 px-2">
         <Link to="/admin" className="flex items-center">
@@ -42,4 +42,4 @@ const AdminNavbar = ({ currentPage }) => (
   </nav>
 );
 
-export default AdminNavbar; 
+export default AdminNavbar;
