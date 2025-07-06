@@ -1,89 +1,623 @@
 import React, { useState } from 'react';
-import { User, Search, Edit, Trash2, Eye, X, Save, Ban } from 'lucide-react';
+import { User, Search, Edit, Trash2, Eye, X, Save, Ban, Plus, Filter, Download, Mail, Phone, MapPin, Calendar, AlertCircle, ChevronDown } from 'lucide-react';
 import AdminLayout from './Adminlayout';
 
 const sampleUsers = [
-  { id: 1, name: 'Alice Johnson', email: 'alice@example.com', role: 'User', status: 'active', joined: '2024-01-10' },
-  { id: 2, name: 'Bob Smith', email: 'bob@example.com', role: 'User', status: 'blocked', joined: '2024-02-15' },
-  { id: 3, name: 'Carol Brown', email: 'carol@example.com', role: 'Admin', status: 'active', joined: '2024-03-20' },
-  { id: 4, name: 'David Lee', email: 'david@example.com', role: 'User', status: 'active', joined: '2024-04-05' },
+  { 
+    id: 1, 
+    name: 'Alice Johnson', 
+    email: 'alice@example.com', 
+    phone: '+1 (555) 123-4567',
+    role: 'User', 
+    status: 'active', 
+    joined: '2024-01-10',
+    lastLogin: '2024-06-08',
+    orders: 12,
+    totalSpent: 348.99,
+    avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face'
+  },
+  { 
+    id: 2, 
+    name: 'Bob Smith', 
+    email: 'bob@example.com', 
+    phone: '+1 (555) 987-6543',
+    role: 'User', 
+    status: 'blocked', 
+    joined: '2024-02-15',
+    lastLogin: '2024-06-05',
+    orders: 8,
+    totalSpent: 199.50,
+    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face'
+  },
+  { 
+    id: 3, 
+    name: 'Carol Brown', 
+    email: 'carol@example.com', 
+    phone: '+1 (555) 456-7890',
+    role: 'Admin', 
+    status: 'active', 
+    joined: '2024-03-20',
+    lastLogin: '2024-06-08',
+    orders: 25,
+    totalSpent: 750.25,
+    avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face'
+  },
+  { 
+    id: 4, 
+    name: 'David Lee', 
+    email: 'david@example.com', 
+    phone: '+1 (555) 234-5678',
+    role: 'User', 
+    status: 'active', 
+    joined: '2024-04-05',
+    lastLogin: '2024-06-07',
+    orders: 15,
+    totalSpent: 425.75,
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face'
+  },
+  { 
+    id: 5, 
+    name: 'Emma Wilson', 
+    email: 'emma@example.com', 
+    phone: '+1 (555) 345-6789',
+    role: 'User', 
+    status: 'active', 
+    joined: '2024-05-12',
+    lastLogin: '2024-06-08',
+    orders: 6,
+    totalSpent: 189.99,
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop&crop=face'
+  },
 ];
 
 const statusColors = {
   active: 'bg-green-500/20 text-green-400 border-green-500/30',
   blocked: 'bg-red-500/20 text-red-400 border-red-500/30',
+  pending: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+};
+
+const roleColors = {
+  Admin: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
+  User: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
 };
 
 const UsersManagement = () => {
   const [search, setSearch] = useState('');
   const [users, setUsers] = useState(sampleUsers);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState(null);
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [filterRole, setFilterRole] = useState('all');
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
+  const [roleDropdownOpen, setRoleDropdownOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [newUser, setNewUser] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    role: 'User',
+    status: 'active',
+    avatar: '',
+    joined: '',
+    lastLogin: '',
+  });
+  const [addImagePreview, setAddImagePreview] = useState('');
+  const addImageInputRef = React.useRef();
 
-  const filteredUsers = users.filter(user =>
-    user.name.toLowerCase().includes(search.toLowerCase()) ||
-    user.email.toLowerCase().includes(search.toLowerCase())
-  );
+  React.useEffect(() => {
+    setIsLoaded(true);
+  }, []);
+
+  const filteredUsers = users.filter(user => {
+    const matchesSearch = user.name.toLowerCase().includes(search.toLowerCase()) ||
+                         user.email.toLowerCase().includes(search.toLowerCase());
+    const matchesStatus = filterStatus === 'all' || user.status === filterStatus;
+    const matchesRole = filterRole === 'all' || user.role === filterRole;
+    return matchesSearch && matchesStatus && matchesRole;
+  });
+
+  const handleViewUser = (user) => {
+    setSelectedUser(user);
+    setIsViewModalOpen(true);
+  };
+
+  const handleEditUser = (user) => {
+    setEditingUser({...user});
+    setIsEditModalOpen(true);
+  };
+
+  const handleSaveEdit = () => {
+    setUsers(users.map(user => 
+      user.id === editingUser.id ? editingUser : user
+    ));
+    setIsEditModalOpen(false);
+    setEditingUser(null);
+  };
+
+  const handleDeleteUser = (userId) => {
+    if (window.confirm('Are you sure you want to delete this user?')) {
+      setUsers(users.filter(user => user.id !== userId));
+    }
+  };
+
+  const handleToggleStatus = (userId) => {
+    setUsers(users.map(user => 
+      user.id === userId 
+        ? { ...user, status: user.status === 'active' ? 'blocked' : 'active' }
+        : user
+    ));
+  };
+
+  const handleExportUsers = () => {
+    const csvContent = "data:text/csv;charset=utf-8," + 
+      "Name,Email,Phone,Role,Status,Joined,Orders,Total Spent\n" +
+      filteredUsers.map(user => 
+        `${user.name},${user.email},${user.phone},${user.role},${user.status},${user.joined},${user.orders},$${user.totalSpent}`
+      ).join("\n");
+    
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "users_export.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleStatusSelect = (status) => {
+    setFilterStatus(status);
+    setStatusDropdownOpen(false);
+  };
+
+  const handleRoleSelect = (role) => {
+    setFilterRole(role);
+    setRoleDropdownOpen(false);
+  };
+
+  const getStatusLabel = () => {
+    switch(filterStatus) {
+      case 'active': return 'Active';
+      case 'blocked': return 'Blocked';
+      case 'pending': return 'Pending';
+      default: return 'All Status';
+    }
+  };
+
+  const getRoleLabel = () => {
+    switch(filterRole) {
+      case 'Admin': return 'Admin';
+      case 'User': return 'User';
+      default: return 'All Roles';
+    }
+  };
+
+  // Add User button handler
+  const openAddModal = () => {
+    setNewUser({
+      name: '',
+      email: '',
+      phone: '',
+      role: 'User',
+      status: 'active',
+      avatar: '',
+      joined: '',
+      lastLogin: '',
+    });
+    setAddImagePreview('');
+    setIsAddModalOpen(true);
+  };
+  const closeAddModal = () => {
+    setIsAddModalOpen(false);
+    setAddImagePreview('');
+  };
+  const handleAddChange = (field, value) => {
+    setNewUser(prev => ({ ...prev, [field]: value }));
+  };
+  const handleAddImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAddImagePreview(reader.result);
+        setNewUser(prev => ({ ...prev, avatar: reader.result }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+  const handleAddSubmit = (e) => {
+    e.preventDefault();
+    setUsers(prev => [
+      ...prev,
+      {
+        ...newUser,
+        id: Date.now(),
+        avatar: addImagePreview,
+        joined: new Date().toISOString().slice(0, 10),
+        lastLogin: new Date().toISOString().slice(0, 10),
+      }
+    ]);
+    closeAddModal();
+  };
 
   return (
     <AdminLayout currentPage="Users">
-      <div className="min-h-[calc(100vh-5rem)] bg-gradient-to-br from-[#E9D8FD] via-[#F3E8FF] to-[#E9D8FD] py-10 px-2 sm:px-6 lg:px-8">
-        <div className="bg-[#2D1B3D]/90 rounded-2xl p-6 border border-gronik-secondary/20 shadow-xl">
-          <h2 className="text-2xl font-bold text-white mb-6">Users Management</h2>
-          <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
-              <div className="relative w-full sm:w-72">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gronik-light/50 w-4 h-4" />
-                <input
-                  type="text"
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                  placeholder="Search users..."
-                  className="bg-gronik-secondary/20 border border-gronik-secondary/30 rounded-lg pl-10 pr-4 py-2 text-gronik-light placeholder-gronik-light/50 focus:outline-none focus:border-gronik-accent focus:ring-1 focus:ring-gronik-accent transition-all duration-200 w-full"
-                />
-              </div>
+      <div className="min-h-[calc(100vh-5rem)] bg-gradient-to-br from-[#9B7BB8] via-[#9B7BB8] to-purple-900 -m-6 p-6">
+        {/* Header Section */}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-[#2D1B3D] mb-3">Users Management</h1>
+          <p className="text-[#2D1B3D]/80 text-lg">Manage your platform users and their access.</p>
+        </div>
+        {/* Controls Row */}
+        <div className="flex flex-wrap items-center gap-3 mb-8 justify-between">
+          <div className="flex items-center gap-3">
+            <div className="relative w-64">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/40 w-4 h-4" />
+              <input
+                type="text"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Search users..."
+                className="w-full pl-10 pr-4 py-2 bg-[#2D1B3D]/80 text-white rounded-lg border border-white/10 placeholder-white/40 focus:outline-none focus:border-white/20 text-sm"
+              />
             </div>
-            <div className="overflow-x-auto rounded-lg shadow-lg bg-gronik-primary/50 border border-gronik-secondary/20">
-              <table className="min-w-full divide-y divide-gronik-secondary/20">
-                <thead className="bg-gronik-primary/80">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gronik-light/70 uppercase tracking-wider">Name</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gronik-light/70 uppercase tracking-wider">Email</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gronik-light/70 uppercase tracking-wider">Role</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gronik-light/70 uppercase tracking-wider">Status</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gronik-light/70 uppercase tracking-wider">Joined</th>
-                    <th className="px-6 py-3 text-center text-xs font-medium text-gronik-light/70 uppercase tracking-wider">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-gronik-primary/60 divide-y divide-gronik-secondary/20">
-                  {filteredUsers.map(user => (
-                    <tr key={user.id} className="hover:bg-gronik-secondary/10 transition-all duration-200">
-                      <td className="px-6 py-4 whitespace-nowrap flex items-center space-x-3">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-r from-gronik-accent to-gronik-secondary flex items-center justify-center">
-                          <User className="w-4 h-4 text-white" />
-                        </div>
-                        <span className="text-gronik-light font-medium">{user.name}</span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-gronik-light/90">{user.email}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-gronik-light/80">{user.role}</td>
-                      <td className={`px-6 py-4 whitespace-nowrap text-xs font-semibold border rounded-full text-center ${statusColors[user.status]}`}>{user.status}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-gronik-light/70">{user.joined}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-center">
-                        <div className="flex items-center justify-center space-x-2">
-                          <button className="p-2 rounded-lg hover:bg-gronik-accent/20 transition-colors"><Eye className="w-4 h-4 text-gronik-accent" /></button>
-                          <button className="p-2 rounded-lg hover:bg-green-500/20 transition-colors"><Edit className="w-4 h-4 text-green-400" /></button>
-                          <button className="p-2 rounded-lg hover:bg-red-500/20 transition-colors"><Trash2 className="w-4 h-4 text-red-400" /></button>
-                          <button className="p-2 rounded-lg hover:bg-yellow-500/20 transition-colors"><Ban className="w-4 h-4 text-yellow-400" /></button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            {/* Status Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
+                className="flex items-center space-x-2 px-4 py-2 bg-[#2D1B3D] text-white rounded-lg border border-white/10 focus:outline-none focus:border-white/20 text-sm min-w-[120px]"
+              >
+                <span>{getStatusLabel()}</span>
+                <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${statusDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+              {statusDropdownOpen && (
+                <div className="absolute top-full left-0 mt-1 w-full bg-[#2D1B3D] border border-white/10 rounded-lg shadow-lg z-10">
+                  <button
+                    onClick={() => handleStatusSelect('all')}
+                    className="w-full px-4 py-2 text-left text-white hover:bg-[#9B7BB8]/20 transition-colors duration-200 first:rounded-t-lg"
+                  >
+                    All Status
+                  </button>
+                  <button
+                    onClick={() => handleStatusSelect('active')}
+                    className="w-full px-4 py-2 text-left text-white hover:bg-[#9B7BB8]/20 transition-colors duration-200"
+                  >
+                    Active
+                  </button>
+                  <button
+                    onClick={() => handleStatusSelect('blocked')}
+                    className="w-full px-4 py-2 text-left text-white hover:bg-[#9B7BB8]/20 transition-colors duration-200"
+                  >
+                    Blocked
+                  </button>
+                  <button
+                    onClick={() => handleStatusSelect('pending')}
+                    className="w-full px-4 py-2 text-left text-white hover:bg-[#9B7BB8]/20 transition-colors duration-200 last:rounded-b-lg"
+                  >
+                    Pending
+                  </button>
+                </div>
+              )}
             </div>
           </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleExportUsers}
+              className="flex items-center space-x-2 px-4 py-2 bg-[#2D1B3D] text-white rounded-lg hover:bg-[#9B7BB8] transition-colors text-sm"
+            >
+              <Download className="w-4 h-4" />
+              <span>Export</span>
+            </button>
+            <button
+              onClick={openAddModal}
+              className="flex items-center space-x-2 px-4 py-2 bg-[#2D1B3D] text-white rounded-lg hover:bg-[#9B7BB8] transition-colors text-sm font-semibold"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Add User</span>
+            </button>
+          </div>
         </div>
+        {/* Users Table */}
+        <div className="overflow-x-auto rounded-2xl shadow-lg bg-[#2D1B3D]/80 border border-white/10">
+          <table className="min-w-full divide-y divide-white/10">
+            <thead>
+              <tr>
+                <th className="px-6 py-4 text-left text-xs font-medium text-white/70 uppercase tracking-wider">User</th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-white/70 uppercase tracking-wider">Contact</th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-white/70 uppercase tracking-wider">Role</th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-white/70 uppercase tracking-wider">Status</th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-white/70 uppercase tracking-wider">Activity</th>
+                <th className="px-6 py-4 text-center text-xs font-medium text-white/70 uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/10">
+              {filteredUsers.map((user, index) => (
+                <tr key={user.id} className="hover:bg-white/5 transition-all duration-300">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center space-x-3">
+                      <div className="relative">
+                        <img 
+                          src={user.avatar} 
+                          alt={user.name}
+                          className="w-10 h-10 rounded-full object-cover border-2 border-white/20"
+                        />
+                        <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-[#2D1B3D] ${user.status === 'active' ? 'bg-green-400' : 'bg-red-400'}`} />
+                      </div>
+                      <div>
+                        <p className="text-white font-semibold">{user.name}</p>
+                        <p className="text-white/60 text-sm">ID: {user.id}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="space-y-1">
+                      <div className="flex items-center space-x-2">
+                        <Mail className="w-3 h-3 text-white/40" />
+                        <span className="text-white/80 text-sm">{user.email}</span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Phone className="w-3 h-3 text-white/40" />
+                        <span className="text-white/60 text-sm">{user.phone}</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium border ${roleColors[user.role]}`}>
+                      {user.role}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium border ${statusColors[user.status]}`}>
+                      {user.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="space-y-1">
+                      <div className="flex items-center space-x-2">
+                        <Calendar className="w-3 h-3 text-white/40" />
+                        <span className="text-white/60 text-sm">Joined: {user.joined}</span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Eye className="w-3 h-3 text-white/40" />
+                        <span className="text-white/60 text-sm">Last: {user.lastLogin}</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-center">
+                    <div className="flex items-center justify-center space-x-2">
+                      <button 
+                        onClick={() => handleViewUser(user)}
+                        className="p-2 rounded-lg hover:bg-blue-500/20 transition-all duration-300 group"
+                        title="View Details"
+                      >
+                        <Eye className="w-4 h-4 text-blue-400 group-hover:scale-110 transition-transform duration-300" />
+                      </button>
+                      <button 
+                        onClick={() => handleEditUser(user)}
+                        className="p-2 rounded-lg hover:bg-green-500/20 transition-all duration-300 group"
+                        title="Edit User"
+                      >
+                        <Edit className="w-4 h-4 text-green-400 group-hover:scale-110 transition-transform duration-300" />
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteUser(user.id)}
+                        className="p-2 rounded-lg hover:bg-red-500/20 transition-all duration-300 group"
+                        title="Delete User"
+                      >
+                        <Trash2 className="w-4 h-4 text-red-400 group-hover:scale-110 transition-transform duration-300" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {/* Click outside handler for dropdowns */}
+        {(statusDropdownOpen || roleDropdownOpen) && (
+          <div 
+            className="fixed inset-0 z-5" 
+            onClick={() => {
+              setStatusDropdownOpen(false);
+              setRoleDropdownOpen(false);
+            }}
+          />
+        )}
+
+        {/* View User Modal */}
+        {isViewModalOpen && selectedUser && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-[#2D1B3D]/95 backdrop-blur-md rounded-2xl border border-white/20 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="sticky top-0 bg-[#2D1B3D]/95 backdrop-blur-md border-b border-white/10 px-6 py-4 flex items-center justify-between">
+                <h3 className="text-xl font-bold text-white">User Details</h3>
+                <button
+                  onClick={() => setIsViewModalOpen(false)}
+                  className="p-2 hover:bg-white/10 rounded-lg transition-colors duration-200"
+                >
+                  <X className="w-5 h-5 text-white" />
+                </button>
+              </div>
+              <div className="p-6 space-y-6">
+                <div className="flex items-center space-x-4">
+                  <div className="relative">
+                    <img 
+                      src={selectedUser.avatar} 
+                      alt={selectedUser.name}
+                      className="w-20 h-20 rounded-full object-cover border-4 border-white/20"
+                    />
+                    <div className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-4 border-[#2D1B3D] ${selectedUser.status === 'active' ? 'bg-green-400' : 'bg-red-400'}`} />
+                  </div>
+                  <div>
+                    <h4 className="text-2xl font-bold text-white">{selectedUser.name}</h4>
+                    <p className="text-white/70">User ID: {selectedUser.id}</p>
+                    <div className="flex items-center space-x-2 mt-2">
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium border ${roleColors[selectedUser.role]}`}>
+                        {selectedUser.role}
+                      </span>
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium border ${statusColors[selectedUser.status]}`}>
+                        {selectedUser.status}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <h5 className="text-lg font-semibold text-white border-b border-white/20 pb-2">Contact Information</h5>
+                    <div className="space-y-3">
+                      <div className="flex items-center space-x-3">
+                        <Mail className="w-5 h-5 text-white/40" />
+                        <span className="text-white/80">{selectedUser.email}</span>
+                      </div>
+                      <div className="flex items-center space-x-3">
+                        <Phone className="w-5 h-5 text-white/40" />
+                        <span className="text-white/80">{selectedUser.phone}</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <h5 className="text-lg font-semibold text-white border-b border-white/20 pb-2">Account Activity</h5>
+                    <div className="space-y-3">
+                      <div className="flex items-center space-x-3">
+                        <Calendar className="w-5 h-5 text-white/40" />
+                        <span className="text-white/80">Joined: {selectedUser.joined}</span>
+                      </div>
+                      <div className="flex items-center space-x-3">
+                        <Eye className="w-5 h-5 text-white/40" />
+                        <span className="text-white/80">Last Login: {selectedUser.lastLogin}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="bg-white/5 rounded-xl p-4">
+                  <h5 className="text-lg font-semibold text-white mb-3">Purchase Statistics</h5>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="text-center">
+                      <p className="text-2xl font-bold text-white">{selectedUser.orders}</p>
+                      <p className="text-white/60 text-sm">Total Orders</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-2xl font-bold text-white">${selectedUser.totalSpent}</p>
+                      <p className="text-white/60 text-sm">Total Spent</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Edit User Modal */}
+        {isEditModalOpen && editingUser && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center" style={{backdropFilter: 'blur(10px)', background: 'rgba(30, 18, 46, 0.55)'}}>
+            <div className="bg-[#2D1B3D]/95 rounded-2xl shadow-2xl max-w-lg w-full p-6 md:p-8 relative" style={{fontSize: '0.95rem', minWidth: 340}}>
+              <button onClick={() => setIsEditModalOpen(false)} className="absolute top-3 right-3 text-white/60 hover:text-white z-10"><X className="w-5 h-5" /></button>
+              <h2 className="text-xl font-bold text-white mb-4">Edit User</h2>
+              <form onSubmit={e => { e.preventDefault(); handleSaveEdit(); }} className="space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-white/70 mb-1 text-xs">Name</label>
+                    <input type="text" value={editingUser.name} onChange={e => setEditingUser(prev => ({ ...prev, name: e.target.value }))} className="w-full bg-[#9B7BB8]/10 text-white p-2 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-sm" required />
+                  </div>
+                  <div>
+                    <label className="block text-white/70 mb-1 text-xs">Email</label>
+                    <input type="email" value={editingUser.email} onChange={e => setEditingUser(prev => ({ ...prev, email: e.target.value }))} className="w-full bg-[#9B7BB8]/10 text-white p-2 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-sm" required />
+                  </div>
+                  <div>
+                    <label className="block text-white/70 mb-1 text-xs">Phone</label>
+                    <input type="text" value={editingUser.phone} onChange={e => setEditingUser(prev => ({ ...prev, phone: e.target.value }))} className="w-full bg-[#9B7BB8]/10 text-white p-2 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-sm" required />
+                  </div>
+                  <div>
+                    <label className="block text-white/70 mb-1 text-xs">Role</label>
+                    <select value={editingUser.role} onChange={e => setEditingUser(prev => ({ ...prev, role: e.target.value }))} className="w-full bg-[#9B7BB8]/10 text-white p-2 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-sm">
+                      <option value="User">User</option>
+                      <option value="Admin">Admin</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-white/70 mb-1 text-xs">Status</label>
+                    <select value={editingUser.status} onChange={e => setEditingUser(prev => ({ ...prev, status: e.target.value }))} className="w-full bg-[#9B7BB8]/10 text-white p-2 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-sm">
+                      <option value="active" className="bg-[#2D1B3D] text-white">Active</option>
+                      <option value="blocked" className="bg-[#2D1B3D] text-white">Blocked</option>
+                      <option value="pending" className="bg-[#2D1B3D] text-white">Pending</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2 mt-4">
+                  <button type="button" onClick={() => setIsEditModalOpen(false)} className="px-6 py-2 bg-[#9B7BB8]/20 text-white rounded-lg hover:bg-[#9B7BB8]/40 transition-colors text-sm font-semibold">Cancel</button>
+                  <button type="submit" className="flex items-center space-x-2 px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm font-semibold">
+                    <Save className="w-5 h-5" />
+                    <span>Save Changes</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+        {/* Add User Modal */}
+        {isAddModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center" style={{backdropFilter: 'blur(10px)', background: 'rgba(30, 18, 46, 0.55)'}}>
+            <div className="bg-[#2D1B3D]/95 rounded-2xl shadow-2xl max-w-lg w-full p-6 md:p-8 relative" style={{fontSize: '0.95rem', minWidth: 340}}>
+              <button onClick={closeAddModal} className="absolute top-3 right-3 text-white/60 hover:text-white z-10"><X className="w-5 h-5" /></button>
+              <h2 className="text-xl font-bold text-white mb-4">Add User</h2>
+              <form onSubmit={handleAddSubmit} className="space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-white/70 mb-1 text-xs">Name</label>
+                    <input type="text" value={newUser.name} onChange={e => handleAddChange('name', e.target.value)} className="w-full bg-[#9B7BB8]/10 text-white p-2 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-sm" required />
+                  </div>
+                  <div>
+                    <label className="block text-white/70 mb-1 text-xs">Email</label>
+                    <input type="email" value={newUser.email} onChange={e => handleAddChange('email', e.target.value)} className="w-full bg-[#9B7BB8]/10 text-white p-2 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-sm" required />
+                  </div>
+                  <div>
+                    <label className="block text-white/70 mb-1 text-xs">Phone</label>
+                    <input type="text" value={newUser.phone} onChange={e => handleAddChange('phone', e.target.value)} className="w-full bg-[#9B7BB8]/10 text-white p-2 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-sm" required />
+                  </div>
+                  <div>
+                    <label className="block text-white/70 mb-1 text-xs">Role</label>
+                    <select value={newUser.role} onChange={e => handleAddChange('role', e.target.value)} className="w-full bg-[#9B7BB8]/10 text-white p-2 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-sm">
+                      <option value="User" className="bg-[#2D1B3D] text-white">User</option>
+                      <option value="Admin" className="bg-[#2D1B3D] text-white">Admin</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-white/70 mb-1 text-xs">Status</label>
+                    <select value={newUser.status} onChange={e => handleAddChange('status', e.target.value)} className="w-full bg-[#9B7BB8]/10 text-white p-2 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-sm">
+                      <option value="active" className="bg-[#2D1B3D] text-white">Active</option>
+                      <option value="blocked" className="bg-[#2D1B3D] text-white">Blocked</option>
+                      <option value="pending" className="bg-[#2D1B3D] text-white">Pending</option>
+                    </select>
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-white/70 mb-1 text-xs">Avatar</label>
+                    {addImagePreview ? (
+                      <div className="mb-2 flex items-center gap-4">
+                        <img src={addImagePreview} alt="Avatar" className="w-14 h-14 object-cover rounded-full border border-[#9B7BB8]/30" />
+                        <button type="button" onClick={() => { setAddImagePreview(''); setNewUser(prev => ({ ...prev, avatar: '' })); }} className="text-red-400 hover:text-red-600 text-xs">Remove</button>
+                      </div>
+                    ) : null}
+                    <input type="file" accept="image/*" ref={addImageInputRef} onChange={handleAddImageChange} className="w-full bg-[#9B7BB8]/10 text-white p-2 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-xs" />
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2 mt-4">
+                  <button type="button" onClick={closeAddModal} className="px-6 py-2 bg-[#9B7BB8]/20 text-white rounded-lg hover:bg-[#9B7BB8]/40 transition-colors text-sm font-semibold">Cancel</button>
+                  <button type="submit" className="flex items-center space-x-2 px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm font-semibold">
+                    <Save className="w-5 h-5" />
+                    <span>Add User</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
     </AdminLayout>
   );
 };
 
-export default UsersManagement; 
+export default UsersManagement;

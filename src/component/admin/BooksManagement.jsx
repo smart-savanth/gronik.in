@@ -1,441 +1,444 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import AdminLayout from './Adminlayout';
-import { 
-  BookOpen, 
-  Plus, 
-  Search, 
-  Filter, 
-  Edit, 
-  Trash2, 
+import {
+  BookOpen,
+  Plus,
+  Search,
+  Edit,
+  Trash2,
   Eye,
   Star,
   Download,
-  Users,
+  Upload,
+  Zap,
   X,
-  Save,
-  Heart,
-  Zap
+  Save
 } from 'lucide-react';
 
+const initialBooks = [
+  {
+    id: 1,
+    title: 'Think and Grow Rich',
+    author: 'Napoleon Hill',
+    category: 'Self Development',
+    price: 29.99,
+    originalPrice: 39.99,
+    pages: 320,
+    status: 'active',
+    publishedDate: '2024-01-15',
+    image: '/api/placeholder/80/100',
+    isFeatured: true,
+    isHero: false,
+    description: 'Transform your mindset and unlock the secrets to wealth and success.'
+  },
+  {
+    id: 2,
+    title: 'Advanced React Patterns',
+    author: 'John Smith',
+    category: 'Technology',
+    price: 34.99,
+    originalPrice: 44.99,
+    pages: 280,
+    status: 'active',
+    publishedDate: '2024-02-20',
+    image: '/api/placeholder/80/100',
+    isFeatured: false,
+    isHero: true,
+    description: 'Master advanced React patterns for scalable applications.'
+  },
+  {
+    id: 3,
+    title: 'Digital Marketing Mastery',
+    author: 'Sarah Johnson',
+    category: 'Business',
+    price: 24.99,
+    originalPrice: 34.99,
+    pages: 245,
+    status: 'pending',
+    publishedDate: '2024-03-10',
+    image: '/api/placeholder/80/100',
+    isFeatured: true,
+    isHero: false,
+    description: 'Become a digital marketing expert with this comprehensive guide.'
+  },
+  {
+    id: 4,
+    title: 'Machine Learning Basics',
+    author: 'Dr. Mike Wilson',
+    category: 'Technology',
+    price: 39.99,
+    originalPrice: 49.99,
+    pages: 350,
+    status: 'draft',
+    publishedDate: '2024-04-05',
+    image: '/api/placeholder/80/100',
+    isFeatured: false,
+    isHero: false,
+    description: 'A beginner-friendly introduction to machine learning.'
+  }
+];
+
+const categories = ['All', 'Self Development', 'Technology', 'Business', 'Science', 'Health'];
+
 const BooksManagement = () => {
-  const [selectedBooks, setSelectedBooks] = useState([]);
-  const [filterStatus, setFilterStatus] = useState('all');
+  const [books, setBooks] = useState(initialBooks);
+  const [filterCategory, setFilterCategory] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [showFilters, setShowFilters] = useState(false);
+  const [showAddEditModal, setShowAddEditModal] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [modalBook, setModalBook] = useState(null);
+  const [isEdit, setIsEdit] = useState(false);
+  const [imagePreview, setImagePreview] = useState('');
+  const fileInputRef = useRef();
+  const imageInputRef = useRef();
 
-  // Sample books data
-  const books = [
-    {
-      id: 1,
-      title: 'Think and Grow Rich',
-      author: 'Napoleon Hill',
-      category: 'Self Development',
-      price: 29.99,
-      originalPrice: 39.99,
-      sales: 1420,
-      rating: 4.8,
-      reviews: 234,
-      status: 'active',
-      publishedDate: '2024-01-15',
-      pages: 320,
-      format: ['PDF', 'EPUB', 'MOBI'],
-      image: '/api/placeholder/80/100',
-      isFeatured: true,
-      isHero: false
-    },
-    {
-      id: 2,
-      title: 'Advanced React Patterns',
-      author: 'John Smith',
-      category: 'Technology',
-      price: 34.99,
-      originalPrice: 44.99,
-      sales: 856,
-      rating: 4.6,
-      reviews: 142,
-      status: 'active',
-      publishedDate: '2024-02-20',
-      pages: 280,
-      format: ['PDF', 'EPUB'],
-      image: '/api/placeholder/80/100',
-      isFeatured: false,
-      isHero: true
-    },
-    {
-      id: 3,
-      title: 'Digital Marketing Mastery',
-      author: 'Sarah Johnson',
-      category: 'Business',
-      price: 24.99,
-      originalPrice: 34.99,
-      sales: 692,
-      rating: 4.9,
-      reviews: 187,
-      status: 'pending',
-      publishedDate: '2024-03-10',
-      pages: 245,
-      format: ['PDF'],
-      image: '/api/placeholder/80/100',
-      isFeatured: true,
-      isHero: false
-    },
-    {
-      id: 4,
-      title: 'Machine Learning Basics',
-      author: 'Dr. Mike Wilson',
-      category: 'Technology',
-      price: 39.99,
-      originalPrice: 49.99,
-      sales: 423,
-      rating: 4.7,
-      reviews: 98,
-      status: 'draft',
-      publishedDate: '2024-04-05',
-      pages: 350,
-      format: ['PDF', 'EPUB', 'MOBI'],
-      image: '/api/placeholder/80/100',
-      isFeatured: false,
-      isHero: false
+  // Filtered books
+  const filteredBooks = books.filter(book => {
+    const matchesCategory = filterCategory === 'All' || book.category === filterCategory;
+    const matchesSearch = book.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      book.author.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
+
+  // Import handler
+  const handleImport = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        let importedBooks;
+        if (file.name.endsWith('.json')) {
+          importedBooks = JSON.parse(event.target.result);
+        } else if (file.name.endsWith('.csv')) {
+          const lines = event.target.result.split('\n');
+          const headers = lines[0].split(',');
+          importedBooks = lines.slice(1).filter(Boolean).map(line => {
+            const values = line.split(',');
+            const obj = {};
+            headers.forEach((header, i) => {
+              obj[header.trim()] = values[i]?.trim();
+            });
+            return obj;
+          });
+        }
+        setBooks(prev => [...prev, ...importedBooks]);
+        alert('Books imported successfully!');
+      } catch {
+        alert('Invalid file format.');
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  // Export handler
+  const handleExport = (type = 'json') => {
+    let dataStr;
+    let fileName;
+    if (type === 'json') {
+      dataStr = JSON.stringify(books, null, 2);
+      fileName = 'books.json';
+    } else {
+      const headers = Object.keys(books[0] || {}).join(',');
+      const rows = books.map(book => Object.values(book).join(','));
+      dataStr = [headers, ...rows].join('\n');
+      fileName = 'books.csv';
     }
-  ];
-
-  const categories = ['All', 'Self Development', 'Technology', 'Business', 'Science', 'Health'];
-  const statuses = ['all', 'active', 'pending', 'draft', 'archived'];
-
-  const handleSelectBook = (bookId) => {
-    setSelectedBooks(prev => 
-      prev.includes(bookId) 
-        ? prev.filter(id => id !== bookId)
-        : [...prev, bookId]
-    );
+    const blob = new Blob([dataStr], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
-  const handleSelectAll = () => {
-    setSelectedBooks(
-      selectedBooks.length === books.length ? [] : books.map(book => book.id)
-    );
+  // Add/Edit Modal handlers
+  const openAddModal = () => {
+    setModalBook({
+      title: '',
+      author: '',
+      category: '',
+      price: '',
+      originalPrice: '',
+      pages: '',
+      status: 'active',
+      publishedDate: '',
+      image: '',
+      isFeatured: false,
+      isHero: false,
+      description: ''
+    });
+    setImagePreview('');
+    setIsEdit(false);
+    setShowAddEditModal(true);
   };
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'active': return 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30';
-      case 'pending': return 'bg-amber-500/20 text-amber-400 border-amber-500/30';
-      case 'draft': return 'bg-slate-500/20 text-slate-400 border-slate-500/30';
-      case 'archived': return 'bg-red-500/20 text-red-400 border-red-500/30';
-      default: return 'bg-slate-500/20 text-slate-400 border-slate-500/30';
+  const openEditModal = (book) => {
+    setModalBook({ ...book });
+    setImagePreview(book.image || '');
+    setIsEdit(true);
+    setShowAddEditModal(true);
+  };
+  const closeAddEditModal = () => {
+    setShowAddEditModal(false);
+    setModalBook(null);
+    setImagePreview('');
+  };
+  const handleAddEditChange = (field, value) => {
+    setModalBook(prev => ({ ...prev, [field]: value }));
+  };
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result);
+        setModalBook(prev => ({ ...prev, image: reader.result }));
+      };
+      reader.readAsDataURL(file);
     }
   };
+  const handleAddEditSubmit = (e) => {
+    e.preventDefault();
+    if (isEdit) {
+      setBooks(prev => prev.map(b => b.id === modalBook.id ? { ...modalBook, id: b.id, image: imagePreview } : b));
+    } else {
+      setBooks(prev => [
+        ...prev,
+        { ...modalBook, id: Date.now(), image: imagePreview }
+      ]);
+    }
+    closeAddEditModal();
+  };
 
-  const AddBookModal = () => (
-    showAddModal && (
-      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in-0 duration-300">
-        <div className="bg-gradient-to-br from-[#2D1B3D] to-[#1A0F2E] rounded-2xl p-8 w-full max-w-3xl border border-[#9B7BB8]/20 shadow-2xl transform animate-in slide-in-from-bottom-4 duration-300">
-          <div className="flex items-center justify-between mb-8">
-            <h3 className="text-2xl font-bold text-white">Add New Book</h3>
-            <button
-              onClick={() => setShowAddModal(false)}
-              className="text-[#9B7BB8] hover:text-white transition-colors duration-200 p-2 hover:bg-[#9B7BB8]/20 rounded-lg"
-            >
-              <X className="w-6 h-6" />
-            </button>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <label className="block text-[#9B7BB8] text-sm font-medium">Title</label>
-              <input
-                type="text"
-                className="w-full bg-[#2D1B3D]/50 border border-[#9B7BB8]/30 rounded-lg px-4 py-3 text-white placeholder-[#9B7BB8] focus:outline-none focus:border-[#9B7BB8] focus:ring-2 focus:ring-[#9B7BB8]/20 transition-all duration-200"
-                placeholder="Enter book title"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="block text-[#9B7BB8] text-sm font-medium">Author</label>
-              <input
-                type="text"
-                className="w-full bg-[#2D1B3D]/50 border border-[#9B7BB8]/30 rounded-lg px-4 py-3 text-white placeholder-[#9B7BB8] focus:outline-none focus:border-[#9B7BB8] focus:ring-2 focus:ring-[#9B7BB8]/20 transition-all duration-200"
-                placeholder="Enter author name"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="block text-[#9B7BB8] text-sm font-medium">Category</label>
-              <select className="w-full bg-[#2D1B3D]/50 border border-[#9B7BB8]/30 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-[#9B7BB8] focus:ring-2 focus:ring-[#9B7BB8]/20 transition-all duration-200">
-                {categories.slice(1).map(cat => (
-                  <option key={cat} value={cat} className="bg-[#2D1B3D] text-white">{cat}</option>
-                ))}
-              </select>
-            </div>
-            <div className="space-y-2">
-              <label className="block text-[#9B7BB8] text-sm font-medium">Price</label>
-              <input
-                type="number"
-                className="w-full bg-[#2D1B3D]/50 border border-[#9B7BB8]/30 rounded-lg px-4 py-3 text-white placeholder-[#9B7BB8] focus:outline-none focus:border-[#9B7BB8] focus:ring-2 focus:ring-[#9B7BB8]/20 transition-all duration-200"
-                placeholder="0.00"
-              />
-            </div>
-            
-            {/* Featured and Hero toggles */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 bg-[#2D1B3D]/30 rounded-lg border border-[#9B7BB8]/20">
-                <div className="flex items-center space-x-3">
-                  <Star className="w-5 h-5 text-[#9B7BB8]" />
-                  <div>
-                    <p className="text-white font-medium">Featured Book</p>
-                    <p className="text-[#9B7BB8] text-sm">Show in featured section</p>
-                  </div>
-                </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input type="checkbox" className="sr-only peer" />
-                  <div className="w-11 h-6 bg-[#2D1B3D] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#9B7BB8]"></div>
-                </label>
-              </div>
-              
-              <div className="flex items-center justify-between p-4 bg-[#2D1B3D]/30 rounded-lg border border-[#9B7BB8]/20">
-                <div className="flex items-center space-x-3">
-                  <Zap className="w-5 h-5 text-[#9B7BB8]" />
-                  <div>
-                    <p className="text-white font-medium">Hero Book</p>
-                    <p className="text-[#9B7BB8] text-sm">Show in hero section</p>
-                  </div>
-                </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input type="checkbox" className="sr-only peer" />
-                  <div className="w-11 h-6 bg-[#2D1B3D] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#9B7BB8]"></div>
-                </label>
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <label className="block text-[#9B7BB8] text-sm font-medium">Status</label>
-              <select className="w-full bg-[#2D1B3D]/50 border border-[#9B7BB8]/30 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-[#9B7BB8] focus:ring-2 focus:ring-[#9B7BB8]/20 transition-all duration-200">
-                {statuses.slice(1).map(status => (
-                  <option key={status} value={status} className="bg-[#2D1B3D] text-white capitalize">{status}</option>
-                ))}
-              </select>
-            </div>
-            
-            <div className="md:col-span-2 space-y-2">
-              <label className="block text-[#9B7BB8] text-sm font-medium">Description</label>
-              <textarea
-                rows={4}
-                className="w-full bg-[#2D1B3D]/50 border border-[#9B7BB8]/30 rounded-lg px-4 py-3 text-white placeholder-[#9B7BB8] focus:outline-none focus:border-[#9B7BB8] focus:ring-2 focus:ring-[#9B7BB8]/20 transition-all duration-200 resize-none"
-                placeholder="Enter book description"
-              ></textarea>
-            </div>
-          </div>
-          
-          <div className="flex justify-end space-x-4 mt-8">
-            <button
-              onClick={() => setShowAddModal(false)}
-              className="px-6 py-3 text-[#9B7BB8] hover:text-white transition-colors duration-200 font-medium"
-            >
-              Cancel
-            </button>
-            <button className="px-8 py-3 bg-gradient-to-r from-[#9B7BB8] to-[#7B5B98] text-white rounded-lg hover:from-[#7B5B98] hover:to-[#5B3B78] transition-all duration-200 flex items-center space-x-2 font-medium shadow-lg hover:shadow-xl transform hover:scale-105">
-              <Save className="w-4 h-4" />
-              <span>Save Book</span>
-            </button>
-          </div>
-        </div>
-      </div>
-    )
-  );
+  // View Modal
+  const openViewModal = (book) => {
+    setModalBook(book);
+    setShowViewModal(true);
+  };
+  const closeViewModal = () => {
+    setShowViewModal(false);
+    setModalBook(null);
+  };
+
+  // Delete
+  const handleDelete = (book) => {
+    if(window.confirm(`Are you sure you want to delete "${book.title}"?`)) {
+      setBooks(prev => prev.filter(b => b.id !== book.id));
+    }
+  };
 
   return (
     <AdminLayout currentPage="Books">
-      <div className="min-h-screen bg-[#9B7BB8] p-6">
-        <div className="bg-[#2D1B3D]/95 backdrop-blur-sm rounded-3xl p-8 border border-[#9B7BB8]/20 shadow-2xl">
-          {/* Header */}
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-6 lg:space-y-0 mb-8">
-            <div>
-              <h1 className="text-3xl font-bold text-white mb-2">Books Management</h1>
-              <p className="text-[#9B7BB8] text-lg">Manage your e-book collection and inventory</p>
+      <div className="min-h-[calc(100vh-5rem)] bg-gradient-to-br from-[#9B7BB8] via-[#9B7BB8] to-purple-900 -m-6 p-6">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-[#2D1B3D] mb-3">Books Management</h1>
+          <p className="text-[#2D1B3D]/80 text-lg">Manage your ebook collection</p>
+        </div>
+        {/* Controls */}
+        <div className="flex flex-wrap items-center gap-3 mb-8 justify-between">
+          <div className="flex items-center gap-3">
+            <div className="relative w-64">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/40 w-4 h-4" />
+              <input
+                type="text"
+                placeholder="Search books..."
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 bg-[#2D1B3D]/80 text-white rounded-lg border border-white/10 placeholder-white/40 focus:outline-none focus:border-white/20 text-sm"
+              />
             </div>
-            <div className="flex items-center space-x-4">
-              <button className="px-6 py-3 bg-[#2D1B3D]/50 text-[#9B7BB8] rounded-xl border border-[#9B7BB8]/30 hover:bg-[#9B7BB8]/20 hover:text-white transition-all duration-200 flex items-center space-x-2 font-medium">
-                <Download className="w-4 h-4" />
-                <span>Export</span>
-              </button>
-              <button
-                onClick={() => setShowAddModal(true)}
-                className="px-6 py-3 bg-gradient-to-r from-[#9B7BB8] to-[#7B5B98] text-white rounded-xl hover:from-[#7B5B98] hover:to-[#5B3B78] transition-all duration-200 flex items-center space-x-2 font-medium shadow-lg hover:shadow-xl transform hover:scale-105"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Add Book</span>
-              </button>
-            </div>
+            <button
+              onClick={() => fileInputRef.current.click()}
+              className="flex items-center space-x-2 px-4 py-2 bg-[#2D1B3D] text-white rounded-lg hover:bg-[#9B7BB8] transition-colors text-sm"
+            >
+              <Upload className="w-4 h-4" />
+              <span>Import</span>
+              <input
+                type="file"
+                accept=".json,.csv"
+                ref={fileInputRef}
+                onChange={handleImport}
+                className="hidden"
+              />
+            </button>
+            <button
+              onClick={() => handleExport('json')}
+              className="flex items-center space-x-2 px-4 py-2 bg-[#2D1B3D] text-white rounded-lg hover:bg-[#9B7BB8] transition-colors text-sm"
+            >
+              <Download className="w-4 h-4" />
+              <span>Export</span>
+            </button>
           </div>
-
-          {/* Filters and Search */}
-          <div className="bg-gradient-to-r from-[#2D1B3D]/50 to-[#1A0F2E]/50 rounded-2xl p-6 border border-[#9B7BB8]/20 mb-8">
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
-              <div className="flex flex-col sm:flex-row sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
-                <div className="relative group">
-                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-[#9B7BB8] w-4 h-4 group-focus-within:text-white transition-colors duration-200" />
-                  <input
-                    type="text"
-                    placeholder="Search books..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="bg-[#2D1B3D]/50 border border-[#9B7BB8]/30 rounded-xl pl-12 pr-4 py-3 text-white placeholder-[#9B7BB8] focus:outline-none focus:border-[#9B7BB8] focus:ring-2 focus:ring-[#9B7BB8]/20 transition-all duration-200 w-full sm:w-80"
-                  />
-                </div>
-                <select
-                  value={filterStatus}
-                  onChange={(e) => setFilterStatus(e.target.value)}
-                  className="bg-[#2D1B3D]/50 border border-[#9B7BB8]/30 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#9B7BB8] focus:ring-2 focus:ring-[#9B7BB8]/20 transition-all duration-200 capitalize"
-                >
-                  {statuses.map(status => (
-                    <option key={status} value={status} className="bg-[#2D1B3D] text-white capitalize">
-                      {status}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <button
-                onClick={() => setShowFilters(!showFilters)}
-                className="flex items-center space-x-2 px-6 py-3 bg-[#2D1B3D]/50 text-[#9B7BB8] rounded-xl border border-[#9B7BB8]/30 hover:bg-[#9B7BB8]/20 hover:text-white transition-all duration-200 font-medium"
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <select
+                value={filterCategory}
+                onChange={e => setFilterCategory(e.target.value)}
+                className="px-4 py-2 bg-[#2D1B3D] text-white rounded-lg border border-white/10 focus:outline-none focus:border-white/20 text-sm appearance-none pr-8"
+                style={{ minWidth: 120 }}
               >
-                <Filter className="w-4 h-4" />
-                <span>More Filters</span>
-              </button>
+                {categories.map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+              <span className="pointer-events-none absolute right-3 top-1/2 transform -translate-y-1/2 text-white/60">
+                ▼
+              </span>
             </div>
-          </div>
-
-          {/* Books Table */}
-          <div className="bg-gradient-to-r from-[#2D1B3D]/50 to-[#1A0F2E]/50 rounded-2xl border border-[#9B7BB8]/20 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-[#2D1B3D]/80 border-b border-[#9B7BB8]/20">
-                  <tr>
-                    <th className="px-6 py-4 text-left">
-                      <input
-                        type="checkbox"
-                        checked={selectedBooks.length === books.length}
-                        onChange={handleSelectAll}
-                        className="rounded border-[#9B7BB8] text-[#9B7BB8] focus:ring-[#9B7BB8] bg-[#2D1B3D]"
-                      />
-                    </th>
-                    <th className="px-6 py-4 text-left text-[#9B7BB8] font-semibold">Book</th>
-                    <th className="px-6 py-4 text-left text-[#9B7BB8] font-semibold">Category</th>
-                    <th className="px-6 py-4 text-left text-[#9B7BB8] font-semibold">Price</th>
-                    <th className="px-6 py-4 text-left text-[#9B7BB8] font-semibold">Sales</th>
-                    <th className="px-6 py-4 text-left text-[#9B7BB8] font-semibold">Rating</th>
-                    <th className="px-6 py-4 text-left text-[#9B7BB8] font-semibold">Status</th>
-                    <th className="px-6 py-4 text-left text-[#9B7BB8] font-semibold">Tags</th>
-                    <th className="px-6 py-4 text-left text-[#9B7BB8] font-semibold">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#9B7BB8]/20">
-                  {books.map((book) => (
-                    <tr key={book.id} className="hover:bg-[#9B7BB8]/10 transition-colors duration-200 group">
-                      <td className="px-6 py-4">
-                        <input
-                          type="checkbox"
-                          checked={selectedBooks.includes(book.id)}
-                          onChange={() => handleSelectBook(book.id)}
-                          className="rounded border-[#9B7BB8] text-[#9B7BB8] focus:ring-[#9B7BB8] bg-[#2D1B3D]"
-                        />
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center space-x-4">
-                          <div className="relative">
-                            <img
-                              src={book.image}
-                              alt={book.title}
-                              className="w-14 h-18 object-cover rounded-lg shadow-lg"
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent rounded-lg"></div>
-                          </div>
-                          <div>
-                            <p className="text-white font-semibold text-lg">{book.title}</p>
-                            <p className="text-[#9B7BB8] text-sm">{book.author}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="px-3 py-1 bg-[#9B7BB8]/20 text-[#9B7BB8] rounded-full text-sm font-medium">
-                          {book.category}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-white font-semibold">${book.price}</div>
-                        {book.originalPrice > book.price && (
-                          <div className="text-[#9B7BB8] text-sm line-through">${book.originalPrice}</div>
-                        )}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center space-x-2">
-                          <Users className="w-4 h-4 text-[#9B7BB8]" />
-                          <span className="text-white font-medium">{book.sales}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center space-x-2">
-                          <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                          <span className="text-white font-medium">{book.rating}</span>
-                          <span className="text-[#9B7BB8] text-sm">({book.reviews})</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(book.status)}`}>
-                          {book.status.toUpperCase()}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center space-x-2">
-                          {book.isFeatured && (
-                            <span className="px-2 py-1 bg-yellow-500/20 text-yellow-400 rounded-full text-xs font-medium flex items-center space-x-1">
-                              <Star className="w-3 h-3" />
-                              <span>Featured</span>
-                            </span>
-                          )}
-                          {book.isHero && (
-                            <span className="px-2 py-1 bg-blue-500/20 text-blue-400 rounded-full text-xs font-medium flex items-center space-x-1">
-                              <Zap className="w-3 h-3" />
-                              <span>Hero</span>
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                          <button className="p-2 text-[#9B7BB8] hover:text-white hover:bg-[#9B7BB8]/20 rounded-lg transition-all duration-200">
-                            <Eye className="w-4 h-4" />
-                          </button>
-                          <button className="p-2 text-[#9B7BB8] hover:text-white hover:bg-[#9B7BB8]/20 rounded-lg transition-all duration-200">
-                            <Edit className="w-4 h-4" />
-                          </button>
-                          <button className="p-2 text-red-400 hover:text-red-300 hover:bg-red-500/20 rounded-lg transition-all duration-200">
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Pagination */}
-            <div className="px-6 py-4 border-t border-[#9B7BB8]/20 flex items-center justify-between bg-[#2D1B3D]/30">
-              <div className="text-[#9B7BB8] text-sm">
-                Showing 1 to 4 of 1,234 results
-              </div>
-              <div className="flex items-center space-x-2">
-                <button className="px-4 py-2 text-[#9B7BB8] hover:text-white transition-colors duration-200 font-medium">Previous</button>
-                <button className="px-4 py-2 bg-[#9B7BB8] text-white rounded-lg font-medium">1</button>
-                <button className="px-4 py-2 text-[#9B7BB8] hover:text-white transition-colors duration-200 font-medium">2</button>
-                <button className="px-4 py-2 text-[#9B7BB8] hover:text-white transition-colors duration-200 font-medium">3</button>
-                <button className="px-4 py-2 text-[#9B7BB8] hover:text-white transition-colors duration-200 font-medium">Next</button>
-              </div>
-            </div>
+            <button
+              onClick={openAddModal}
+              className="flex items-center space-x-2 px-4 py-2 bg-[#2D1B3D] text-white rounded-lg hover:bg-[#9B7BB8] transition-colors text-sm font-semibold"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Add Book</span>
+            </button>
           </div>
         </div>
+        {/* Table */}
+        <div className="overflow-x-auto rounded-2xl shadow-lg bg-[#2D1B3D]/80 border border-white/10">
+          <table className="min-w-full divide-y divide-white/10">
+            <thead>
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-white/60 uppercase tracking-wider">Image</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-white/60 uppercase tracking-wider">Title</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-white/60 uppercase tracking-wider">Author</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-white/60 uppercase tracking-wider">Category</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-white/60 uppercase tracking-wider">Price</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-white/60 uppercase tracking-wider">Pages</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-white/60 uppercase tracking-wider">Published</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-white/60 uppercase tracking-wider">Featured</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-white/60 uppercase tracking-wider">Hero</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-white/60 uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/10">
+              {filteredBooks.length === 0 ? (
+                <tr>
+                  <td colSpan={10} className="text-center py-8 text-white/60">No books found.</td>
+                </tr>
+              ) : (
+                filteredBooks.map(book => (
+                  <tr key={book.id} className="hover:bg-white/5 transition-colors">
+                    <td className="px-4 py-3">
+                      <img src={book.image} alt={book.title} className="w-10 h-14 object-cover rounded-lg border border-white/10" />
+                    </td>
+                    <td className="px-4 py-3 text-white font-medium">{book.title}</td>
+                    <td className="px-4 py-3 text-white/80">{book.author}</td>
+                    <td className="px-4 py-3 text-white/80">{book.category}</td>
+                    <td className="px-4 py-3 text-white/80">${book.price.toFixed(2)}</td>
+                    <td className="px-4 py-3 text-white/80">{book.pages}</td>
+                    <td className="px-4 py-3 text-white/80">{book.publishedDate}</td>
+                    <td className="px-4 py-3">{book.isFeatured ? <Star className="w-4 h-4 text-yellow-400" title="Featured" /> : '-'}</td>
+                    <td className="px-4 py-3">{book.isHero ? <Zap className="w-4 h-4 text-blue-400" title="Hero" /> : '-'}</td>
+                    <td className="px-4 py-3 flex items-center space-x-2">
+                      <button onClick={() => openViewModal(book)} className="p-2 rounded-lg hover:bg-white/10 text-white/60 hover:text-white transition-colors" title="View"><Eye className="w-4 h-4" /></button>
+                      <button onClick={() => openEditModal(book)} className="p-2 rounded-lg hover:bg-blue-500/20 text-blue-400 hover:text-blue-300 transition-colors" title="Edit"><Edit className="w-4 h-4" /></button>
+                      <button onClick={() => handleDelete(book)} className="p-2 rounded-lg hover:bg-red-500/20 text-red-400 hover:text-red-300 transition-colors" title="Delete"><Trash2 className="w-4 h-4" /></button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+        {/* View Modal */}
+        {showViewModal && modalBook && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-[#2D1B3D] rounded-2xl shadow-2xl max-w-2xl w-full p-8 relative">
+              <button onClick={closeViewModal} className="absolute top-4 right-4 text-white/60 hover:text-white"><X className="w-6 h-6" /></button>
+              <div className="flex flex-col md:flex-row gap-8">
+                <img src={modalBook.image} alt={modalBook.title} className="w-32 h-44 object-cover rounded-lg border border-white/10" />
+                <div className="flex-1 space-y-2">
+                  <h2 className="text-2xl font-bold text-white mb-2">{modalBook.title}</h2>
+                  <p className="text-white/80">by {modalBook.author}</p>
+                  <p className="text-white/60">Category: {modalBook.category}</p>
+                  <p className="text-white/60">Price: ${modalBook.price}</p>
+                  <p className="text-white/60">Original Price: ${modalBook.originalPrice}</p>
+                  <p className="text-white/60">Pages: {modalBook.pages}</p>
+                  <p className="text-white/60">Published: {modalBook.publishedDate}</p>
+                  <p className="text-white/60">Description: {modalBook.description}</p>
+                  <div className="flex items-center gap-2 mt-2">
+                    {modalBook.isFeatured && <span className="inline-flex items-center px-3 py-1 bg-yellow-400/20 text-yellow-400 rounded-full text-xs font-semibold"><Star className="w-4 h-4 mr-1" /> Featured</span>}
+                    {modalBook.isHero && <span className="inline-flex items-center px-3 py-1 bg-blue-400/20 text-blue-400 rounded-full text-xs font-semibold"><Zap className="w-4 h-4 mr-1" /> Hero</span>}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        {/* Add/Edit Modal */}
+        {showAddEditModal && modalBook && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center" style={{backdropFilter: 'blur(10px)', background: 'rgba(30, 18, 46, 0.55)'}}>
+            <div className="bg-[#2D1B3D]/95 rounded-2xl shadow-2xl max-w-4xl w-full p-4 md:p-8 relative" style={{fontSize: '0.89rem', minWidth: 340, maxWidth: 600}}>
+              <button onClick={closeAddEditModal} className="absolute top-3 right-3 text-white/60 hover:text-white z-10"><X className="w-5 h-5" /></button>
+              <form onSubmit={handleAddEditSubmit} className="space-y-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-white/70 mb-0.5 text-xs">Title</label>
+                    <input type="text" value={modalBook.title} onChange={e => handleAddEditChange('title', e.target.value)} className="w-full bg-[#9B7BB8]/10 text-white p-1.5 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-xs" required />
+                  </div>
+                  <div>
+                    <label className="block text-white/70 mb-0.5 text-xs">Author</label>
+                    <input type="text" value={modalBook.author} onChange={e => handleAddEditChange('author', e.target.value)} className="w-full bg-[#9B7BB8]/10 text-white p-1.5 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-xs" required />
+                  </div>
+                  <div>
+                    <label className="block text-white/70 mb-0.5 text-xs">Category</label>
+                    <input type="text" value={modalBook.category} onChange={e => handleAddEditChange('category', e.target.value)} className="w-full bg-[#9B7BB8]/10 text-white p-1.5 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-xs" required placeholder="e.g. Self Development" />
+                  </div>
+                  <div>
+                    <label className="block text-white/70 mb-0.5 text-xs">Price</label>
+                    <input type="number" value={modalBook.price} onChange={e => handleAddEditChange('price', e.target.value)} className="w-full bg-[#9B7BB8]/10 text-white p-1.5 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-xs" required />
+                  </div>
+                  <div>
+                    <label className="block text-white/70 mb-0.5 text-xs">Original Price</label>
+                    <input type="number" value={modalBook.originalPrice} onChange={e => handleAddEditChange('originalPrice', e.target.value)} className="w-full bg-[#9B7BB8]/10 text-white p-1.5 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-xs" />
+                  </div>
+                  <div>
+                    <label className="block text-white/70 mb-0.5 text-xs">Pages</label>
+                    <input type="number" value={modalBook.pages} onChange={e => handleAddEditChange('pages', e.target.value)} className="w-full bg-[#9B7BB8]/10 text-white p-1.5 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-xs" />
+                  </div>
+                  <div>
+                    <label className="block text-white/70 mb-0.5 text-xs">Published Date</label>
+                    <input type="date" value={modalBook.publishedDate} onChange={e => handleAddEditChange('publishedDate', e.target.value)} className="w-full bg-[#9B7BB8]/10 text-white p-1.5 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-xs" />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-white/70 mb-0.5 text-xs">Description</label>
+                    <textarea value={modalBook.description} onChange={e => handleAddEditChange('description', e.target.value)} className="w-full bg-[#9B7BB8]/10 text-white p-1.5 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-xs" rows={2} required />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-white/70 mb-0.5 text-xs">Book Image</label>
+                    {imagePreview ? (
+                      <div className="mb-1 flex items-center gap-3">
+                        <img src={imagePreview} alt="Book" className="w-14 h-20 object-cover rounded-lg border border-[#9B7BB8]/30" />
+                        <button type="button" onClick={() => { setImagePreview(''); setModalBook(prev => ({ ...prev, image: '' })); }} className="text-red-400 hover:text-red-600 text-xs">Remove</button>
+                      </div>
+                    ) : null}
+                    <input type="file" accept="image/*" ref={imageInputRef} onChange={handleImageChange} className="w-full bg-[#9B7BB8]/10 text-white p-1.5 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-xs" />
+                  </div>
+                </div>
+                <div className="flex items-center gap-6 mt-1">
+                  <label className="flex items-center gap-2 text-white/80 text-xs">
+                    <input type="checkbox" checked={modalBook.isFeatured} onChange={e => handleAddEditChange('isFeatured', e.target.checked)} />
+                    <Star className="w-4 h-4 text-yellow-400" /> Featured
+                  </label>
+                  <label className="flex items-center gap-2 text-white/80 text-xs">
+                    <input type="checkbox" checked={modalBook.isHero} onChange={e => handleAddEditChange('isHero', e.target.checked)} />
+                    <Zap className="w-4 h-4 text-blue-400" /> Hero
+                  </label>
+                </div>
+                <div className="flex justify-end mt-2">
+                  <button type="submit" className="flex items-center space-x-2 px-6 py-2 bg-[#9B7BB8] text-white rounded-lg hover:bg-[#8A6AA7] transition-colors text-sm font-semibold">
+                    <Save className="w-5 h-5" />
+                    <span>{isEdit ? 'Save Changes' : 'Add Book'}</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
-
-      <AddBookModal />
     </AdminLayout>
   );
 };

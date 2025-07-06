@@ -1,9 +1,11 @@
 import React, { useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { User, Mail, Phone, Edit, Save, X, BookOpen, ShoppingCart, LogOut, Heart, Settings, Camera } from 'lucide-react';
 
 const DEFAULT_AVATAR = '';
 
 const ProfileSection = () => {
+  const navigate = useNavigate();
   // Simulate login method: 'email' or 'mobile'
   const [loginMethod] = useState('email'); // Change to 'mobile' to test mobile login
   const [isEditing, setIsEditing] = useState(false);
@@ -187,7 +189,10 @@ const ProfileSection = () => {
               Quick Actions
             </h3>
             <div className="grid grid-cols-1 gap-3">
-              <button className="flex items-center space-x-4 p-4 rounded-2xl hover:bg-[#9B7BB8]/20 transition-all duration-300 group border border-transparent hover:border-[#9B7BB8]/30">
+              <button 
+                onClick={() => navigate('/my-library')}
+                className="flex items-center space-x-4 p-4 rounded-2xl hover:bg-[#9B7BB8]/20 transition-all duration-300 group border border-transparent hover:border-[#9B7BB8]/30"
+              >
                 <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#9B7BB8]/20 to-[#8A6AA7]/20 flex items-center justify-center group-hover:from-[#9B7BB8]/30 group-hover:to-[#8A6AA7]/30 transition-all duration-300">
                   <BookOpen className="w-6 h-6 text-[#9B7BB8]" />
                 </div>
@@ -196,7 +201,10 @@ const ProfileSection = () => {
                   <p className="text-xs text-white/60">View your books</p>
                 </div>
               </button>
-              <button className="flex items-center space-x-4 p-4 rounded-2xl hover:bg-[#9B7BB8]/20 transition-all duration-300 group border border-transparent hover:border-[#9B7BB8]/30">
+              <button 
+                onClick={() => navigate('/order-history')}
+                className="flex items-center space-x-4 p-4 rounded-2xl hover:bg-[#9B7BB8]/20 transition-all duration-300 group border border-transparent hover:border-[#9B7BB8]/30"
+              >
                 <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#9B7BB8]/20 to-[#8A6AA7]/20 flex items-center justify-center group-hover:from-[#9B7BB8]/30 group-hover:to-[#8A6AA7]/30 transition-all duration-300">
                   <ShoppingCart className="w-6 h-6 text-[#9B7BB8]" />
                 </div>

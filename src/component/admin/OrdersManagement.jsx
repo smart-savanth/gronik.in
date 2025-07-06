@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShoppingCart, Search, Eye, Check, X, Filter, Calendar, Download, RefreshCw, Clock } from 'lucide-react';
+import { ShoppingCart, Search, Eye, Check, X, Filter, Calendar, Download, Clock } from 'lucide-react';
 import AdminLayout from './Adminlayout';
 
 const sampleOrders = [
@@ -22,7 +22,6 @@ const OrdersManagement = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [orders, setOrders] = useState(sampleOrders);
   const [selectedOrder, setSelectedOrder] = useState(null);
-  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const filteredOrders = orders.filter(order => {
     const matchesSearch =
@@ -39,15 +38,10 @@ const OrdersManagement = () => {
     ));
   };
 
-  const handleRefresh = () => {
-    setIsRefreshing(true);
-    setTimeout(() => setIsRefreshing(false), 1000);
-  };
 
   const getStatusIcon = (status) => {
     switch (status) {
       case 'completed': return <Check className="w-3 h-3" />;
-      case 'processing': return <RefreshCw className="w-3 h-3 animate-spin" />;
       case 'pending': return <Clock className="w-3 h-3" />;
       case 'cancelled': return <X className="w-3 h-3" />;
       default: return null;
@@ -56,8 +50,8 @@ const OrdersManagement = () => {
 
   return (
     <AdminLayout currentPage="Orders">
-      <div className="min-h-screen bg-[#9B7BB8] p-6">
-        <div className="max-w-7xl mx-auto space-y-6">
+      <div className="min-h-[calc(100vh-5rem)] bg-gradient-to-br from-[#9B7BB8] via-[#9B7BB8] to-purple-900 -m-6 p-6" style={{ border: 'none', outline: 'none' }}>
+        <div className="w-full h-full space-y-8">
           {/* Header */}
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div className="space-y-2">
@@ -70,13 +64,6 @@ const OrdersManagement = () => {
               <p className="text-white/70">Manage and track all your ebook orders</p>
             </div>
             <div className="flex items-center gap-3">
-              <button 
-                onClick={handleRefresh}
-                className="px-4 py-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-xl text-white transition-all duration-300 flex items-center gap-2 group"
-              >
-                <RefreshCw className={`w-4 h-4 transition-transform duration-300 ${isRefreshing ? 'animate-spin' : 'group-hover:rotate-180'}`} />
-                Refresh
-              </button>
               <button className="px-4 py-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-xl text-white transition-all duration-300 flex items-center gap-2">
                 <Download className="w-4 h-4" />
                 Export
@@ -85,7 +72,7 @@ const OrdersManagement = () => {
           </div>
 
           {/* Search and Filter */}
-          <div className="bg-[#2D1B3D] rounded-2xl p-6 backdrop-blur-sm">
+          <div className="bg-[#2D1B3D]/80 backdrop-blur-md rounded-2xl p-6 border border-white/10 hover:border-white/20 transition-all duration-500">
             <div className="flex flex-col lg:flex-row gap-4">
               <div className="relative flex-1">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-white/50 w-5 h-5" />
@@ -117,7 +104,7 @@ const OrdersManagement = () => {
           </div>
 
           {/* Orders Table */}
-          <div className="bg-[#2D1B3D] rounded-2xl overflow-hidden backdrop-blur-sm">
+          <div className="bg-[#2D1B3D]/80 backdrop-blur-md rounded-2xl overflow-hidden border border-white/10 hover:border-white/20 transition-all duration-500">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-white/5 border-b border-white/10">
@@ -197,7 +184,7 @@ const OrdersManagement = () => {
           {/* Order Details Modal */}
           {selectedOrder && (
             <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-              <div className="bg-[#2D1B3D] rounded-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto">
+              <div className="bg-[#2D1B3D] rounded-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto border border-white/10">
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-xl font-bold text-white">Order Details</h2>
                   <button 
@@ -242,13 +229,19 @@ const OrdersManagement = () => {
                   </div>
                   <div className="flex gap-3 pt-4">
                     <button 
-                      onClick={() => handleStatusUpdate(selectedOrder.id, 'completed')}
+                      onClick={() => {
+                        handleStatusUpdate(selectedOrder.id, 'completed');
+                        setSelectedOrder(null);
+                      }}
                       className="flex-1 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 py-2 rounded-lg transition-all duration-300"
                     >
                       Mark Complete
                     </button>
                     <button 
-                      onClick={() => handleStatusUpdate(selectedOrder.id, 'cancelled')}
+                      onClick={() => {
+                        handleStatusUpdate(selectedOrder.id, 'cancelled');
+                        setSelectedOrder(null);
+                      }}
                       className="flex-1 bg-red-500/20 hover:bg-red-500/30 text-red-300 py-2 rounded-lg transition-all duration-300"
                     >
                       Cancel Order

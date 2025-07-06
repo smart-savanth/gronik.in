@@ -15,6 +15,8 @@ import ProductSection from './component/pages/ProductSection';
 import ProfileSection from './component/pages/ProfileSection';
 import LibraryPage from './component/pages/LibrarySection';
 import LoginSection from './component/pages/LoginSection';
+import OrderHistorySection from './component/pages/OrderHistorySection';
+import MyLibrarySection from './component/pages/MyLibrarySection';
 import ScrollToTop from './component/layout/ScrollToTop';
 import AdminDashboard from './component/admin/AdminDashboard';
 import BooksManagement from './component/admin/BooksManagement';
@@ -145,6 +147,8 @@ function App() {
           />
         } />
         <Route path="/profile" element={<ProfileSection />} />
+        <Route path="/order-history" element={<OrderHistorySection />} />
+        <Route path="/my-library" element={<MyLibrarySection />} />
         <Route path="/login" element={<LoginSection />} />
         {/* Admin Routes */}
         <Route path="/admin" element={<AdminDashboard />} />
