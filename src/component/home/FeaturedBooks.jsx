@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShoppingCart, Heart, Star, ArrowRight, Sparkles, BookOpen } from 'lucide-react';
+import { ShoppingCart, Heart, Star, ArrowRight, Sparkles, BookOpen, Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 // Import the centralized books data (named export)
@@ -8,6 +8,8 @@ import { centralizedBooksData } from '../pages/LibrarySection';
 const FeaturedBooksSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCart, onAddToWishlist, onRemoveFromWishlist, onQuickView }) => {
   const [hoveredBook, setHoveredBook] = useState(null);
   const [addedBookIds, setAddedBookIds] = useState({});
+  const [cartButtonClicked, setCartButtonClicked] = useState({});
+  const [wishlistButtonClicked, setWishlistButtonClicked] = useState({});
   const navigate = useNavigate();
 
   // Get only featured books from centralized data
@@ -18,16 +20,20 @@ const FeaturedBooksSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveF
   const isInWishlist = (book) => wishlist.some(item => item.id === book.id);
 
   const handleAddToCart = (book) => {
-    onAddToCart && onAddToCart(book);
-    setAddedBookIds(prev => ({ ...prev, [book.id]: true }));
-    setTimeout(() => {
-      setAddedBookIds(prev => ({ ...prev, [book.id]: false }));
-    }, 1500);
+    if (!isInCart(book)) {
+      setCartButtonClicked(prev => ({ ...prev, [book.id]: true }));
+      setTimeout(() => setCartButtonClicked(prev => ({ ...prev, [book.id]: false })), 1500);
+      onAddToCart && onAddToCart(book);
+    } else {
+      onRemoveFromCart && onRemoveFromCart(book.id);
+    }
   };
 
   const handleAddToWishlist = (book) => {
+    setWishlistButtonClicked(prev => ({ ...prev, [book.id]: true }));
+    setTimeout(() => setWishlistButtonClicked(prev => ({ ...prev, [book.id]: false })), 2000);
     if (isInWishlist(book)) {
-      onRemoveFromWishlist && onRemoveFromWishlist(book);
+      onRemoveFromWishlist && onRemoveFromWishlist(book.id);
     } else {
       onAddToWishlist && onAddToWishlist(book);
     }
@@ -135,33 +141,41 @@ const FeaturedBooksSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveF
                     </div>
 
                     {/* Action Buttons - Better spacing and sizing */}
-                    <div className="flex items-center space-x-2 sm:space-x-3 mt-auto pt-2 sm:pt-3">
+                    <div className="flex flex-row gap-2 w-full mb-4">
                       <button
-                        type="button"
-                        onClick={() => handleAddToCart(book)}
-                        className={`add-to-cart-btn flex-1 py-2 sm:py-3 lg:py-3 px-2 sm:px-4 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl font-semibold text-xs sm:text-sm flex items-center justify-center space-x-1 sm:space-x-2 ${
-                          addedBookIds[book.id]
-                            ? 'bg-green-600 text-white border-2 border-green-700 scale-105'
-                            : 'bg-gradient-to-r from-[#2D1B3D] to-[#3D2A54] hover:from-[#3D2A54] hover:to-[#2D1B3D] text-white'
+                        onClick={e => { e.stopPropagation(); handleAddToCart(book); }}
+                        className={`cart-button-animated ${cartButtonClicked[book.id] ? 'clicked' : ''} flex-1 py-3 px-4 rounded-xl font-semibold text-base flex items-center justify-center gap-2 transition-all duration-300 hover:scale-105 shadow-xl hover:shadow-2xl ${
+                          isInCart(book)
+                            ? 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white'
+                            : 'bg-gradient-to-r from-white to-gray-100 hover:from-gray-100 hover:to-white text-[#2D1B3D] shadow-xl'
                         }`}
-                        aria-label="Add to Cart"
                       >
-                        <ShoppingCart className="w-3 h-3 sm:w-4 sm:h-4" />
-                        <span className="hidden sm:inline font-bold">{addedBookIds[book.id] ? 'Added!' : 'Add to Cart'}</span>
-                        <span className="sm:hidden text-xs font-bold">{addedBookIds[book.id] ? 'Added!' : 'Cart'}</span>
+                        <ShoppingCart className="cart-icon w-5 h-5" />
+                        <div className="box-icon w-3 h-3 bg-current rounded-sm"></div>
+                        <span className="cart-text">
+                          {isInCart(book) ? (
+                            <Check className="w-5 h-5 mr-2 inline" />
+                          ) : (
+                            <ShoppingCart className="w-5 h-5 mr-2 inline" />
+                          )}
+                          {isInCart(book) ? 'Added to Cart!' : 'Add to Cart'}
+                        </span>
+                        <span className="added-text">
+                          <Check className="w-5 h-5 mr-2 inline" />
+                          Added!
+                        </span>
                       </button>
-                      
-                      <button 
+                      <button
                         onClick={e => { e.stopPropagation(); handleAddToWishlist(book); }}
-                        className={`wishlist-btn p-2 sm:p-3 lg:p-3 backdrop-blur-sm border rounded-lg transition-all duration-300 transform hover:scale-105 ${
+                        className={`wishlist-button-animated ${wishlistButtonClicked[book.id] ? 'clicked' : ''} p-3 rounded-xl transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl ${
                           isInWishlist(book)
-                            ? 'bg-red-500/20 border-red-500/60 text-red-400' 
-                            : 'bg-white/10 hover:bg-white/20 border-white/20 hover:border-white/40 text-white hover:text-red-400'
+                            ? 'bg-gradient-to-r from-red-500 to-red-600 text-white'
+                            : 'bg-[#9B7BB8] text-[#2D1B3D] hover:bg-[#8A6AA7]'
                         }`}
+                        style={{ minWidth: 0 }}
                       >
-                        <Heart className={`w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5 transition-colors duration-300 ${
-                          isInWishlist(book) ? 'fill-current' : ''
-                        }`} />
+                        <Heart className="heart-icon w-5 h-5" />
+                        <Heart className={`w-5 h-5 ${isInWishlist(book) ? 'fill-current' : ''}`} />
                       </button>
                     </div>
                     <div className="h-2 sm:h-4"></div>
@@ -208,6 +222,112 @@ const FeaturedBooksSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveF
           .card-hover-gold:active {
             box-shadow: 0 0 0 2px #ffe9b3, 0 4px 24px 0 #ffe9b3cc, 0 1.5px 8px 0 #fff7c1;
             /* border: 1.5px solid #FFD70080 !important; */
+          }
+        }
+        .cart-button-animated {
+          position: relative;
+          overflow: hidden;
+        }
+        .cart-button-animated .cart-icon {
+          position: absolute;
+          z-index: 2;
+          top: 50%;
+          left: -10%;
+          transform: translate(-50%, -50%);
+          opacity: 0;
+        }
+        .cart-button-animated .box-icon {
+          position: absolute;
+          z-index: 3;
+          top: -20%;
+          left: 52%;
+          transform: translate(-50%, -50%);
+          opacity: 0;
+        }
+        .cart-button-animated .cart-text {
+          position: relative;
+          z-index: 3;
+          transition: opacity 0.3s ease;
+        }
+        .cart-button-animated .added-text {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          z-index: 3;
+          opacity: 0;
+        }
+        .cart-button-animated.clicked .cart-icon {
+          animation: cartAnimation 1.5s ease-in-out forwards;
+        }
+        .cart-button-animated.clicked .box-icon {
+          animation: boxAnimation 1.5s ease-in-out forwards;
+        }
+        .cart-button-animated.clicked .cart-text {
+          animation: textOut 1.5s ease-in-out forwards;
+        }
+        .cart-button-animated.clicked .added-text {
+          animation: textIn 1.5s ease-in-out forwards;
+        }
+        @keyframes cartAnimation {
+          0% { left: -10%; opacity: 1; }
+          40%, 60% { left: 50%; opacity: 1; }
+          100% { left: 110%; opacity: 0; }
+        }
+        @keyframes boxAnimation {
+          0%, 40% { top: -20%; opacity: 1; }
+          60% { top: 40%; left: 52%; opacity: 1; }
+          100% { top: 40%; left: 112%; opacity: 0; }
+        }
+        @keyframes textOut {
+          0% { opacity: 1; }
+          20%, 100% { opacity: 0; }
+        }
+        @keyframes textIn {
+          0%, 80% { opacity: 0; }
+          100% { opacity: 1; }
+        }
+        .wishlist-button-animated {
+          position: relative;
+          overflow: hidden;
+        }
+        .wishlist-button-animated .heart-icon {
+          position: absolute;
+          z-index: 2;
+          top: -20%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          opacity: 0;
+        }
+        .wishlist-button-animated.clicked .heart-icon {
+          animation: heartDrop 2s ease-in-out forwards;
+        }
+        @keyframes heartDrop {
+          0% {
+            top: -20%;
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(0.5);
+          }
+          20% {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+          }
+          40% {
+            top: 50%;
+            transform: translate(-50%, -50%) scale(1.2);
+          }
+          60% {
+            top: 50%;
+            transform: translate(-50%, -50%) scale(1) rotate(10deg);
+          }
+          80% {
+            top: 50%;
+            transform: translate(-50%, -50%) scale(1) rotate(-10deg);
+          }
+          100% {
+            top: 50%;
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1) rotate(0deg);
           }
         }
       `}</style>

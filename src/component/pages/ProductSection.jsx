@@ -9,6 +9,8 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
   const location = useLocation();
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [activeTab, setActiveTab] = useState('overview');
+  const [cartButtonClicked, setCartButtonClicked] = useState(false);
+  const [wishlistButtonClicked, setWishlistButtonClicked] = useState(false);
 
   // Get product data from centralized books data
   const productData = centralizedBooksData.find(book => book.id === parseInt(productId));
@@ -79,6 +81,12 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
   const isInWishlist = wishlist.some(item => item.id === enhancedProductData.id);
 
   const handleAddToCart = () => {
+    // Only trigger animation when adding to cart
+    if (!isInCart) {
+      setCartButtonClicked(true);
+      setTimeout(() => setCartButtonClicked(false), 1500);
+    }
+    // Original functionality
     if (isInCart) {
       onRemoveFromCart && onRemoveFromCart(enhancedProductData.id);
     } else {
@@ -87,6 +95,11 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
   };
 
   const handleAddToWishlist = () => {
+    // Trigger animation
+    setWishlistButtonClicked(true);
+    setTimeout(() => setWishlistButtonClicked(false), 2000);
+    
+    // Original functionality
     if (isInWishlist) {
       onRemoveFromWishlist && onRemoveFromWishlist(enhancedProductData.id);
     } else {
@@ -113,6 +126,220 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
           backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.1'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
         }}></div>
       </div>
+
+      {/* Button Animation Styles */}
+      <style jsx>{`
+        .cart-button-animated {
+          position: relative;
+          overflow: hidden;
+        }
+        
+        .cart-button-animated .cart-icon {
+          position: absolute;
+          z-index: 2;
+          top: 50%;
+          left: -10%;
+          transform: translate(-50%, -50%);
+          opacity: 0;
+        }
+        
+        .cart-button-animated .box-icon {
+          position: absolute;
+          z-index: 3;
+          top: -20%;
+          left: 52%;
+          transform: translate(-50%, -50%);
+          opacity: 0;
+        }
+        
+        .cart-button-animated .cart-text {
+          position: relative;
+          z-index: 3;
+          transition: opacity 0.3s ease;
+        }
+        
+        .cart-button-animated .added-text {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          z-index: 3;
+          opacity: 0;
+        }
+        
+        .cart-button-animated.clicked .cart-icon {
+          animation: cartAnimation 1.5s ease-in-out forwards;
+        }
+        
+        .cart-button-animated.clicked .box-icon {
+          animation: boxAnimation 1.5s ease-in-out forwards;
+        }
+        
+        .cart-button-animated.clicked .cart-text {
+          animation: textOut 1.5s ease-in-out forwards;
+        }
+        
+        .cart-button-animated.clicked .added-text {
+          animation: textIn 1.5s ease-in-out forwards;
+        }
+        
+        @keyframes cartAnimation {
+          0% { left: -10%; opacity: 1; }
+          40%, 60% { left: 50%; opacity: 1; }
+          100% { left: 110%; opacity: 0; }
+        }
+        
+        @keyframes boxAnimation {
+          0%, 40% { top: -20%; opacity: 1; }
+          60% { top: 40%; left: 52%; opacity: 1; }
+          100% { top: 40%; left: 112%; opacity: 0; }
+        }
+        
+        @keyframes textOut {
+          0% { opacity: 1; }
+          20%, 100% { opacity: 0; }
+        }
+        
+        @keyframes textIn {
+          0%, 80% { opacity: 0; }
+          100% { opacity: 1; }
+        }
+        
+        .wishlist-button-animated {
+          position: relative;
+          overflow: hidden;
+        }
+        
+        .wishlist-button-animated .heart-icon {
+          position: absolute;
+          z-index: 2;
+          top: -20%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          opacity: 0;
+        }
+        
+        .wishlist-button-animated.clicked .heart-icon {
+          animation: heartDrop 2s ease-in-out forwards;
+        }
+        
+        @keyframes heartDrop {
+          0% {
+            top: -20%;
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(0.5);
+          }
+          20% {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+          }
+          40% {
+            top: 50%;
+            transform: translate(-50%, -50%) scale(1.2);
+          }
+          60% {
+            top: 50%;
+            transform: translate(-50%, -50%) scale(1) rotate(10deg);
+          }
+          80% {
+            top: 50%;
+            transform: translate(-50%, -50%) scale(1) rotate(-10deg);
+          }
+          100% {
+            top: 50%;
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1) rotate(0deg);
+          }
+        }
+        
+        @media (max-width: 400px) {
+          .pt-32 {
+            padding-top: 1.5rem;
+          }
+          .pb-8 {
+            padding-bottom: 1rem;
+          }
+          .w-40 {
+            width: 120px !important;
+          }
+          .h-56 {
+            height: 170px !important;
+          }
+          .w-10 {
+            width: 40px !important;
+          }
+          .h-14 {
+            height: 56px !important;
+          }
+          .w-[30%] {
+            width: 30% !important;
+          }
+          .w-[70%] {
+            width: 70% !important;
+          }
+          .p-4 {
+            padding: 0.75rem !important;
+          }
+          .rounded-xl {
+            border-radius: 0.75rem !important;
+          }
+          .gap-2 {
+            gap: 0.5rem !important;
+          }
+          .mb-4 {
+            margin-bottom: 1rem !important;
+          }
+          .flex-row {
+            flex-direction: row !important;
+          }
+          .flex-col {
+            flex-direction: column !important;
+          }
+          .items-center {
+            align-items: center !important;
+          }
+          .justify-center {
+            justify-content: center !important;
+          }
+          .text-xs {
+            font-size: 0.75rem !important;
+          }
+          .text-base {
+            font-size: 1rem !important;
+          }
+          .font-semibold {
+            font-weight: 600 !important;
+          }
+          .font-bold {
+            font-weight: 700 !important;
+          }
+          .back-to-library-mobile-fix {
+            margin-top: 4rem;
+          }
+          .back-to-library-btn-mobile {
+            margin-left: 0 !important;
+            margin-right: auto !important;
+            display: flex !important;
+          }
+          .main-book-image-mobile-fix {
+            max-width: 230px !important;
+          }
+          .about-section-mobile-fix {
+            font-size: 0.92rem !important;
+            padding: 1rem !important;
+            border-radius: 0.7rem !important;
+          }
+          .text-3xl {
+            font-size: 1.15rem !important;
+          }
+          .text-lg {
+            font-size: 0.98rem !important;
+          }
+          .p-8 {
+            padding: 1rem !important;
+          }
+        }
+      `}</style>
 
       {/* Navigation - Moved down from navbar */}
       <div className="pt-32 pb-8 relative z-10 back-to-library-mobile-fix">
@@ -256,28 +483,46 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
             <div className="flex flex-row gap-2 w-full mb-4">
               <button
                 onClick={handleAddToCart}
-                className={`flex-1 py-3 px-4 rounded-xl font-semibold text-base flex items-center justify-center gap-2 transition-all duration-300 hover:scale-105 shadow-xl hover:shadow-2xl ${
+                className={`cart-button-animated ${cartButtonClicked ? 'clicked' : ''} flex-1 py-3 px-4 rounded-xl font-semibold text-base flex items-center justify-center gap-2 transition-all duration-300 hover:scale-105 shadow-xl hover:shadow-2xl ${
                   isInCart 
                     ? 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white' 
                     : 'bg-gradient-to-r from-white to-gray-100 hover:from-gray-100 hover:to-white text-[#2D1B3D] shadow-xl'
                 }`}
               >
-                {isInCart ? (
-                  <Check className="w-5 h-5" />
-                ) : (
-                  <ShoppingCart className="w-5 h-5" />
-                )}
-                <span>{isInCart ? 'Added to Cart!' : 'Add to Cart'}</span>
+                {/* Animation Icons */}
+                <ShoppingCart className="cart-icon w-5 h-5" />
+                <div className="box-icon w-3 h-3 bg-current rounded-sm"></div>
+                
+                {/* Original Content */}
+                <span className="cart-text">
+                  {isInCart ? (
+                    <Check className="w-5 h-5 mr-2 inline" />
+                  ) : (
+                    <ShoppingCart className="w-5 h-5 mr-2 inline" />
+                  )}
+                  {isInCart ? 'Added to Cart!' : 'Add to Cart'}
+                </span>
+                
+                {/* Added Text for Animation */}
+                <span className="added-text">
+                  <Check className="w-5 h-5 mr-2 inline" />
+                  Added!
+                </span>
               </button>
+              
               <button
                 onClick={handleAddToWishlist}
-                className={`p-3 rounded-xl transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl ${
+                className={`wishlist-button-animated ${wishlistButtonClicked ? 'clicked' : ''} p-3 rounded-xl transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl ${
                   isInWishlist 
                     ? 'bg-gradient-to-r from-red-500 to-red-600 text-white' 
                     : 'bg-[#9B7BB8] text-[#2D1B3D] hover:bg-[#8A6AA7]'
                 }`}
                 style={{ minWidth: 0 }}
               >
+                {/* Animation Heart */}
+                <Heart className="heart-icon w-5 h-5" />
+                
+                {/* Original Heart */}
                 <Heart className={`w-5 h-5 ${isInWishlist ? 'fill-current' : ''}`} />
               </button>
             </div>

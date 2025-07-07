@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShoppingCart, Heart, Star, Filter, ChevronDown } from 'lucide-react';
+import { ShoppingCart, Heart, Star, Filter, ChevronDown, Check, Zap } from 'lucide-react';
 
 // Centralized Books Data - This will be your single source of truth
 export const centralizedBooksData = [
@@ -181,6 +181,8 @@ const LibraryPage = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCart, 
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [addedBookIds, setAddedBookIds] = useState({});
+  const [cartButtonClicked, setCartButtonClicked] = useState({});
+  const [wishlistButtonClicked, setWishlistButtonClicked] = useState({});
   const navigate = useNavigate();
 
   // Use centralized books data
@@ -201,17 +203,21 @@ const LibraryPage = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCart, 
 
   const handleAddToCart = (e, book) => {
     e.stopPropagation();
-    onAddToCart && onAddToCart(book);
-    setAddedBookIds(prev => ({ ...prev, [book.id]: true }));
-    setTimeout(() => {
-      setAddedBookIds(prev => ({ ...prev, [book.id]: false }));
-    }, 1500);
+    if (!isInCart(book)) {
+      setCartButtonClicked(prev => ({ ...prev, [book.id]: true }));
+      setTimeout(() => setCartButtonClicked(prev => ({ ...prev, [book.id]: false })), 1500);
+      onAddToCart && onAddToCart(book);
+    } else {
+      onRemoveFromCart && onRemoveFromCart(book.id);
+    }
   };
 
   const handleAddToWishlist = (e, book) => {
     e.stopPropagation();
+    setWishlistButtonClicked(prev => ({ ...prev, [book.id]: true }));
+    setTimeout(() => setWishlistButtonClicked(prev => ({ ...prev, [book.id]: false })), 2000);
     if (isInWishlist(book)) {
-      onRemoveFromWishlist && onRemoveFromWishlist(book);
+      onRemoveFromWishlist && onRemoveFromWishlist(book.id);
     } else {
       onAddToWishlist && onAddToWishlist(book);
     }
@@ -344,33 +350,41 @@ const LibraryPage = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCart, 
                     </div>
 
                     {/* Action Buttons */}
-                    <div className="flex items-center space-x-2 mt-auto">
-                      <button 
-                        type="button"
-                        onClick={(e) => handleAddToCart(e, book)}
-                        className={`flex-1 py-2 sm:py-2.5 lg:py-3 px-2 sm:px-3 lg:px-4 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl font-semibold text-xs sm:text-xs lg:text-sm flex items-center justify-center space-x-1 ${
-                          addedBookIds[book.id]
-                            ? 'bg-green-600 text-white border-2 border-green-700 scale-105'
-                            : 'bg-gradient-to-r from-[#2D1B3D] to-[#3D2A54] hover:from-[#3D2A54] hover:to-[#2D1B3D] text-white'
+                    <div className="flex flex-row gap-2 w-full mb-4">
+                      <button
+                        onClick={e => handleAddToCart(e, book)}
+                        className={`cart-button-animated ${cartButtonClicked[book.id] ? 'clicked' : ''} flex-1 py-3 px-4 rounded-xl font-semibold text-base flex items-center justify-center gap-2 transition-all duration-300 hover:scale-105 shadow-xl hover:shadow-2xl ${
+                          isInCart(book)
+                            ? 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white'
+                            : 'bg-gradient-to-r from-white to-gray-100 hover:from-gray-100 hover:to-white text-[#2D1B3D] shadow-xl'
                         }`}
-                        aria-label="Add to Cart"
                       >
-                        <ShoppingCart className="w-3 h-3 sm:w-3.5 sm:h-3.5 lg:w-4 lg:h-4" />
-                        <span className="hidden sm:inline lg:inline font-bold">{addedBookIds[book.id] ? 'Added!' : 'Add to Cart'}</span>
-                        <span className="sm:hidden font-bold">{addedBookIds[book.id] ? 'Added!' : '+'}</span>
+                        <ShoppingCart className="cart-icon w-5 h-5" />
+                        <div className="box-icon w-3 h-3 bg-current rounded-sm"></div>
+                        <span className="cart-text">
+                          {isInCart(book) ? (
+                            <Check className="w-5 h-5 mr-2 inline" />
+                          ) : (
+                            <ShoppingCart className="w-5 h-5 mr-2 inline" />
+                          )}
+                          {isInCart(book) ? 'Added to Cart!' : 'Add to Cart'}
+                        </span>
+                        <span className="added-text">
+                          <Check className="w-5 h-5 mr-2 inline" />
+                          Added!
+                        </span>
                       </button>
-                      <button 
-                        onClick={(e) => handleAddToWishlist(e, book)}
-                        className={`flex-1 sm:flex-none flex items-center justify-center py-2 sm:py-2.5 lg:py-3 px-0 sm:px-2.5 lg:px-3 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl font-semibold text-xs sm:text-xs lg:text-sm ${
+                      <button
+                        onClick={e => handleAddToWishlist(e, book)}
+                        className={`wishlist-button-animated ${wishlistButtonClicked[book.id] ? 'clicked' : ''} p-3 rounded-xl transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl ${
                           isInWishlist(book)
-                            ? 'bg-red-500/20 border-red-500/60 text-red-400 border' 
-                            : 'bg-white/10 hover:bg-white/20 border-white/20 hover:border-white/40 text-white hover:text-red-400 border'
+                            ? 'bg-gradient-to-r from-red-500 to-red-600 text-white'
+                            : 'bg-[#9B7BB8] text-[#2D1B3D] hover:bg-[#8A6AA7]'
                         }`}
-                        style={{ minWidth: '0' }}
+                        style={{ minWidth: 0 }}
                       >
-                        <Heart className={`w-3 h-3 sm:w-3.5 sm:h-3.5 lg:w-5 lg:h-5 transition-colors duration-300 ${
-                          isInWishlist(book) ? 'fill-current' : ''
-                        }`} />
+                        <Heart className="heart-icon w-5 h-5" />
+                        <Heart className={`w-5 h-5 ${isInWishlist(book) ? 'fill-current' : ''}`} />
                       </button>
                     </div>
                   </div>
@@ -407,6 +421,112 @@ const LibraryPage = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCart, 
           .card-hover-gold:active {
             box-shadow: 0 0 0 2px #ffe9b3, 0 4px 24px 0 #ffe9b3cc, 0 1.5px 8px 0 #fff7c1;
             /* border: 1.5px solid #FFD70080 !important; */
+          }
+        }
+        .cart-button-animated {
+          position: relative;
+          overflow: hidden;
+        }
+        .cart-button-animated .cart-icon {
+          position: absolute;
+          z-index: 2;
+          top: 50%;
+          left: -10%;
+          transform: translate(-50%, -50%);
+          opacity: 0;
+        }
+        .cart-button-animated .box-icon {
+          position: absolute;
+          z-index: 3;
+          top: -20%;
+          left: 52%;
+          transform: translate(-50%, -50%);
+          opacity: 0;
+        }
+        .cart-button-animated .cart-text {
+          position: relative;
+          z-index: 3;
+          transition: opacity 0.3s ease;
+        }
+        .cart-button-animated .added-text {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          z-index: 3;
+          opacity: 0;
+        }
+        .cart-button-animated.clicked .cart-icon {
+          animation: cartAnimation 1.5s ease-in-out forwards;
+        }
+        .cart-button-animated.clicked .box-icon {
+          animation: boxAnimation 1.5s ease-in-out forwards;
+        }
+        .cart-button-animated.clicked .cart-text {
+          animation: textOut 1.5s ease-in-out forwards;
+        }
+        .cart-button-animated.clicked .added-text {
+          animation: textIn 1.5s ease-in-out forwards;
+        }
+        @keyframes cartAnimation {
+          0% { left: -10%; opacity: 1; }
+          40%, 60% { left: 50%; opacity: 1; }
+          100% { left: 110%; opacity: 0; }
+        }
+        @keyframes boxAnimation {
+          0%, 40% { top: -20%; opacity: 1; }
+          60% { top: 40%; left: 52%; opacity: 1; }
+          100% { top: 40%; left: 112%; opacity: 0; }
+        }
+        @keyframes textOut {
+          0% { opacity: 1; }
+          20%, 100% { opacity: 0; }
+        }
+        @keyframes textIn {
+          0%, 80% { opacity: 0; }
+          100% { opacity: 1; }
+        }
+        .wishlist-button-animated {
+          position: relative;
+          overflow: hidden;
+        }
+        .wishlist-button-animated .heart-icon {
+          position: absolute;
+          z-index: 2;
+          top: -20%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          opacity: 0;
+        }
+        .wishlist-button-animated.clicked .heart-icon {
+          animation: heartDrop 2s ease-in-out forwards;
+        }
+        @keyframes heartDrop {
+          0% {
+            top: -20%;
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(0.5);
+          }
+          20% {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+          }
+          40% {
+            top: 50%;
+            transform: translate(-50%, -50%) scale(1.2);
+          }
+          60% {
+            top: 50%;
+            transform: translate(-50%, -50%) scale(1) rotate(10deg);
+          }
+          80% {
+            top: 50%;
+            transform: translate(-50%, -50%) scale(1) rotate(-10deg);
+          }
+          100% {
+            top: 50%;
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1) rotate(0deg);
           }
         }
       `}</style>
