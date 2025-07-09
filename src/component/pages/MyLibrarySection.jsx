@@ -137,23 +137,47 @@ const MyLibrarySection = () => {
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="bg-[#2D1B3D]/95 backdrop-blur-sm rounded-3xl shadow-2xl overflow-hidden">
-          <div className="p-6 flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <button 
-                onClick={() => navigate('/profile')}
-                className="flex items-center text-white/80 hover:text-white transition-colors duration-200"
-              >
-                <ArrowLeft className="w-5 h-5 mr-2" />
-                <span className="hidden sm:inline">Back to Profile</span>
-              </button>
-              <div className="flex items-center">
-                <BookOpen className="w-8 h-8 text-[#9B7BB8] mr-3" />
-                <h1 className="text-2xl font-bold text-white">My Library</h1>
+          {/* Desktop (sm+) header matches OrderHistorySection */}
+          <div className="hidden sm:block p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center space-x-4">
+                <button 
+                  onClick={() => navigate('/profile')}
+                  className="flex items-center text-white/80 hover:text-white transition-colors duration-200"
+                >
+                  <ArrowLeft className="w-5 h-5 mr-2" />
+                  <span className="hidden sm:inline">Back to Profile</span>
+                </button>
+                <div className="flex items-center">
+                  <BookOpen className="w-8 h-8 text-[#9B7BB8] mr-3" />
+                  <h1 className="text-2xl font-bold text-white">My Library</h1>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-white/60 text-sm">Total Books</p>
+                <p className="text-white font-bold text-xl">{libraryBooks.length}</p>
               </div>
             </div>
-            <div className="text-right">
-              <p className="text-white/60 text-sm">Total Books</p>
-              <p className="text-white font-bold text-xl">{libraryBooks.length}</p>
+          </div>
+          {/* Mobile (below sm) improved layout */}
+          <div className="sm:hidden p-3">
+            <div className="flex items-center justify-between w-full">
+              {/* Left: Back arrow, icon, and My Library */}
+              <div className="flex items-center space-x-2">
+                <button 
+                  onClick={() => navigate('/profile')}
+                  className="flex items-center text-white/80 hover:text-white transition-colors duration-200"
+                >
+                  <ArrowLeft className="w-4 h-4 mr-1" />
+                </button>
+                <BookOpen className="w-5 h-5 text-[#9B7BB8]" />
+                <h1 className="text-base font-bold text-white">My Library</h1>
+              </div>
+              {/* Right: Total Books */}
+              <div className="flex flex-col items-end justify-center">
+                <span className="text-white/60 text-xs leading-tight">Total Books</span>
+                <span className="text-white font-bold text-sm leading-tight">{libraryBooks.length}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -165,12 +189,12 @@ const MyLibrarySection = () => {
               {libraryBooks.map((book, idx) => (
                 <div
                   key={book.id}
-                  className={`flex items-center px-6 py-6 transition-all duration-200 group hover:bg-[#9B7BB8]/10 ${idx === 0 ? '' : ''}`}
-                  style={{ position: 'relative' }}
+                  className={`flex flex-row items-center px-2 sm:px-6 py-2 sm:py-6 transition-all duration-200 group hover:bg-[#9B7BB8]/10 rounded-2xl sm:rounded-3xl mb-2 sm:mb-4 w-full`}
+                  style={{ position: 'relative', minHeight: 'unset' }}
                 >
                   {/* Book Image & Progress */}
-                  <div className="flex-shrink-0">
-                    <div className="relative w-20 h-28 rounded-xl overflow-hidden shadow-lg">
+                  <div className="flex-shrink-0 w-20 h-28 rounded-lg overflow-hidden shadow-md mr-3">
+                    <div className="relative w-full h-full">
                       <img src={book.image} alt={book.title} className="w-full h-full object-cover" />
                       <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/20">
                         <div 
@@ -181,54 +205,100 @@ const MyLibrarySection = () => {
                     </div>
                   </div>
                   {/* Book Details */}
-                  <div className="flex-1 min-w-0 ml-6">
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-white font-bold text-lg mb-1 group-hover:text-[#ffe9b3] transition-colors duration-200">{book.title}</h3>
-                        <p className="text-white/60 text-sm">by {book.author}</p>
-                        <div className="flex items-center space-x-4 mt-2">
-                          <span className="text-white/60 text-sm">{book.format}</span>
-                          <span className="text-white/60 text-sm">{book.fileSize}</span>
-                          <span className="text-white/60 text-sm">{book.pages} pages</span>
+                  <div className="flex-1 min-w-0 ml-0">
+                    {/* Desktop (sm+) original layout */}
+                    <div className="hidden sm:flex flex-col sm:ml-6 gap-2 h-full">
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-white font-bold text-lg mb-1 group-hover:text-[#ffe9b3] transition-colors duration-200">{book.title}</h3>
+                          <p className="text-white/60 text-sm">by {book.author}</p>
+                          <div className="flex items-center space-x-4 mt-2">
+                            <span className="text-white/60 text-sm">{book.format}</span>
+                            <span className="text-white/60 text-sm">{book.fileSize}</span>
+                            <span className="text-white/60 text-sm">{book.pages} pages</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <button
+                            onClick={() => handleBookmarkToggle(book.id)}
+                            className={`p-2 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#9B7BB8] ${
+                              book.isBookmarked 
+                                ? 'bg-[#9B7BB8] text-white shadow-lg' 
+                                : 'bg-[#9B7BB8]/20 text-white/60 hover:bg-[#9B7BB8]/30'
+                            }`}
+                          >
+                            <Bookmark className={`w-4 h-4 ${book.isBookmarked ? 'fill-current' : ''}`} />
+                          </button>
+                          <button
+                            onClick={() => handleViewBookDetails(book)}
+                            className="p-2 bg-[#9B7BB8]/20 hover:bg-[#9B7BB8]/30 text-white rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#9B7BB8]"
+                          >
+                            <Share2 className="w-4 h-4" />
+                          </button>
                         </div>
                       </div>
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center justify-between mt-2">
+                        <div className="flex items-center">
+                          {[...Array(5)].map((_, i) => (
+                            <Star 
+                              key={i} 
+                              className={`w-4 h-4 ${i < Math.floor(book.rating) ? 'text-yellow-400 fill-current' : 'text-white/30'}`} 
+                            />
+                          ))}
+                          <span className="text-white/60 text-sm ml-2">({book.rating})</span>
+                        </div>
+                        <span className="text-white font-medium">Progress: {book.progress}%</span>
                         <button
-                          onClick={() => handleBookmarkToggle(book.id)}
-                          className={`p-2 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#9B7BB8] ${
-                            book.isBookmarked 
-                              ? 'bg-[#9B7BB8] text-white shadow-lg' 
-                              : 'bg-[#9B7BB8]/20 text-white/60 hover:bg-[#9B7BB8]/30'
-                          }`}
+                          onClick={() => handleReadBook(book)}
+                          className="bg-gradient-to-r from-[#9B7BB8] to-[#8A6AA7] hover:from-[#8A6AA7] hover:to-[#9B7BB8] text-white py-2 px-5 rounded-xl font-medium transition-all duration-200 flex items-center space-x-2 shadow-md hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-[#ffe9b3]"
                         >
-                          <Bookmark className={`w-4 h-4 ${book.isBookmarked ? 'fill-current' : ''}`} />
-                        </button>
-                        <button
-                          onClick={() => handleViewBookDetails(book)}
-                          className="p-2 bg-[#9B7BB8]/20 hover:bg-[#9B7BB8]/30 text-white rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#9B7BB8]"
-                        >
-                          <Share2 className="w-4 h-4" />
+                          <Play className="w-4 h-4" />
+                          <span>Read</span>
                         </button>
                       </div>
                     </div>
-                    <div className="flex items-center justify-between mt-2">
-                      <div className="flex items-center">
-                        {[...Array(5)].map((_, i) => (
-                          <Star 
-                            key={i} 
-                            className={`w-4 h-4 ${i < Math.floor(book.rating) ? 'text-yellow-400 fill-current' : 'text-white/30'}`} 
-                          />
-                        ))}
-                        <span className="text-white/60 text-sm ml-2">({book.rating})</span>
+                    {/* Mobile (below sm) improved layout */}
+                    <div className="flex sm:hidden flex-row items-center justify-between w-full gap-2 h-full">
+                      <div className="flex-1 min-w-0 flex flex-col justify-center h-full">
+                        <h3 className="text-white font-bold text-sm sm:text-lg mb-0.5 group-hover:text-[#ffe9b3] transition-colors duration-200 text-left leading-tight">{book.title}</h3>
+                        <p className="text-white/60 text-xs sm:text-sm text-left leading-tight">by {book.author}</p>
+                        <div className="hidden sm:flex flex-wrap items-center gap-x-1 gap-y-0.5 mt-1">
+                          <span className="text-white/60 text-xs sm:text-sm">{book.format}</span>
+                          <span className="text-white/60 text-xs sm:text-sm">{book.fileSize}</span>
+                          <span className="text-white/60 text-xs sm:text-sm">{book.pages} pages</span>
+                        </div>
+                        {/* Rating directly below book info */}
+                        <div className="flex items-center mt-1">
+                          {[...Array(5)].map((_, i) => (
+                            <Star 
+                              key={i} 
+                              className={`w-4 h-4 ${i < Math.floor(book.rating) ? 'text-yellow-400 fill-current' : 'text-white/30'}`} 
+                            />
+                          ))}
+                          <span className="text-white/60 text-xs sm:text-sm ml-1">({book.rating})</span>
+                        </div>
+                        {/* Progress on its own line */}
+                        <span className="block text-white font-medium text-xs sm:text-base mt-1">Progress: {book.progress}%</span>
                       </div>
-                      <span className="text-white font-medium">Progress: {book.progress}%</span>
-                      <button
-                        onClick={() => handleReadBook(book)}
-                        className="bg-gradient-to-r from-[#9B7BB8] to-[#8A6AA7] hover:from-[#8A6AA7] hover:to-[#9B7BB8] text-white py-2 px-5 rounded-xl font-medium transition-all duration-200 flex items-center space-x-2 shadow-md hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-[#ffe9b3]"
-                      >
-                        <Play className="w-4 h-4" />
-                        <span>Read</span>
-                      </button>
+                      {/* Centered circular action buttons */}
+                      <div className="flex flex-col items-end gap-2 mt-1">
+                        <button
+                          onClick={() => handleBookmarkToggle(book.id)}
+                          className={`w-9 h-9 flex items-center justify-center rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#9B7BB8] ${
+                            book.isBookmarked 
+                              ? 'bg-[#9B7BB8] text-white shadow-md' 
+                              : 'bg-[#9B7BB8]/20 text-white/60 hover:bg-[#9B7BB8]/30'
+                          }`}
+                        >
+                          <Bookmark className={`w-5 h-5 ${book.isBookmarked ? 'fill-current' : ''}`} />
+                        </button>
+                        <button
+                          onClick={() => handleViewBookDetails(book)}
+                          className="w-9 h-9 flex items-center justify-center bg-[#9B7BB8]/20 hover:bg-[#9B7BB8]/30 text-white rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#9B7BB8]"
+                        >
+                          <Share2 className="w-5 h-5" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>

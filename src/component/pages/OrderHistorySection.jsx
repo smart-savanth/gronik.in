@@ -139,7 +139,8 @@ const OrderHistorySection = () => {
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header */}
         <div className="bg-[#2D1B3D]/95 backdrop-blur-sm rounded-3xl shadow-2xl overflow-hidden">
-          <div className="p-6">
+          {/* Desktop (sm+) original layout */}
+          <div className="hidden sm:block p-6">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center space-x-4">
                 <button 
@@ -160,6 +161,24 @@ const OrderHistorySection = () => {
               </div>
             </div>
           </div>
+          {/* Mobile (below sm) improved layout */}
+          <div className="block sm:hidden px-3 py-3 flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <button 
+                onClick={() => navigate('/profile')}
+                className="flex items-center text-white/80 hover:text-white transition-colors duration-200"
+              >
+                <ArrowLeft className="w-4 h-4 mr-1" />
+                <span className="hidden sm:inline text-xs">Back</span>
+              </button>
+              <Package className="w-6 h-6 text-[#9B7BB8]" />
+              <h1 className="text-lg font-bold text-white">Order History</h1>
+            </div>
+            <div className="flex flex-col items-end justify-center">
+              <span className="text-white/60 text-xs">Total Orders</span>
+              <span className="text-white font-bold text-base">{orders.length}</span>
+            </div>
+          </div>
         </div>
 
         {/* Orders List */}
@@ -168,11 +187,12 @@ const OrderHistorySection = () => {
             {orders.map((order, idx) => (
               <div
                 key={order.id}
-                className={`px-6 py-6 transition-all duration-200 group hover:bg-[#9B7BB8]/10 ${idx === 0 ? '' : ''}`}
+                className={`sm:px-6 px-2 sm:py-6 py-3 transition-all duration-200 group hover:bg-[#9B7BB8]/10 ${idx === 0 ? '' : ''} ${'rounded-2xl mb-2 sm:mb-4'}`}
                 style={{ position: 'relative' }}
               >
                 {/* Order Header */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 space-y-3 sm:space-y-0">
+                {/* Desktop (sm+) original layout */}
+                <div className="hidden sm:flex flex-col sm:flex-row sm:items-center justify-between mb-4 space-y-3 sm:space-y-0">
                   <div className="flex items-center space-x-4">
                     <div className="flex items-center space-x-2">
                       <Package className="w-5 h-5 text-[#9B7BB8]" />
@@ -200,9 +220,32 @@ const OrderHistorySection = () => {
                     </button>
                   </div>
                 </div>
+                {/* Mobile (below sm) improved layout */}
+                <div className="flex sm:hidden flex-col justify-between mb-3 space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <Package className="w-5 h-5 text-[#9B7BB8]" />
+                    <span className="text-white font-medium group-hover:text-[#ffe9b3] transition-colors duration-200 text-xs">{order.id}</span>
+                    <div className={`flex items-center space-x-1 px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}> 
+                      {getStatusIcon(order.status)}
+                      <span>{order.status}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-white/60 text-xs">{new Date(order.date).toLocaleDateString()}</span>
+                    <span className="text-[#9B7BB8] font-bold text-xs">${order.total}</span>
+                    <button
+                      onClick={() => handleViewOrder(order)}
+                      className="w-9 h-9 flex items-center justify-center bg-[#9B7BB8]/20 hover:bg-[#9B7BB8]/30 text-white rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#9B7BB8]"
+                      style={{ minWidth: '2.25rem', minHeight: '2.25rem' }}
+                    >
+                      <Eye className="w-5 h-5" />
+                    </button>
+                  </div>
+                </div>
 
                 {/* Order Items Preview */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {/* Desktop (sm+) original layout */}
+                <div className="hidden sm:grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {order.items.slice(0, 3).map(item => (
                     <div key={item.id} className="flex items-center space-x-3 p-3 bg-[#9B7BB8]/10 rounded-2xl">
                       <div className="w-12 h-16 rounded-lg overflow-hidden flex-shrink-0">
@@ -218,6 +261,23 @@ const OrderHistorySection = () => {
                   {order.items.length > 3 && (
                     <div className="flex items-center justify-center p-3 bg-[#9B7BB8]/10 rounded-2xl">
                       <span className="text-white/60 text-sm">+{order.items.length - 3} more items</span>
+                    </div>
+                  )}
+                </div>
+                {/* Mobile (below sm) improved layout */}
+                <div className="flex sm:hidden flex-row space-x-2 overflow-x-auto pb-1">
+                  {order.items.slice(0, 3).map(item => (
+                    <div key={item.id} className="flex flex-col items-center min-w-[70px] bg-[#9B7BB8]/10 rounded-xl p-2">
+                      <div className="w-12 h-16 rounded-lg overflow-hidden flex-shrink-0 mb-1">
+                        <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
+                      </div>
+                      <h4 className="text-white font-medium text-xs truncate w-14 text-center">{item.title}</h4>
+                      <span className="text-[#9B7BB8] font-medium text-xs">${item.price}</span>
+                    </div>
+                  ))}
+                  {order.items.length > 3 && (
+                    <div className="flex items-center justify-center min-w-[70px] bg-[#9B7BB8]/10 rounded-xl p-2">
+                      <span className="text-white/60 text-xs">+{order.items.length - 3} more</span>
                     </div>
                   )}
                 </div>

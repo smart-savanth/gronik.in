@@ -202,16 +202,16 @@ const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
         >
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
             <div className="flex items-center justify-between h-24 px-2">
-              <Link to="/" className="flex items-center absolute left-0 -ml-4">
-                <div className="w-32 h-12 flex items-center justify-center">
-                  <img
-                    src="/images/logo.png"
-                    alt="Gronik Logo"
-                    className="w-full h-full mr-[150px]"
-                  />
-                </div>
-              </Link>
-              <div className="flex items-center space-x-8 ml-40">
+            <Link to="/" className="flex items-center absolute left-0 -ml-16">
+          <div className="w-40 h-16 flex items-center justify-center">
+            <img
+              src="/images/logo.png"
+              alt="Gronik Logo"
+              className="w-full h-full mr-[150px]"
+            />
+          </div>
+        </Link>
+              <div className="flex items-center space-x-8 ml-48">
                 <Link
                   to="/"
                   className="text-gronik-light hover:text-gronik-accent transition-colors duration-200 font-medium hover:scale-105 transform"
@@ -312,14 +312,14 @@ const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
             <img 
               src="/images/icon.png" 
               alt="Gronik G Logo"
-              className="w-20 h-20 object-contain drop-shadow-2xl group-hover:drop-shadow-[0_0_20px_rgba(168,85,247,0.8)] group-hover:brightness-125 transition-all duration-300 filter contrast-125 saturate-150"
+              className="w-24 h-24 object-contain drop-shadow-2xl group-hover:drop-shadow-[0_0_20px_rgba(168,85,247,0.8)] group-hover:brightness-125 transition-all duration-300 filter contrast-125 saturate-150"
               style={{
                 filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.5)) drop-shadow(0 0 8px rgba(168,85,247,0.3)) contrast(1.3) saturate(1.4) brightness(1.1)'
               }}
             />
           </Link>
           
-          <div className="absolute inset-0 w-20 h-20 rounded-full bg-gradient-to-br from-gronik-accent/20 to-gronik-secondary/20 blur-xl animate-pulse opacity-60 group-hover:opacity-100 transition-opacity duration-300"></div>
+          <div className="absolute inset-0 w-24 h-24 rounded-full bg-gradient-to-br from-gronik-accent/20 to-gronik-secondary/20 blur-xl animate-pulse opacity-60 group-hover:opacity-100 transition-opacity duration-300"></div>
         </div>
       )}
 
