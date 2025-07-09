@@ -12,6 +12,14 @@ const WhyEbooksButton = () => {
     document.head.appendChild(link);
   }, []);
 
+  // Add Google Fonts for Quicksand/Nunito
+  useEffect(() => {
+    const link = document.createElement('link');
+    link.href = 'https://fonts.googleapis.com/css2?family=Quicksand:wght@700&family=Nunito:wght@800&display=swap';
+    link.rel = 'stylesheet';
+    document.head.appendChild(link);
+  }, []);
+
   const handleButtonClick = () => {
     // For mobile devices, toggle on click instead of hover
     if (window.innerWidth <= 768) {
@@ -45,16 +53,12 @@ const WhyEbooksButton = () => {
             </div>
             
             {/* Logo Container - CENTERED LAYOUT */}
-            <div className="relative z-10 flex flex-col items-center justify-center h-full space-y-0.5">
-              <div className="flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                {/* Logo - BIGGER & CLEARER sizing */}
-                <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 lg:w-14 lg:h-14 xl:w-16 xl:h-16 flex items-center justify-center text-white font-bold">
-                  <img src="/images/icon.png" alt="logo" className="w-full h-full object-contain"></img>
-                </div>
-              </div>
-              {/* WHY? TEXT - ADJUSTED SIZE TO FIT IN CIRCLE */}
-              <span className="text-[8px] sm:text-[9px] md:text-[10px] lg:text-[11px] xl:text-[12px] font-extrabold tracking-[0.15em] group-hover:tracking-[0.2em] transition-all duration-300 text-white leading-none font-stylish">
-                WHY?
+            <div className="relative z-10 flex flex-col items-center justify-center h-full">
+              <span className="block text-[15px] sm:text-[17px] md:text-[19px] lg:text-[21px] xl:text-[23px] font-extrabold leading-tight mb-1 text-white" style={{ fontFamily: 'Quicksand, Nunito, Playfair Display, serif', letterSpacing: '0.08em', textShadow: '0 2px 8px rgba(0,0,0,0.13)' }}>
+                Why
+              </span>
+              <span className="block text-[11px] sm:text-[12px] md:text-[13px] lg:text-[14px] xl:text-[15px] font-extrabold leading-tight text-white" style={{ fontFamily: 'Quicksand, Nunito, Playfair Display, serif', letterSpacing: '0.10em', textShadow: '0 2px 8px rgba(0,0,0,0.13)' }}>
+                E-Books<span className="text-yellow-300 font-bold">?</span>
               </span>
             </div>
             

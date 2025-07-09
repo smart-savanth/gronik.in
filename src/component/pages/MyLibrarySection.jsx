@@ -160,72 +160,80 @@ const MyLibrarySection = () => {
 
         {/* Books List Only */}
         {libraryBooks.length > 0 ? (
-          <div className="space-y-6">
-            {libraryBooks.map(book => (
-              <div key={book.id} className="bg-[#2D1B3D]/95 backdrop-blur-sm rounded-3xl shadow-2xl overflow-hidden flex items-center space-x-4 p-6">
-                <div className="flex-shrink-0">
-                  <div className="relative w-20 h-28 rounded-xl overflow-hidden shadow-lg">
-                    <img src={book.image} alt={book.title} className="w-full h-full object-cover" />
-                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/20">
-                      <div 
-                        className={`h-full ${getProgressColor(book.progress)}`}
-                        style={{ width: `${book.progress}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-white font-bold text-lg mb-1">{book.title}</h3>
-                      <p className="text-white/60 text-sm">by {book.author}</p>
-                      <div className="flex items-center space-x-4 mt-2">
-                        <span className="text-white/60 text-sm">{book.format}</span>
-                        <span className="text-white/60 text-sm">{book.fileSize}</span>
-                        <span className="text-white/60 text-sm">{book.pages} pages</span>
+          <div className="bg-[#2D1B3D]/95 backdrop-blur-sm rounded-3xl shadow-2xl overflow-hidden p-0">
+            <div className="divide-y divide-[#9B7BB8]/30">
+              {libraryBooks.map((book, idx) => (
+                <div
+                  key={book.id}
+                  className={`flex items-center px-6 py-6 transition-all duration-200 group hover:bg-[#9B7BB8]/10 ${idx === 0 ? '' : ''}`}
+                  style={{ position: 'relative' }}
+                >
+                  {/* Book Image & Progress */}
+                  <div className="flex-shrink-0">
+                    <div className="relative w-20 h-28 rounded-xl overflow-hidden shadow-lg">
+                      <img src={book.image} alt={book.title} className="w-full h-full object-cover" />
+                      <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/20">
+                        <div 
+                          className={`h-full ${getProgressColor(book.progress)}`}
+                          style={{ width: `${book.progress}%` }}
+                        ></div>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <button
-                        onClick={() => handleBookmarkToggle(book.id)}
-                        className={`p-2 rounded-full transition-all duration-200 ${
-                          book.isBookmarked 
-                            ? 'bg-[#9B7BB8] text-white' 
-                            : 'bg-[#9B7BB8]/20 text-white/60 hover:bg-[#9B7BB8]/30'
-                        }`}
-                      >
-                        <Bookmark className={`w-4 h-4 ${book.isBookmarked ? 'fill-current' : ''}`} />
-                      </button>
-                      <button
-                        onClick={() => handleViewBookDetails(book)}
-                        className="p-2 bg-[#9B7BB8]/20 hover:bg-[#9B7BB8]/30 text-white rounded-lg transition-all duration-200"
-                      >
-                        <Share2 className="w-4 h-4" />
-                      </button>
-                    </div>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      {[...Array(5)].map((_, i) => (
-                        <Star 
-                          key={i} 
-                          className={`w-4 h-4 ${i < Math.floor(book.rating) ? 'text-yellow-400 fill-current' : 'text-white/30'}`} 
-                        />
-                      ))}
-                      <span className="text-white/60 text-sm ml-2">({book.rating})</span>
+                  {/* Book Details */}
+                  <div className="flex-1 min-w-0 ml-6">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-white font-bold text-lg mb-1 group-hover:text-[#ffe9b3] transition-colors duration-200">{book.title}</h3>
+                        <p className="text-white/60 text-sm">by {book.author}</p>
+                        <div className="flex items-center space-x-4 mt-2">
+                          <span className="text-white/60 text-sm">{book.format}</span>
+                          <span className="text-white/60 text-sm">{book.fileSize}</span>
+                          <span className="text-white/60 text-sm">{book.pages} pages</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => handleBookmarkToggle(book.id)}
+                          className={`p-2 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#9B7BB8] ${
+                            book.isBookmarked 
+                              ? 'bg-[#9B7BB8] text-white shadow-lg' 
+                              : 'bg-[#9B7BB8]/20 text-white/60 hover:bg-[#9B7BB8]/30'
+                          }`}
+                        >
+                          <Bookmark className={`w-4 h-4 ${book.isBookmarked ? 'fill-current' : ''}`} />
+                        </button>
+                        <button
+                          onClick={() => handleViewBookDetails(book)}
+                          className="p-2 bg-[#9B7BB8]/20 hover:bg-[#9B7BB8]/30 text-white rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#9B7BB8]"
+                        >
+                          <Share2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
-                    <span className="text-white font-medium">Progress: {book.progress}%</span>
-                    <button
-                      onClick={() => handleReadBook(book)}
-                      className="bg-[#9B7BB8] hover:bg-[#8A6AA7] text-white py-2 px-4 rounded-xl font-medium transition-all duration-200 flex items-center space-x-2"
-                    >
-                      <Play className="w-4 h-4" />
-                      <span>Read</span>
-                    </button>
+                    <div className="flex items-center justify-between mt-2">
+                      <div className="flex items-center">
+                        {[...Array(5)].map((_, i) => (
+                          <Star 
+                            key={i} 
+                            className={`w-4 h-4 ${i < Math.floor(book.rating) ? 'text-yellow-400 fill-current' : 'text-white/30'}`} 
+                          />
+                        ))}
+                        <span className="text-white/60 text-sm ml-2">({book.rating})</span>
+                      </div>
+                      <span className="text-white font-medium">Progress: {book.progress}%</span>
+                      <button
+                        onClick={() => handleReadBook(book)}
+                        className="bg-gradient-to-r from-[#9B7BB8] to-[#8A6AA7] hover:from-[#8A6AA7] hover:to-[#9B7BB8] text-white py-2 px-5 rounded-xl font-medium transition-all duration-200 flex items-center space-x-2 shadow-md hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-[#ffe9b3]"
+                      >
+                        <Play className="w-4 h-4" />
+                        <span>Read</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         ) : (
           <div className="text-center py-16 bg-[#2D1B3D]/95 backdrop-blur-sm rounded-3xl shadow-2xl">

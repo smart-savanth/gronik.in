@@ -204,7 +204,7 @@ const FeaturedBooksSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveF
           <div className="text-center mt-20 pt-8 border-t border-white/10">
             <button 
               onClick={() => navigate('/library')}
-              className="group inline-flex items-center bg-[#2D1B3D]/90 backdrop-blur-md hover:bg-[#2D1B3D] text-white px-6 py-3 sm:px-10 sm:py-5 rounded-2xl font-semibold transition-all duration-300 transform hover:scale-105 shadow-xl hover:shadow-2xl border border-white/20 hover:border-white/40"
+              className="group inline-flex items-center bg-[#2D1B3D]/90 backdrop-blur-md hover:bg-[#2D1B3D] text-white px-6 py-3 sm:px-10 sm:py-5 rounded-2xl font-semibold transition-all duration-300 transform hover:scale-105 shadow-xl hover:shadow-2xl border border-white/20 hover:border-white/40 view-all-glow"
             >
               <BookOpen className="w-4 h-4 sm:w-6 sm:h-6 mr-2 sm:mr-3 group-hover:rotate-12 transition-transform duration-300" />
               <span className="text-sm sm:text-lg">View All Books</span>
@@ -329,6 +329,9 @@ const FeaturedBooksSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveF
             opacity: 1;
             transform: translate(-50%, -50%) scale(1) rotate(0deg);
           }
+        }
+        .view-all-glow:hover, .view-all-glow:focus {
+          box-shadow: 0 0 0 2px #ffe9b3, 0 4px 24px 0 #ffe9b3cc, 0 1.5px 8px 0 #fff7c1 !important;
         }
       `}</style>
     </section>

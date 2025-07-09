@@ -40,15 +40,9 @@ const Footer = () => {
               Transform your mind with our premium collection of digital books and unlock your potential.
             </p>
             <div className="flex flex-wrap gap-3 sm:space-x-4 sm:gap-0">
-              <a href="#" className="bg-gronik-secondary/20 hover:bg-gronik-accent/20 text-gronik-light hover:text-gronik-accent transition-all duration-200 px-4 py-2 sm:p-3 rounded-lg border border-gronik-secondary/30 hover:border-gronik-accent/50 text-sm sm:text-base">
-                YouTube
-              </a>
-              <a href="#" className="bg-gronik-secondary/20 hover:bg-gronik-accent/20 text-gronik-light hover:text-gronik-accent transition-all duration-200 px-4 py-2 sm:p-3 rounded-lg border border-gronik-secondary/30 hover:border-gronik-accent/50 text-sm sm:text-base">
-                Instagram
-              </a>
-              <a href="#" className="bg-gronik-secondary/20 hover:bg-gronik-accent/20 text-gronik-light hover:text-gronik-accent transition-all duration-200 px-4 py-2 sm:p-3 rounded-lg border border-gronik-secondary/30 hover:border-gronik-accent/50 text-sm sm:text-base">
-                Twitter
-              </a>
+              <a href="#" className="bg-gronik-secondary/20 text-gronik-light border border-gronik-secondary/30 rounded-lg px-4 py-2 sm:p-3 text-sm sm:text-base font-medium footer-social-btn youtube-btn">YouTube</a>
+              <a href="#" className="bg-gronik-secondary/20 text-gronik-light border border-gronik-secondary/30 rounded-lg px-4 py-2 sm:p-3 text-sm sm:text-base font-medium footer-social-btn instagram-btn">Instagram</a>
+              <a href="#" className="bg-gronik-secondary/20 text-gronik-light border border-gronik-secondary/30 rounded-lg px-4 py-2 sm:p-3 text-sm sm:text-base font-medium footer-social-btn twitter-btn">Twitter</a>
             </div>
           </div>
           
@@ -118,3 +112,28 @@ const Footer = () => {
 };
 
 export default Footer;
+
+<style jsx>{`
+.footer-social-btn {
+  background: rgba(155, 123, 184, 0.12);
+  color: #e0d7f7;
+  border: 1.5px solid rgba(155, 123, 184, 0.3);
+  border-radius: 0.5rem;
+  padding: 0.5rem 1.25rem;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: color 0.18s;
+  display: inline-block;
+  margin-right: 0.5rem;
+}
+.footer-social-btn:last-child { margin-right: 0; }
+.footer-social-btn.youtube-btn:hover, .footer-social-btn.youtube-btn:focus {
+  color: #ff4d4f;
+}
+.footer-social-btn.instagram-btn:hover, .footer-social-btn.instagram-btn:focus {
+  color: #e1306c;
+}
+.footer-social-btn.twitter-btn:hover, .footer-social-btn.twitter-btn:focus {
+  color: #1da1f2;
+}
+`}</style>

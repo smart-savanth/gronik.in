@@ -2,16 +2,21 @@ import React, { useState } from 'react';
 import { Eye, EyeOff, Mail, Phone, Lock, ArrowRight, Check, X } from 'lucide-react';
 
 const LoginPage = () => {
-  const [currentStep, setCurrentStep] = useState('choice'); // 'choice', 'signup', 'login'
+  const [currentStep, setCurrentStep] = useState('choice'); // 'choice', 'signup', 'login', 'forgot', 'reset'
   const [loginMethod, setLoginMethod] = useState('email'); // 'email' or 'mobile'
   const [formData, setFormData] = useState({
     email: '',
     mobile: '',
-    password: ''
+    password: '',
+    newPassword: '',
+    confirmPassword: ''
   });
   const [showPassword, setShowPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
+  const [resetSuccess, setResetSuccess] = useState(false);
 
   // Mock existing users database
   const existingUsers = [
@@ -141,6 +146,61 @@ const LoginPage = () => {
     }
   };
 
+  // Handle forgot password submit (step 1)
+  const handleForgotSubmit = () => {
+    const newErrors = {};
+    if (loginMethod === 'email') {
+      if (!formData.email) {
+        newErrors.email = 'Email is required';
+      } else if (!validateEmail(formData.email)) {
+        newErrors.email = 'Please enter a valid email address';
+      }
+    } else {
+      if (!formData.mobile) {
+        newErrors.mobile = 'Mobile number is required';
+      } else if (!validateMobile(formData.mobile)) {
+        newErrors.mobile = 'Please enter a valid 10-digit mobile number';
+      }
+    }
+    setErrors(newErrors);
+    if (Object.keys(newErrors).length === 0) {
+      setIsLoading(true);
+      setTimeout(() => {
+        setIsLoading(false);
+        setCurrentStep('reset');
+      }, 1000);
+    }
+  };
+
+  // Handle password reset (step 2)
+  const handleResetPassword = () => {
+    const newErrors = {};
+    const passwordValidation = validatePassword(formData.newPassword);
+    if (!formData.newPassword) {
+      newErrors.newPassword = 'New password is required';
+    } else if (!passwordValidation.isValid) {
+      newErrors.newPassword = 'Password does not meet requirements';
+    }
+    if (!formData.confirmPassword) {
+      newErrors.confirmPassword = 'Please confirm your password';
+    } else if (formData.newPassword !== formData.confirmPassword) {
+      newErrors.confirmPassword = 'Passwords do not match';
+    }
+    setErrors(newErrors);
+    if (Object.keys(newErrors).length === 0) {
+      setIsLoading(true);
+      setTimeout(() => {
+        setIsLoading(false);
+        setResetSuccess(true);
+        setTimeout(() => {
+          setResetSuccess(false);
+          setCurrentStep('login');
+          setFormData(prev => ({ ...prev, password: '', newPassword: '', confirmPassword: '' }));
+        }, 1500);
+      }, 1200);
+    }
+  };
+
   // Password requirements component
   const PasswordRequirements = ({ password }) => {
     const { requirements } = validatePassword(password);
@@ -211,7 +271,7 @@ const LoginPage = () => {
                   <div className="grid grid-cols-2 gap-3 mb-6">
                     <button
                       onClick={() => setLoginMethod('email')}
-                      className={`p-3 rounded-xl border-2 transition-all duration-300 hover-gold-border ${
+                      className={`p-3 rounded-xl border-2 transition-all duration-200 login-gold-glow ${
                         loginMethod === 'email'
                           ? 'border-white bg-white/10 text-white shadow-lg shadow-white/20'
                           : 'border-white/30 bg-white/5 text-white/70 hover:border-white/50 hover:shadow-lg hover:shadow-white/10'
@@ -222,7 +282,7 @@ const LoginPage = () => {
                     </button>
                     <button
                       onClick={() => setLoginMethod('mobile')}
-                      className={`p-3 rounded-xl border-2 transition-all duration-300 hover-gold-border ${
+                      className={`p-3 rounded-xl border-2 transition-all duration-200 login-gold-glow ${
                         loginMethod === 'mobile'
                           ? 'border-white bg-white/10 text-white shadow-lg shadow-white/20'
                           : 'border-white/30 bg-white/5 text-white/70 hover:border-white/50 hover:shadow-lg hover:shadow-white/10'
@@ -237,14 +297,14 @@ const LoginPage = () => {
                 <div className="space-y-3">
                   <button
                     onClick={() => setCurrentStep('signup')}
-                    className="w-full bg-[#1A0F2E]/80 backdrop-blur-md text-white hover:bg-[#1A0F2E] font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-[1.02] shadow-lg hover:shadow-xl border border-white/20 hover:border-white/40 flex items-center justify-center space-x-2 primary-button-animated"
+                    className="w-full bg-gradient-to-r from-[#FFD700]/90 to-[#9B7BB8]/80 text-[#2D1B3D] font-semibold py-3 px-6 rounded-xl transition-all duration-200 flex items-center justify-center space-x-2 gold-glow-cta"
                   >
                     <span>Create Account</span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => setCurrentStep('login')}
-                    className="w-full bg-white/10 hover:bg-white/15 text-white py-3 px-6 rounded-xl font-semibold transition-all duration-300 border border-white/20 hover:border-white/40 hover:shadow-lg hover:shadow-white/20 hover-gold-border"
+                    className="w-full bg-white/10 hover:bg-white/15 text-white py-3 px-6 rounded-xl font-semibold transition-all duration-200 border border-white/20 hover:border-white/40 login-gold-glow"
                   >
                     Sign In
                   </button>
@@ -316,7 +376,7 @@ const LoginPage = () => {
                 <button
                   onClick={handleSignup}
                   disabled={isLoading}
-                  className="w-full bg-[#1A0F2E]/80 backdrop-blur-md text-white hover:bg-[#1A0F2E] font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-[1.02] shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center space-x-2 mt-6 primary-button-animated"
+                  className="w-full bg-gradient-to-r from-[#FFD700]/90 to-[#9B7BB8]/80 text-[#2D1B3D] font-semibold py-3 px-6 rounded-xl transition-all duration-200 flex items-center justify-center space-x-2 mt-6 gold-glow-cta disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isLoading ? (
                     <>
@@ -403,7 +463,11 @@ const LoginPage = () => {
 
                 {/* Forgot Password */}
                 <div className="text-right">
-                  <button className="text-white/70 hover:text-white text-xs transition-colors duration-300">
+                  <button
+                    type="button"
+                    className="text-white/70 hover:text-[#9B7BB8] text-xs transition-colors duration-300 underline underline-offset-2"
+                    onClick={() => setCurrentStep('forgot')}
+                  >
                     Forgot Password?
                   </button>
                 </div>
@@ -412,7 +476,7 @@ const LoginPage = () => {
                 <button
                   onClick={handleLogin}
                   disabled={isLoading}
-                  className="w-full bg-[#1A0F2E]/80 backdrop-blur-md text-white hover:bg-[#1A0F2E] font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-[1.02] shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center space-x-2 mt-6 primary-button-animated"
+                  className="w-full bg-gradient-to-r from-[#FFD700]/90 to-[#9B7BB8]/80 text-[#2D1B3D] font-semibold py-3 px-6 rounded-xl transition-all duration-200 flex items-center justify-center space-x-2 mt-6 gold-glow-cta disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isLoading ? (
                     <>
@@ -432,89 +496,180 @@ const LoginPage = () => {
                 </button>
               </div>
             )}
+
+            {/* Step 4: Forgot Password - Enter Email/Mobile */}
+            {currentStep === 'forgot' && (
+              <div className="space-y-4">
+                <div className="text-center mb-2">
+                  <h2 className="text-xl font-bold text-white mb-1">Forgot Password?</h2>
+                  <p className="text-white/70 text-sm">Enter your {loginMethod === 'email' ? 'email address' : 'mobile number'} to reset your password.</p>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-white/80 mb-2">
+                    {loginMethod === 'email' ? 'EMAIL' : 'MOBILE'}
+                  </label>
+                  <div className="relative">
+                    <div className="absolute top-0 left-0 flex items-center">
+                      {loginMethod === 'email' ?
+                        <Mail className="w-4 h-4 text-white/60" /> :
+                        <Phone className="w-4 h-4 text-white/60" />
+                      }
+                    </div>
+                    <input
+                      type={loginMethod === 'email' ? 'email' : 'tel'}
+                      value={loginMethod === 'email' ? formData.email : formData.mobile}
+                      onChange={(e) => handleInputChange(loginMethod, e.target.value)}
+                      className="w-full bg-transparent border-b-2 border-white/30 text-white pl-6 pr-4 py-3 focus:outline-none focus:border-white focus:shadow-lg focus:shadow-white/20 transition-all duration-300 placeholder-white/40 text-sm"
+                    />
+                  </div>
+                  {errors[loginMethod] && (
+                    <p className="text-red-400 text-xs mt-1 flex items-center space-x-1">
+                      <X className="w-3 h-3" />
+                      <span>{errors[loginMethod]}</span>
+                    </p>
+                  )}
+                </div>
+                <button
+                  onClick={handleForgotSubmit}
+                  disabled={isLoading}
+                  className="w-full bg-gradient-to-r from-[#FFD700]/90 to-[#9B7BB8]/80 text-[#2D1B3D] font-semibold py-3 px-6 rounded-xl transition-all duration-200 flex items-center justify-center space-x-2 mt-4 gold-glow-cta disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isLoading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span>VERIFYING...</span>
+                    </>
+                  ) : (
+                    <span>Continue</span>
+                  )}
+                </button>
+                <button
+                  onClick={() => setCurrentStep('login')}
+                  className="w-full text-white/70 hover:text-white py-2 transition-colors duration-300 text-xs"
+                >
+                  ← Back to Login
+                </button>
+              </div>
+            )}
+
+            {/* Step 5: Reset Password - Enter New Password */}
+            {currentStep === 'reset' && (
+              <div className="space-y-4">
+                <div className="text-center mb-2">
+                  <h2 className="text-xl font-bold text-white mb-1">Reset Password</h2>
+                  <p className="text-white/70 text-sm">Enter your new password below.</p>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-white/80 mb-2">NEW PASSWORD</label>
+                  <div className="relative">
+                    <div className="absolute top-0 left-0 flex items-center">
+                      <Lock className="w-4 h-4 text-white/60" />
+                    </div>
+                    <input
+                      type={showNewPassword ? 'text' : 'password'}
+                      value={formData.newPassword}
+                      onChange={(e) => handleInputChange('newPassword', e.target.value)}
+                      className="w-full bg-transparent border-b-2 border-white/30 text-white pl-6 pr-10 py-3 focus:outline-none focus:border-white focus:shadow-lg focus:shadow-white/20 transition-all duration-300 placeholder-white/40 text-sm"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      className="absolute top-0 right-0 flex items-center text-white/60 hover:text-white"
+                    >
+                      {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  {errors.newPassword && (
+                    <p className="text-red-400 text-xs mt-1 flex items-center space-x-1">
+                      <X className="w-3 h-3" />
+                      <span>{errors.newPassword}</span>
+                    </p>
+                  )}
+                  {formData.newPassword && <PasswordRequirements password={formData.newPassword} />}
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-white/80 mb-2">CONFIRM PASSWORD</label>
+                  <div className="relative">
+                    <div className="absolute top-0 left-0 flex items-center">
+                      <Lock className="w-4 h-4 text-white/60" />
+                    </div>
+                    <input
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      value={formData.confirmPassword}
+                      onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+                      className="w-full bg-transparent border-b-2 border-white/30 text-white pl-6 pr-10 py-3 focus:outline-none focus:border-white focus:shadow-lg focus:shadow-white/20 transition-all duration-300 placeholder-white/40 text-sm"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute top-0 right-0 flex items-center text-white/60 hover:text-white"
+                    >
+                      {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  {errors.confirmPassword && (
+                    <p className="text-red-400 text-xs mt-1 flex items-center space-x-1">
+                      <X className="w-3 h-3" />
+                      <span>{errors.confirmPassword}</span>
+                    </p>
+                  )}
+                </div>
+                <button
+                  onClick={handleResetPassword}
+                  disabled={isLoading}
+                  className="w-full bg-gradient-to-r from-[#FFD700]/90 to-[#9B7BB8]/80 text-[#2D1B3D] font-semibold py-3 px-6 rounded-xl transition-all duration-200 flex items-center justify-center space-x-2 mt-4 gold-glow-cta disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isLoading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span>RESETTING...</span>
+                    </>
+                  ) : (
+                    <span>Reset Password</span>
+                  )}
+                </button>
+                <button
+                  onClick={() => setCurrentStep('login')}
+                  className="w-full text-white/70 hover:text-white py-2 transition-colors duration-300 text-xs"
+                >
+                  ← Back to Login
+                </button>
+                {resetSuccess && (
+                  <div className="text-green-400 text-center mt-2 font-semibold">Password reset successful!</div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
 
       <style jsx>{`
-          /* Primary buttons (white buttons) with animated border circulation */
-.primary-button-animated {
+.login-gold-glow:hover, .login-gold-glow:focus {
+  box-shadow: 0 0 0 2px #ffe9b3, 0 4px 24px 0 #ffe9b3cc, 0 1.5px 8px 0 #fff7c1 !important;
+  border-color: #FFD700 !important;
+}
+.gold-glow-cta {
+  box-shadow: 0 2px 12px 0 #FFD70033;
   position: relative;
-  overflow: hidden;
-  background: rgba(26, 15, 46, 0.8) !important;
+  z-index: 1;
 }
-
-.primary-button-animated::before {
-  content: '';
-  position: absolute;
-  top: -4px;
-  left: -4px;
-  right: -4px;
-  bottom: -4px;
-  background: linear-gradient(
-    45deg,
-    #FFD700,
-    #1A0F2E,
-    #FFD700,
-    #1A0F2E,
-    #FFD700,
-    #1A0F2E,
-    #FFD700,
-    #1A0F2E
-  );
-  background-size: 400% 400%;
-  animation: borderCirculation 3s linear infinite;
-  border-radius: 0.75rem;
-  z-index: -1;
+.gold-glow-cta:hover, .gold-glow-cta:focus {
+  background: linear-gradient(90deg, #FFD700 0%, #ffe9b3 60%, #9B7BB8 100%) !important;
+  color: #2D1B3D !important;
+  box-shadow: 0 0 0 2px #ffe9b3, 0 4px 24px 0 #ffe9b3cc, 0 1.5px 8px 0 #fff7c1;
+  border: none;
+  outline: none;
+  transition: box-shadow 0.18s cubic-bezier(.4,1.2,.6,1), background 0.18s cubic-bezier(.4,1.2,.6,1);
 }
-
-.primary-button-animated:hover {
-  border-color: #FFD700 !important;
-  box-shadow: 0 0 0 2px #ffe9b3, 0 4px 24px 0 #ffe9b3cc, 0 1.5px 8px 0 #fff7c1 !important;
+/* Modern button animation: scale and soft shadow, purple palette */
+.modern-animated-btn {
+  transition: all 0.18s cubic-bezier(.4,1.2,.6,1);
+  box-shadow: 0 2px 12px 0 #2D1B3D33;
 }
-
-.primary-button-animated:hover::before {
-  animation: none;
-  background: transparent;
-}
-
-@keyframes borderCirculation {
-  0% { 
-    background-position: 0% 0%;
-  }
-  25% { 
-    background-position: 100% 0%;
-  }
-  50% { 
-    background-position: 100% 100%;
-  }
-  75% { 
-    background-position: 0% 100%;
-  }
-  100% { 
-    background-position: 0% 0%;
-  }
-}
-
-/* Hover gold border effect for other buttons */
-.hover-gold-border:hover {
-  border-color: #FFD700 !important;
-  box-shadow: 0 0 0 2px #ffe9b3, 0 4px 24px 0 #ffe9b3cc, 0 1.5px 8px 0 #fff7c1 !important;
-}
-
-@media (max-width: 640px) {
-  .primary-button-animated, .hover-gold-border {
-    font-size: 1rem;
-    border-radius: 0.9rem;
-  }
-  
-  .primary-button-animated::before {
-    border-radius: 0.9rem;
-  }
-  
-  .primary-button-animated::after {
-    border-radius: 0.8rem;
-  }
+.modern-animated-btn:hover, .modern-animated-btn:focus {
+  transform: scale(1.045);
+  box-shadow: 0 4px 24px 0 #9B7BB8cc, 0 1.5px 8px 0 #8A6AA7;
+  background: #8A6AA7 !important;
 }
       `}</style>
     </div>

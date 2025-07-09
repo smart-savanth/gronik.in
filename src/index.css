@@ -6,3 +6,16 @@ body {
   background: linear-gradient(135deg, #9B7BB8 0%, #8A6AA7 100%);
   min-height: 100vh;
 }
+
+.footer-social-btn.youtube-btn:hover, .footer-social-btn.youtube-btn:focus {
+  color: #ff4d4f;
+  box-shadow: 0 0 0 2px #ff4d4f, 0 4px 24px 0 #ff4d4fcc, 0 1.5px 8px 0 #ffb3b3;
+}
+.footer-social-btn.instagram-btn:hover, .footer-social-btn.instagram-btn:focus {
+  color: #e1306c;
+  box-shadow: 0 0 0 2px #e1306c, 0 4px 24px 0 #e1306ccc, 0 1.5px 8px 0 #ffb3d1;
+}
+.footer-social-btn.twitter-btn:hover, .footer-social-btn.twitter-btn:focus {
+  color: #1da1f2;
+  box-shadow: 0 0 0 2px #1da1f2, 0 4px 24px 0 #1da1f2cc, 0 1.5px 8px 0 #b3e6ff;
+}

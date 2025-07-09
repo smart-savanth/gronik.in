@@ -236,10 +236,10 @@ const CartSection = ({
                         />
                       </div>
                       <button
-                        onClick={() => addToWishlist(item)}
-                        className="absolute -top-1 -right-1 p-1.5 bg-gronik-primary/90 hover:bg-gronik-accent rounded-full transition-colors duration-200 shadow-lg"
+                         onClick={() => addToWishlist(item)}
+                        className="absolute -top-0.5 -right-0.5 w-6 h-6 bg-gronik-primary/90 hover:bg-gronik-accent rounded-full transition-colors duration-200 shadow-lg flex items-center justify-center"
                       >
-                        <Heart className="w-3 h-3 text-gronik-light hover:text-white" />
+                        <Heart className="w-4 h-4 text-gronik-light hover:text-white" />
                       </button>
                     </div>
 

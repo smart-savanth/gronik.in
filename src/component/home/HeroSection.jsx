@@ -118,7 +118,14 @@ const HeroSection = () => {
               
               {/* Featured Book Card */}
               <div className="animate-smooth-entry">
-                <div className="bg-white/20 backdrop-blur-md rounded-2xl p-4 lg:p-5 xl:p-6 border border-white/30 hover:bg-white/25 transition-all duration-300 group max-w-md mx-auto lg:mx-0">
+                <div
+                  className="bg-white/20 backdrop-blur-md rounded-2xl p-4 lg:p-5 xl:p-6 border border-white/30 hover:bg-white/25 transition-all duration-300 group max-w-md mx-auto lg:mx-0 cursor-pointer"
+                  onClick={navigateToLibrary}
+                  tabIndex={0}
+                  role="button"
+                  aria-label="Explore the book details"
+                  style={{ outline: 'none' }}
+                >
                   <div className="flex items-center space-x-4">
                     <div className="w-12 h-16 lg:w-14 lg:h-18 xl:w-16 xl:h-20 bg-gradient-to-br from-[#4A3B5C] to-[#2D1B3D] rounded-lg shadow-lg flex items-center justify-center group-hover:scale-105 transition-transform duration-300 flex-shrink-0">
                       <Play className="w-6 h-6 lg:w-7 lg:h-7 xl:w-8 xl:h-8 text-white" />
@@ -150,7 +157,7 @@ const HeroSection = () => {
                   onClick={navigateToLibrary}
                   className="bg-gradient-to-r from-[#2D1B3D] to-[#4A3B5C] text-white px-6 py-3 md:px-8 md:py-4 lg:px-10 lg:py-5 rounded-2xl font-semibold text-base md:text-lg lg:text-xl hover:from-[#4A3B5C] hover:to-[#2D1B3D] transition-all duration-500 flex items-center justify-center space-x-3 group shadow-2xl hover:shadow-3xl transform hover:scale-105 hover:-translate-y-2 w-full max-w-sm mx-auto lg:w-fit lg:mx-0"
                 >
-                  <span>Explore Now</span>
+                  <span>Explore The Book</span>
                   <ArrowRight className="w-5 h-5 lg:w-6 lg:h-6 group-hover:translate-x-2 transition-transform duration-300" />
                 </button>
               </div>
@@ -350,7 +357,14 @@ const HeroSection = () => {
 
             {/* 3. Featured Book Card - INCREASED WIDTH FOR MOBILE */}
             <div className="animate-smooth-entry w-full mb-4">
-              <div className="bg-white/20 backdrop-blur-md rounded-2xl p-4 sm:p-5 border border-white/30 hover:bg-white/25 transition-all duration-300 group max-w-md mx-auto">
+              <div
+                className="bg-white/20 backdrop-blur-md rounded-2xl p-4 sm:p-5 border border-white/30 hover:bg-white/25 transition-all duration-300 group max-w-md mx-auto cursor-pointer"
+                onClick={navigateToLibrary}
+                tabIndex={0}
+                role="button"
+                aria-label="Explore the book details"
+                style={{ outline: 'none' }}
+              >
                 <div className="flex items-center space-x-4">
                   <div className="w-12 h-16 sm:w-14 sm:h-18 bg-gradient-to-br from-[#4A3B5C] to-[#2D1B3D] rounded-lg shadow-lg flex items-center justify-center group-hover:scale-105 transition-transform duration-300 flex-shrink-0">
                     <Play className="w-5 h-5 sm:w-6 sm:h-6 text-white" />

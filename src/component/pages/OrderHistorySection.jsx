@@ -163,18 +163,22 @@ const OrderHistorySection = () => {
         </div>
 
         {/* Orders List */}
-        <div className="space-y-4">
-          {orders.map(order => (
-            <div key={order.id} className="bg-[#2D1B3D]/95 backdrop-blur-sm rounded-3xl shadow-2xl overflow-hidden">
-              <div className="p-6">
+        <div className="bg-[#2D1B3D]/95 backdrop-blur-sm rounded-3xl shadow-2xl overflow-hidden p-0">
+          <div className="divide-y divide-[#9B7BB8]/30">
+            {orders.map((order, idx) => (
+              <div
+                key={order.id}
+                className={`px-6 py-6 transition-all duration-200 group hover:bg-[#9B7BB8]/10 ${idx === 0 ? '' : ''}`}
+                style={{ position: 'relative' }}
+              >
                 {/* Order Header */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 space-y-3 sm:space-y-0">
                   <div className="flex items-center space-x-4">
                     <div className="flex items-center space-x-2">
                       <Package className="w-5 h-5 text-[#9B7BB8]" />
-                      <span className="text-white font-medium">{order.id}</span>
+                      <span className="text-white font-medium group-hover:text-[#ffe9b3] transition-colors duration-200">{order.id}</span>
                     </div>
-                    <div className={`flex items-center space-x-1 px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
+                    <div className={`flex items-center space-x-1 px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}> 
                       {getStatusIcon(order.status)}
                       <span>{order.status}</span>
                     </div>
@@ -190,7 +194,7 @@ const OrderHistorySection = () => {
                     </div>
                     <button
                       onClick={() => handleViewOrder(order)}
-                      className="bg-[#9B7BB8]/20 hover:bg-[#9B7BB8]/30 text-white p-2 rounded-lg transition-all duration-200"
+                      className="bg-[#9B7BB8]/20 hover:bg-[#9B7BB8]/30 text-white p-2 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#9B7BB8]"
                     >
                       <Eye className="w-4 h-4" />
                     </button>
@@ -218,8 +222,8 @@ const OrderHistorySection = () => {
                   )}
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
 
           {orders.length === 0 && (
             <div className="text-center py-16 bg-[#2D1B3D]/95 backdrop-blur-sm rounded-3xl shadow-2xl">
