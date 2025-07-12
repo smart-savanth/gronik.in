@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Star, Play } from 'lucide-react';
 import { centralizedBooksData } from '../pages/LibrarySection';
 
-const HeroSection = () => {
+const HeroSection = ({ cart = [], wishlist = [], onAddToCart, onAddToWishlist, onRemoveFromCart, onRemoveFromWishlist }) => {
   const [activeBook, setActiveBook] = useState(0); // Start with first book
   const [isAnimating, setIsAnimating] = useState(false);
   const navigate = useNavigate();
@@ -54,6 +54,31 @@ const HeroSection = () => {
 
   // Get the current active book data
   const currentBook = heroBooks[activeBook];
+
+  // Helper functions
+  const isInCart = (book) => cart.some(item => item.id === book.id);
+  const isInWishlist = (book) => wishlist.some(item => item.id === book.id);
+
+  const handleAddToCart = (e, book) => {
+    e.stopPropagation();
+    if (!book.inStock) {
+      return;
+    }
+    if (!isInCart(book)) {
+      onAddToCart && onAddToCart(book);
+    } else {
+      onRemoveFromCart && onRemoveFromCart(book.id);
+    }
+  };
+
+  const handleAddToWishlist = (e, book) => {
+    e.stopPropagation();
+    if (isInWishlist(book)) {
+      onRemoveFromWishlist && onRemoveFromWishlist(book.id);
+    } else {
+      onAddToWishlist && onAddToWishlist(book);
+    }
+  };
 
   if (!heroBooks || heroBooks.length === 0) {
     return (

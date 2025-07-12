@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, useLocation } from 'react-router-dom';
+import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import './index.css';
 import Navbar from './component/layout/Navbar';
 import HeroSection from './component/home/HeroSection';
@@ -23,6 +23,12 @@ import BooksManagement from './component/admin/BooksManagement';
 import UsersManagement from './component/admin/UsersManagement';
 import OrdersManagement from './component/admin/OrdersManagement';
 import SettingsPage from './component/admin/Settings';
+import CheckoutSection from './component/pages/CheckoutSection';
+import AdminLogin from './component/admin/AdminLogin';
+import NotFound from './component/pages/NotFound';
+import LoadingSpinner from './component/layout/LoadingSpinner';
+import SkeletonLoader from './component/layout/SkeletonLoader';
+import AccessDenied from './component/pages/AccessDenied';
 
 function App() {
   // GLOBAL STATE with localStorage persistence
@@ -86,7 +92,14 @@ function App() {
   // HOME PAGE
   const HomePage = () => (
     <>
-      <HeroSection onAddToCart={addToCart} />
+      <HeroSection
+        onAddToCart={addToCart}
+        onAddToWishlist={addToWishlist}
+        onRemoveFromCart={removeFromCart}
+        onRemoveFromWishlist={removeFromWishlist}
+        cart={cart}
+        wishlist={wishlist}
+      />
       <FeaturedBooks
         onAddToCart={addToCart}
         onAddToWishlist={addToWishlist}
@@ -110,6 +123,9 @@ function App() {
 
   const location = useLocation();
   const isAdminRoute = location.pathname.startsWith('/admin');
+
+  // Dummy admin check (replace with real auth/role check after backend integration)
+  const isAdmin = localStorage.getItem('role') === 'admin';
 
   return (
     <div className="App">
@@ -150,12 +166,18 @@ function App() {
         <Route path="/order-history" element={<OrderHistorySection />} />
         <Route path="/my-library" element={<MyLibrarySection />} />
         <Route path="/login" element={<LoginSection />} />
-        {/* Admin Routes */}
+        <Route path="/checkout" element={<CheckoutSection cart={cart} />} />
+        {/* Admin Login Route */}
+        <Route path="/admin-login" element={<AdminLogin />} />
+        {/* Admin Routes (protected) */}
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/admin/books" element={<BooksManagement />} />
         <Route path="/admin/users" element={<UsersManagement />} />
         <Route path="/admin/orders" element={<OrdersManagement />} />
         <Route path="/admin/settings" element={<SettingsPage />} />
+        <Route path="/access-denied" element={<AccessDenied />} />
+        {/* 404 Not Found Route */}
+        <Route path="*" element={<NotFound />} />
       </Routes>
       {!isAdminRoute && <Footer />}
       {!isAdminRoute && <WhyEbooksButton />}

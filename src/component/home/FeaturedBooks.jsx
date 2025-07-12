@@ -96,11 +96,11 @@ const FeaturedBooksSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveF
 
                   {/* Book Image Container - Better proportions */}
                   <div className="relative mb-3 sm:mb-4 lg:mb-4 flex justify-center mt-2 sm:mt-6">
-                    <div className="relative w-24 sm:w-48 lg:w-44 h-32 sm:h-64 lg:h-60 rounded-lg overflow-hidden shadow-xl group-hover:scale-105 transition-transform duration-500">
+                    <div className="relative w-24 sm:w-48 lg:w-44 h-32 sm:h-64 lg:h-60 rounded-lg overflow-hidden shadow-xl transition-transform duration-500">
                       <img 
                         src={book.image} 
                         alt={book.title}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                        className="w-full h-full object-cover transition-transform duration-700"
                       />
                     </div>
                   </div>

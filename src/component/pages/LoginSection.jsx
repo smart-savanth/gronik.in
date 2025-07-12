@@ -1,15 +1,17 @@
-import React, { useState } from 'react';
-import { Eye, EyeOff, Mail, Phone, Lock, ArrowRight, Check, X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Eye, EyeOff, Mail, Phone, Lock, ArrowRight, Check, X, RefreshCw } from 'lucide-react';
 
 const LoginPage = () => {
-  const [currentStep, setCurrentStep] = useState('choice'); // 'choice', 'signup', 'login', 'forgot', 'reset'
+  const [currentStep, setCurrentStep] = useState('choice'); // 'choice', 'signup', 'login', 'otp', 'forgot', 'reset'
   const [loginMethod, setLoginMethod] = useState('email'); // 'email' or 'mobile'
   const [formData, setFormData] = useState({
     email: '',
     mobile: '',
     password: '',
     newPassword: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    otp: ['', '', '', '', '', ''], // 6-digit OTP
+    jwtToken: ''
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
@@ -17,6 +19,13 @@ const LoginPage = () => {
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [resetSuccess, setResetSuccess] = useState(false);
+  
+  // OTP and JWT related states
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpVerified, setOtpVerified] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [otpError, setOtpError] = useState('');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   // Mock existing users database
   const existingUsers = [
@@ -56,6 +65,122 @@ const LoginPage = () => {
     }
   };
 
+  // Mock OTP generation (in real app, this would come from backend)
+  const generateOTP = () => {
+    return Math.floor(100000 + Math.random() * 900000).toString();
+  };
+
+  // Mock JWT token generation
+  const generateJWT = (userData) => {
+    // In real app, this would be a proper JWT token from backend
+    return `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.${btoa(JSON.stringify(userData))}`;
+  };
+
+  // OTP input handling
+  const handleOtpChange = (index, value) => {
+    if (value.length > 1) return; // Only allow single digit
+    
+    const newOtp = [...formData.otp];
+    newOtp[index] = value;
+    setFormData(prev => ({ ...prev, otp: newOtp }));
+
+    // Auto-focus next input
+    if (value && index < 5) {
+      const nextInput = document.querySelector(`input[data-otp-index="${index + 1}"]`);
+      if (nextInput) nextInput.focus();
+    }
+
+    // Clear error when user starts typing
+    if (otpError) setOtpError('');
+  };
+
+  // Handle OTP key events
+  const handleOtpKeyDown = (index, e) => {
+    if (e.key === 'Backspace' && !formData.otp[index] && index > 0) {
+      const prevInput = document.querySelector(`input[data-otp-index="${index - 1}"]`);
+      if (prevInput) prevInput.focus();
+    }
+  };
+
+  // Send OTP function
+  const sendOTP = async (emailOrMobile) => {
+    setIsLoading(true);
+    setOtpError('');
+    
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    const otp = generateOTP();
+    console.log(`OTP sent to ${emailOrMobile}: ${otp}`); // For testing purposes
+    
+    setOtpSent(true);
+    setIsLoading(false);
+    setResendCooldown(60); // 60 seconds cooldown
+    
+    // Start cooldown timer
+    const timer = setInterval(() => {
+      setResendCooldown(prev => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  // Verify OTP function
+  const verifyOTP = async () => {
+    const enteredOtp = formData.otp.join('');
+    if (enteredOtp.length !== 6) {
+      setOtpError('Please enter a 6-digit OTP');
+      return;
+    }
+
+    setIsLoading(true);
+    setOtpError('');
+
+    // Simulate API verification
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // For demo purposes, accept any 6-digit OTP
+    if (enteredOtp.length === 6) {
+      setOtpVerified(true);
+      setIsLoading(false);
+      
+      // Generate JWT token
+      const userData = {
+        email: formData.email || formData.mobile,
+        loginMethod: loginMethod,
+        timestamp: new Date().toISOString()
+      };
+      
+      const jwtToken = generateJWT(userData);
+      setFormData(prev => ({ ...prev, jwtToken }));
+      
+      // Store in localStorage (in real app, use secure storage)
+      localStorage.setItem('gronik_jwt', jwtToken);
+      localStorage.setItem('gronik_user', JSON.stringify(userData));
+      
+      setIsAuthenticated(true);
+      
+      // Redirect to home page
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 1000);
+    } else {
+      setOtpError('Invalid OTP. Please try again.');
+      setIsLoading(false);
+    }
+  };
+
+  // Resend OTP function
+  const handleResendOTP = async () => {
+    if (resendCooldown > 0) return;
+    
+    await sendOTP(loginMethod === 'email' ? formData.email : formData.mobile);
+  };
+
   // Handle signup
   const handleSignup = () => {
     const newErrors = {};
@@ -88,13 +213,9 @@ const LoginPage = () => {
     setErrors(newErrors);
 
     if (Object.keys(newErrors).length === 0) {
-      setIsLoading(true);
-      setTimeout(() => {
-        setIsLoading(false);
-        alert('Signup successful! Please login to continue.');
-        setCurrentStep('login');
-        setFormData(prev => ({ ...prev, password: '' }));
-      }, 1500);
+      // Send OTP for verification
+      sendOTP(loginMethod === 'email' ? formData.email : formData.mobile);
+      setCurrentStep('otp');
     }
   };
 
@@ -138,11 +259,9 @@ const LoginPage = () => {
     setErrors(newErrors);
 
     if (Object.keys(newErrors).length === 0 && user) {
-      setIsLoading(true);
-      setTimeout(() => {
-        setIsLoading(false);
-        alert('Login successful! Redirecting to home page...');
-      }, 1500);
+      // Send OTP for verification
+      sendOTP(loginMethod === 'email' ? formData.email : formData.mobile);
+      setCurrentStep('otp');
     }
   };
 
@@ -497,7 +616,100 @@ const LoginPage = () => {
               </div>
             )}
 
-            {/* Step 4: Forgot Password - Enter Email/Mobile */}
+            {/* Step 4: OTP Verification */}
+            {currentStep === 'otp' && (
+              <div className="space-y-6">
+                <div className="text-center mb-6">
+                  <h2 className="text-xl font-bold text-white mb-2">Verify Your Account</h2>
+                  <p className="text-white/70 text-sm">
+                    We've sent a 6-digit verification code to your {loginMethod === 'email' ? 'email' : 'mobile'}
+                  </p>
+                  <p className="text-white/60 text-xs mt-1">
+                    {loginMethod === 'email' ? formData.email : formData.mobile}
+                  </p>
+                </div>
+
+                {/* OTP Input */}
+                <div className="space-y-4">
+                  <label className="block text-xs font-medium text-white/80 mb-3 text-center">
+                    ENTER VERIFICATION CODE
+                  </label>
+                  <div className="flex justify-center space-x-2 mb-4">
+                    {formData.otp.map((digit, index) => (
+                      <input
+                        key={index}
+                        type="text"
+                        maxLength="1"
+                        value={digit}
+                        onChange={(e) => handleOtpChange(index, e.target.value)}
+                        onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                        data-otp-index={index}
+                        className="w-12 h-12 text-center text-white bg-transparent border-2 border-white/30 rounded-lg focus:outline-none focus:border-white focus:shadow-lg focus:shadow-white/20 transition-all duration-300 text-lg font-semibold"
+                        style={{ caretColor: 'transparent' }}
+                      />
+                    ))}
+                  </div>
+                  
+                  {otpError && (
+                    <div className="text-red-400 text-xs text-center flex items-center justify-center space-x-1">
+                      <X className="w-3 h-3" />
+                      <span>{otpError}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Verify Button */}
+                <button
+                  onClick={verifyOTP}
+                  disabled={isLoading || formData.otp.join('').length !== 6}
+                  className="w-full bg-gradient-to-r from-[#FFD700]/90 to-[#9B7BB8]/80 text-[#2D1B3D] font-semibold py-3 px-6 rounded-xl transition-all duration-200 flex items-center justify-center space-x-2 mt-6 gold-glow-cta disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isLoading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span>VERIFYING...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>VERIFY OTP</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </>
+                  )}
+                </button>
+
+                {/* Resend OTP */}
+                <div className="text-center">
+                  <p className="text-white/60 text-xs mb-2">Didn't receive the code?</p>
+                  <button
+                    onClick={handleResendOTP}
+                    disabled={resendCooldown > 0 || isLoading}
+                    className="text-white/70 hover:text-[#9B7BB8] text-xs transition-colors duration-300 flex items-center justify-center space-x-1 mx-auto disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <RefreshCw className={`w-3 h-3 ${resendCooldown > 0 ? 'animate-spin' : ''}`} />
+                    <span>
+                      {resendCooldown > 0 
+                        ? `Resend in ${resendCooldown}s` 
+                        : 'Resend OTP'
+                      }
+                    </span>
+                  </button>
+                </div>
+
+                {/* Back Button */}
+                <button
+                  onClick={() => {
+                    setCurrentStep('choice');
+                    setFormData(prev => ({ ...prev, otp: ['', '', '', '', '', ''] }));
+                    setOtpError('');
+                  }}
+                  className="w-full text-white/70 hover:text-white py-2 transition-colors duration-300 text-xs"
+                >
+                  ← Back
+                </button>
+              </div>
+            )}
+
+            {/* Step 5: Forgot Password - Enter Email/Mobile */}
             {currentStep === 'forgot' && (
               <div className="space-y-4">
                 <div className="text-center mb-2">
@@ -552,7 +764,7 @@ const LoginPage = () => {
               </div>
             )}
 
-            {/* Step 5: Reset Password - Enter New Password */}
+            {/* Step 6: Reset Password - Enter New Password */}
             {currentStep === 'reset' && (
               <div className="space-y-4">
                 <div className="text-center mb-2">
@@ -637,6 +849,19 @@ const LoginPage = () => {
                 {resetSuccess && (
                   <div className="text-green-400 text-center mt-2 font-semibold">Password reset successful!</div>
                 )}
+              </div>
+            )}
+
+            {/* Authentication Success Message */}
+            {isAuthenticated && (
+              <div className="space-y-4">
+                <div className="text-center mb-6">
+                  <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Check className="w-8 h-8 text-white" />
+                  </div>
+                  <h2 className="text-xl font-bold text-white mb-2">Authentication Successful!</h2>
+                  <p className="text-white/70 text-sm">Redirecting to home page...</p>
+                </div>
               </div>
             )}
           </div>

@@ -81,6 +81,7 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
   const isInWishlist = wishlist.some(item => item.id === enhancedProductData.id);
 
   const handleAddToCart = () => {
+    if (!enhancedProductData.inStock) return;
     // Only trigger animation when adding to cart
     if (!isInCart) {
       setCartButtonClicked(true);
@@ -95,6 +96,7 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
   };
 
   const handleAddToWishlist = () => {
+    if (!enhancedProductData.inStock) return;
     // Trigger animation
     setWishlistButtonClicked(true);
     setTimeout(() => setWishlistButtonClicked(false), 2000);
@@ -355,6 +357,10 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
         </div>
       </div>
 
+      {/* Add breadcrumb navigation above product info */}
+      {/* Remove the breadcrumb navigation entirely. Only keep the Back button at the top. */}
+      {/* do not render the <nav> with Home / Library / Book Title ... */}
+
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16 relative z-10">
         {/* Product Header */}
@@ -483,10 +489,13 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
             <div className="flex flex-row gap-2 w-full mb-4">
               <button
                 onClick={handleAddToCart}
+                disabled={!enhancedProductData.inStock}
                 className={`cart-button-animated ${cartButtonClicked ? 'clicked' : ''} flex-1 py-3 px-4 rounded-xl font-semibold text-base flex items-center justify-center gap-2 transition-all duration-300 hover:scale-105 shadow-xl hover:shadow-2xl ${
                   isInCart 
                     ? 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white' 
-                    : 'bg-gradient-to-r from-white to-gray-100 hover:from-gray-100 hover:to-white text-[#2D1B3D] shadow-xl'
+                    : !enhancedProductData.inStock
+                      ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-white to-gray-100 hover:from-gray-100 hover:to-white text-[#2D1B3D] shadow-xl'
                 }`}
               >
                 {/* Animation Icons */}
@@ -500,7 +509,7 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
                   ) : (
                     <ShoppingCart className="w-5 h-5 mr-2 inline" />
                   )}
-                  {isInCart ? 'Added to Cart!' : 'Add to Cart'}
+                  {isInCart ? 'Added to Cart!' : !enhancedProductData.inStock ? 'Out of Stock' : 'Add to Cart'}
                 </span>
                 
                 {/* Added Text for Animation */}
@@ -512,10 +521,13 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
               
               <button
                 onClick={handleAddToWishlist}
+                disabled={!enhancedProductData.inStock}
                 className={`wishlist-button-animated ${wishlistButtonClicked ? 'clicked' : ''} p-3 rounded-xl transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl ${
                   isInWishlist 
                     ? 'bg-gradient-to-r from-red-500 to-red-600 text-white' 
-                    : 'bg-[#9B7BB8] text-[#2D1B3D] hover:bg-[#8A6AA7]'
+                    : !enhancedProductData.inStock
+                      ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
+                      : 'bg-[#9B7BB8] text-[#2D1B3D] hover:bg-[#8A6AA7]'
                 }`}
                 style={{ minWidth: 0 }}
               >
@@ -577,6 +589,10 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
                       <div className="flex justify-between items-center py-2 border-b border-[#2D1B3D]/20">
                         <span className="font-medium">Format:</span>
                         <span>{enhancedProductData.format}</span>
+                      </div>
+                      <div className="flex justify-between items-center py-2 border-b border-[#2D1B3D]/20">
+                        <span className="font-medium">File Size:</span>
+                        <span>{enhancedProductData.fileSize}</span>
                       </div>
                       <div className="flex justify-between items-center py-2 border-b border-[#2D1B3D]/20">
                         <span className="font-medium">Published:</span>

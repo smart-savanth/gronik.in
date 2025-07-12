@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Search, ShoppingCart, User, Menu, X, BookOpen, Heart } from 'lucide-react';
+// Import centralizedBooksData for search
+import { centralizedBooksData } from '../pages/LibrarySection';
 
 const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -68,7 +70,7 @@ const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
 
   const handleSearchSubmit = () => {
     if (searchQuery.trim()) {
-      console.log('Searching for:', searchQuery);
+      navigate(`/library?search=${encodeURIComponent(searchQuery.trim())}`);
       setSearchQuery('');
     }
   };
@@ -86,11 +88,11 @@ const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
         <nav className="fixed top-0 left-0 right-0 z-50 bg-gronik-primary/95 backdrop-blur-md shadow-lg border-b border-gronik-secondary/20">
           <div className="flex items-center justify-between h-16 px-4">
             <Link to="/" className="flex items-center">
-              <div className="w-20 h-8">
+              <div className="w-32 h-14">
                 <img
                   src="/images/logo.png"
                   alt="Gronik Logo"
-                  className="w-full h-full object-contain "
+                  className="w-full h-full object-contain"
                 />
               </div>
             </Link>

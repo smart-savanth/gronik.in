@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, BookOpen, Play, Bookmark, Share2, Star, XCircle } from 'lucide-react';
+import { ArrowLeft, BookOpen, Play, Bookmark, Share2, Star, XCircle, Download } from 'lucide-react';
 
 const MyLibrarySection = () => {
   const navigate = useNavigate();
   const [selectedBook, setSelectedBook] = useState(null);
+  const [sortBy, setSortBy] = useState('recent'); // 'recent' or 'purchase'
 
   // Mock library data - in real app this would come from API
   const [libraryBooks] = useState([
@@ -24,6 +25,7 @@ const MyLibrarySection = () => {
       progress: 65, // percentage read
       isBookmarked: true,
       readUrl: "#",
+      downloadUrl: "#",
       description: "Transform your mindset and unlock the secrets to wealth and success.",
       tags: ["Success", "Mindset", "Wealth", "Motivation"]
     },
@@ -43,6 +45,7 @@ const MyLibrarySection = () => {
       progress: 45,
       isBookmarked: false,
       readUrl: "#",
+      // no downloadUrl for this one
       description: "Master the art of power and influence in every aspect of life.",
       tags: ["Power", "Influence", "Strategy", "Leadership"]
     },
@@ -62,6 +65,7 @@ const MyLibrarySection = () => {
       progress: 85,
       isBookmarked: true,
       readUrl: "#",
+      downloadUrl: "#",
       description: "Build good habits, break bad ones, and get 1% better every day.",
       tags: ["Habits", "Productivity", "Self-Improvement", "Behavior"]
     },
@@ -80,7 +84,7 @@ const MyLibrarySection = () => {
       lastRead: "2024-01-12",
       progress: 30,
       isBookmarked: false,
-      readUrl: "#",
+      // no readUrl or downloadUrl
       description: "A powerful lesson in personal change and effectiveness.",
       tags: ["Effectiveness", "Leadership", "Personal Development", "Success"]
     },
@@ -99,11 +103,21 @@ const MyLibrarySection = () => {
       lastRead: "2024-01-15",
       progress: 55,
       isBookmarked: true,
-      readUrl: "#",
+      // only downloadUrl
+      downloadUrl: "#",
       description: "Learn how to fulfill your potential with the right mindset.",
       tags: ["Mindset", "Psychology", "Growth", "Success"]
     }
   ]);
+
+  // Sort logic
+  const sortedBooks = [...libraryBooks].sort((a, b) => {
+    if (sortBy === 'recent') {
+      return new Date(b.lastRead) - new Date(a.lastRead);
+    } else {
+      return new Date(b.purchaseDate) - new Date(a.purchaseDate);
+    }
+  });
 
   const handleReadBook = (book) => {
     alert(`Opening ${book.title} in e-reader...`);
@@ -182,122 +196,111 @@ const MyLibrarySection = () => {
           </div>
         </div>
 
-        {/* Books List Only */}
-        {libraryBooks.length > 0 ? (
+        {/* Sort Toggle */}
+        <div className="flex justify-end mt-2 mb-4 gap-2">
+          <button
+            className={`px-4 py-2 rounded-full font-semibold text-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#9B7BB8] ${sortBy === 'recent' ? 'bg-[#9B7BB8] text-white' : 'bg-white text-[#9B7BB8]'}`}
+            onClick={() => setSortBy('recent')}
+          >
+            Recently Accessed
+          </button>
+          <button
+            className={`px-4 py-2 rounded-full font-semibold text-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#9B7BB8] ${sortBy === 'purchase' ? 'bg-[#9B7BB8] text-white' : 'bg-white text-[#9B7BB8]'}`}
+            onClick={() => setSortBy('purchase')}
+          >
+            Purchase Date
+          </button>
+        </div>
+
+        {/* Books List or Empty State */}
+        {sortedBooks.length > 0 ? (
           <div className="bg-[#2D1B3D]/95 backdrop-blur-sm rounded-3xl shadow-2xl overflow-hidden p-0">
             <div className="divide-y divide-[#9B7BB8]/30">
-              {libraryBooks.map((book, idx) => (
+              {sortedBooks.map((book, idx) => (
                 <div
                   key={book.id}
-                  className={`flex flex-row items-center px-2 sm:px-6 py-2 sm:py-6 transition-all duration-200 group hover:bg-[#9B7BB8]/10 rounded-2xl sm:rounded-3xl mb-2 sm:mb-4 w-full`}
+                  className={`flex flex-col sm:flex-row items-center px-2 sm:px-6 py-4 sm:py-6 transition-all duration-200 group hover:bg-[#9B7BB8]/10 rounded-2xl sm:rounded-3xl mb-2 sm:mb-4 w-full`}
                   style={{ position: 'relative', minHeight: 'unset' }}
                 >
-                  {/* Book Image & Progress */}
-                  <div className="flex-shrink-0 w-20 h-28 rounded-lg overflow-hidden shadow-md mr-3">
-                    <div className="relative w-full h-full">
+                  {/* Mobile: image left, content right, buttons below */}
+                  <div className="flex sm:hidden w-full">
+                    <div className="flex-shrink-0 w-16 h-20 rounded-lg overflow-hidden shadow-md mr-3">
                       <img src={book.image} alt={book.title} className="w-full h-full object-cover" />
-                      <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/20">
-                        <div 
-                          className={`h-full ${getProgressColor(book.progress)}`}
-                          style={{ width: `${book.progress}%` }}
-                        ></div>
+                    </div>
+                    <div className="flex-1 min-w-0 flex flex-col justify-between">
+                      <div>
+                        <h3 className="text-white font-bold text-base leading-tight mb-0.5">{book.title}</h3>
+                        <p className="text-white/60 text-xs mb-1">by {book.author}</p>
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mb-1">
+                          <span className="text-white/50 text-xs">{book.format}</span>
+                          <span className="text-white/50 text-xs">{book.fileSize}</span>
+                          <span className="text-white/50 text-xs">{book.pages} pages</span>
+                        </div>
+                        <div className="text-white/50 text-xs mb-0.5">Purchased: {book.purchaseDate}</div>
+                        <div className="text-white/50 text-xs mb-1">Last Accessed: {book.lastRead}</div>
+                      </div>
+                      <div className="flex gap-2 mt-2 justify-center">
+                        {book.readUrl && (
+                          <button
+                            onClick={() => handleReadBook(book)}
+                            className="flex items-center gap-1 px-4 py-2 rounded-lg bg-[#9B7BB8] text-white font-semibold hover:bg-[#8A6AA7] transition text-xs shadow-md focus:outline-none focus:ring-2 focus:ring-[#9B7BB8]"
+                          >
+                            <Play className="w-4 h-4" /> View
+                          </button>
+                        )}
+                        {book.downloadUrl && (
+                          <button
+                            onClick={() => window.open(book.downloadUrl, '_blank')}
+                            className="flex items-center gap-1 px-4 py-2 rounded-lg bg-white text-[#9B7BB8] font-semibold hover:bg-[#f3eafd] transition text-xs shadow-md focus:outline-none focus:ring-2 focus:ring-[#9B7BB8]"
+                          >
+                            <Download className="w-4 h-4 text-[#9B7BB8]" /> Download
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
-                  {/* Book Details */}
-                  <div className="flex-1 min-w-0 ml-0">
-                    {/* Desktop (sm+) original layout */}
-                    <div className="hidden sm:flex flex-col sm:ml-6 gap-2 h-full">
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex-1 min-w-0">
-                          <h3 className="text-white font-bold text-lg mb-1 group-hover:text-[#ffe9b3] transition-colors duration-200">{book.title}</h3>
-                          <p className="text-white/60 text-sm">by {book.author}</p>
-                          <div className="flex items-center space-x-4 mt-2">
-                            <span className="text-white/60 text-sm">{book.format}</span>
-                            <span className="text-white/60 text-sm">{book.fileSize}</span>
-                            <span className="text-white/60 text-sm">{book.pages} pages</span>
-                          </div>
+                  {/* Desktop/tablet: existing layout */}
+                  <div className="hidden sm:flex-1 sm:flex sm:flex-row sm:items-center sm:justify-between w-full ml-0">
+                    <div className="flex-shrink-0 w-20 h-28 rounded-lg overflow-hidden shadow-md mr-3">
+                      <div className="relative w-full h-full">
+                        <img src={book.image} alt={book.title} className="w-full h-full object-cover" />
+                        <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/20">
+                          <div 
+                            className={`h-full ${getProgressColor(book.progress)}`}
+                            style={{ width: `${book.progress}%` }}
+                          ></div>
                         </div>
-                        <div className="flex items-center space-x-2">
-                          <button
-                            onClick={() => handleBookmarkToggle(book.id)}
-                            className={`p-2 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#9B7BB8] ${
-                              book.isBookmarked 
-                                ? 'bg-[#9B7BB8] text-white shadow-lg' 
-                                : 'bg-[#9B7BB8]/20 text-white/60 hover:bg-[#9B7BB8]/30'
-                            }`}
-                          >
-                            <Bookmark className={`w-4 h-4 ${book.isBookmarked ? 'fill-current' : ''}`} />
-                          </button>
-                          <button
-                            onClick={() => handleViewBookDetails(book)}
-                            className="p-2 bg-[#9B7BB8]/20 hover:bg-[#9B7BB8]/30 text-white rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#9B7BB8]"
-                          >
-                            <Share2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between mt-2">
-                        <div className="flex items-center">
-                          {[...Array(5)].map((_, i) => (
-                            <Star 
-                              key={i} 
-                              className={`w-4 h-4 ${i < Math.floor(book.rating) ? 'text-yellow-400 fill-current' : 'text-white/30'}`} 
-                            />
-                          ))}
-                          <span className="text-white/60 text-sm ml-2">({book.rating})</span>
-                        </div>
-                        <span className="text-white font-medium">Progress: {book.progress}%</span>
-                        <button
-                          onClick={() => handleReadBook(book)}
-                          className="bg-gradient-to-r from-[#9B7BB8] to-[#8A6AA7] hover:from-[#8A6AA7] hover:to-[#9B7BB8] text-white py-2 px-5 rounded-xl font-medium transition-all duration-200 flex items-center space-x-2 shadow-md hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-[#ffe9b3]"
-                        >
-                          <Play className="w-4 h-4" />
-                          <span>Read</span>
-                        </button>
                       </div>
                     </div>
-                    {/* Mobile (below sm) improved layout */}
-                    <div className="flex sm:hidden flex-row items-center justify-between w-full gap-2 h-full">
-                      <div className="flex-1 min-w-0 flex flex-col justify-center h-full">
-                        <h3 className="text-white font-bold text-sm sm:text-lg mb-0.5 group-hover:text-[#ffe9b3] transition-colors duration-200 text-left leading-tight">{book.title}</h3>
-                        <p className="text-white/60 text-xs sm:text-sm text-left leading-tight">by {book.author}</p>
-                        <div className="hidden sm:flex flex-wrap items-center gap-x-1 gap-y-0.5 mt-1">
-                          <span className="text-white/60 text-xs sm:text-sm">{book.format}</span>
-                          <span className="text-white/60 text-xs sm:text-sm">{book.fileSize}</span>
-                          <span className="text-white/60 text-xs sm:text-sm">{book.pages} pages</span>
+                    <div className="flex-1 min-w-0 ml-0 w-full flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-white font-bold text-lg mb-1 group-hover:text-[#ffe9b3] transition-colors duration-200">{book.title}</h3>
+                        <p className="text-white/60 text-sm">by {book.author}</p>
+                        <div className="flex items-center space-x-4 mt-2 flex-wrap">
+                          <span className="text-white/60 text-sm">{book.format}</span>
+                          <span className="text-white/60 text-sm">{book.fileSize}</span>
+                          <span className="text-white/60 text-sm">{book.pages} pages</span>
+                          <span className="text-white/60 text-sm">Purchased: {book.purchaseDate}</span>
+                          <span className="text-white/60 text-sm">Last Accessed: {book.lastRead}</span>
                         </div>
-                        {/* Rating directly below book info */}
-                        <div className="flex items-center mt-1">
-                          {[...Array(5)].map((_, i) => (
-                            <Star 
-                              key={i} 
-                              className={`w-4 h-4 ${i < Math.floor(book.rating) ? 'text-yellow-400 fill-current' : 'text-white/30'}`} 
-                            />
-                          ))}
-                          <span className="text-white/60 text-xs sm:text-sm ml-1">({book.rating})</span>
-                        </div>
-                        {/* Progress on its own line */}
-                        <span className="block text-white font-medium text-xs sm:text-base mt-1">Progress: {book.progress}%</span>
                       </div>
-                      {/* Centered circular action buttons */}
-                      <div className="flex flex-col items-end gap-2 mt-1">
-                        <button
-                          onClick={() => handleBookmarkToggle(book.id)}
-                          className={`w-9 h-9 flex items-center justify-center rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#9B7BB8] ${
-                            book.isBookmarked 
-                              ? 'bg-[#9B7BB8] text-white shadow-md' 
-                              : 'bg-[#9B7BB8]/20 text-white/60 hover:bg-[#9B7BB8]/30'
-                          }`}
-                        >
-                          <Bookmark className={`w-5 h-5 ${book.isBookmarked ? 'fill-current' : ''}`} />
-                        </button>
-                        <button
-                          onClick={() => handleViewBookDetails(book)}
-                          className="w-9 h-9 flex items-center justify-center bg-[#9B7BB8]/20 hover:bg-[#9B7BB8]/30 text-white rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#9B7BB8]"
-                        >
-                          <Share2 className="w-5 h-5" />
-                        </button>
+                      <div className="flex flex-row gap-2 mt-4 sm:mt-0 sm:ml-8 sm:justify-center sm:items-center w-full sm:w-auto justify-center">
+                        {book.readUrl && (
+                          <button
+                            onClick={() => handleReadBook(book)}
+                            className="flex items-center gap-1 px-5 py-2 rounded-lg bg-[#9B7BB8] text-white font-semibold hover:bg-[#8A6AA7] transition text-sm shadow-md focus:outline-none focus:ring-2 focus:ring-[#9B7BB8]"
+                          >
+                            <Play className="w-4 h-4" /> View
+                          </button>
+                        )}
+                        {book.downloadUrl && (
+                          <button
+                            onClick={() => window.open(book.downloadUrl, '_blank')}
+                            className="flex items-center gap-1 px-5 py-2 rounded-lg bg-white text-[#9B7BB8] font-semibold hover:bg-[#f3eafd] transition text-sm shadow-md focus:outline-none focus:ring-2 focus:ring-[#9B7BB8]"
+                          >
+                            <Download className="w-4 h-4 text-[#9B7BB8]" /> Download
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -306,15 +309,15 @@ const MyLibrarySection = () => {
             </div>
           </div>
         ) : (
-          <div className="text-center py-16 bg-[#2D1B3D]/95 backdrop-blur-sm rounded-3xl shadow-2xl">
-            <BookOpen className="w-16 h-16 text-white/50 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-white mb-2">No books found</h3>
-            <p className="text-white/60 mb-6">Your library is empty. Start building your collection!</p>
-            <button 
+          <div className="flex flex-col items-center justify-center py-24">
+            <BookOpen className="w-16 h-16 text-[#9B7BB8] mb-6" />
+            <h2 className="text-2xl font-bold text-white mb-2">No Books Yet</h2>
+            <p className="text-white/70 mb-6">You haven’t purchased any books yet. Explore our library and start reading!</p>
+            <button
               onClick={() => navigate('/library')}
-              className="bg-gradient-to-r from-[#9B7BB8] to-[#8A6AA7] text-white px-8 py-3 rounded-xl font-medium transition-all duration-300 transform hover:scale-105"
+              className="px-8 py-3 rounded-xl bg-[#9B7BB8] text-white font-bold hover:bg-[#8A6AA7] transition"
             >
-              Browse Books
+              Browse Library
             </button>
           </div>
         )}

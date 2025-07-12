@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Mail, Phone, Edit, Save, X, BookOpen, ShoppingCart, LogOut, Heart, Settings, Camera } from 'lucide-react';
+import { User, Mail, Phone, Edit, Save, X, BookOpen, ShoppingCart, LogOut, Heart, Settings, Camera, Trash2 } from 'lucide-react';
 
 const DEFAULT_AVATAR = '';
 
@@ -18,6 +18,7 @@ const ProfileSection = () => {
   const [editData, setEditData] = useState({ ...profileData });
   const [imagePreview, setImagePreview] = useState(profileData.profileImage);
   const fileInputRef = useRef(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const handleEdit = () => {
     setIsEditing(true);
@@ -53,6 +54,24 @@ const ProfileSection = () => {
 
   const openFilePicker = () => {
     if (fileInputRef.current) fileInputRef.current.click();
+  };
+
+  const handleLogout = () => {
+    // Dummy logout: clear user, redirect to login
+    alert('Logged out!');
+    navigate('/login');
+  };
+  const handleDeleteAccount = () => {
+    setShowDeleteConfirm(true);
+  };
+  const confirmDeleteAccount = () => {
+    setShowDeleteConfirm(false);
+    alert('Account deleted! (dummy handler)');
+    // Here you would call your backend to delete the account
+    navigate('/login');
+  };
+  const cancelDeleteAccount = () => {
+    setShowDeleteConfirm(false);
   };
 
   return (
@@ -214,12 +233,33 @@ const ProfileSection = () => {
                 </div>
               </button>
             </div>
-            <button className="w-full flex items-center justify-center space-x-3 p-4 rounded-2xl bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 transition-all duration-300 text-white font-semibold mt-6 shadow-lg transform hover:scale-[1.02]">
+            <button className="w-full flex items-center justify-center space-x-3 p-4 rounded-2xl bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 transition-all duration-300 text-white font-semibold mt-6 shadow-lg transform hover:scale-[1.02]" onClick={handleLogout}>
               <LogOut className="w-5 h-5" />
               <span>Sign Out</span>
             </button>
+            <button
+              className="w-full flex items-center justify-center space-x-3 p-4 rounded-2xl border-2 border-red-500 text-red-500 font-semibold bg-transparent hover:bg-red-500 hover:text-white transition-all duration-300 shadow-none mt-3"
+              onClick={handleDeleteAccount}
+            >
+              <Trash2 className="w-5 h-5" />
+              <span>Delete Account</span>
+            </button>
           </div>
         </div>
+        {/* Delete Confirmation Dialog */}
+        {showDeleteConfirm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+            <div className="bg-white rounded-2xl p-8 max-w-xs w-full text-center shadow-2xl">
+              <Trash2 className="w-10 h-10 text-red-500 mx-auto mb-4" />
+              <h2 className="text-xl font-bold text-[#2D1B3D] mb-2">Delete Account?</h2>
+              <p className="text-[#2D1B3D]/80 mb-6">This action cannot be undone. Are you sure you want to delete your account?</p>
+              <div className="flex gap-4 justify-center">
+                <button onClick={confirmDeleteAccount} className="px-6 py-2 rounded-lg bg-red-500 text-white font-bold hover:bg-red-600 transition">Yes, Delete</button>
+                <button onClick={cancelDeleteAccount} className="px-6 py-2 rounded-lg bg-gray-200 text-[#2D1B3D] font-bold hover:bg-gray-300 transition">Cancel</button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

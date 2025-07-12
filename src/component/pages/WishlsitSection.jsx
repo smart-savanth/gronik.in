@@ -44,7 +44,7 @@ const WishlistPage = ({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gronik-bg via-gronik-primary to-gronik-bg pt-20">
+    <div className="min-h-screen bg-gradient-to-br from-[#9B7BB8] to-[#8A6AA7] pt-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Desktop Header */}
         <div className="hidden sm:flex items-center justify-between mb-8">
@@ -106,7 +106,7 @@ const WishlistPage = ({
 
         {/* Wishlist Content */}
         {wishlist.length === 0 ? (
-          <div className="text-center py-16 bg-gronik-shadow/30 backdrop-blur-sm rounded-2xl border border-gronik-accent/20">
+          <div className="text-center py-16 bg-[#2D1B3D]/80 backdrop-blur-sm rounded-2xl border border-gronik-accent/20">
             <Heart className="w-16 h-16 text-gronik-light/50 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-gronik-light mb-2">Your wishlist is empty</h3>
             <p className="text-gronik-light/60 mb-6">Save your favorite books for later!</p>
@@ -122,10 +122,10 @@ const WishlistPage = ({
             {/* Desktop Grid View */}
             <div className="hidden sm:grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {wishlist.map(item => (
-                <div key={item.id} className="bg-gronik-shadow/30 backdrop-blur-sm rounded-2xl p-6 border border-gronik-accent/20 hover:border-gronik-accent/40 transition-all duration-300 group hover:transform hover:scale-105">
+                <div key={item.id} className="bg-[#2D1B3D]/95 backdrop-blur-sm rounded-2xl p-6 border border-gronik-accent/20 hover:border-gronik-accent/40 transition-all duration-300 group hover:transform hover:scale-105">
                   {/* Book Image */}
                   <div className="relative mb-4">
-                    <div className="w-full aspect-[3/4] rounded-lg overflow-hidden shadow-lg bg-gronik-primary/20">
+                    <div className="w-full aspect-[3/4] rounded-lg overflow-hidden shadow-lg bg-[#2D1B3D]/80">
                       <img 
                         src={item.image} 
                         alt={item.title}
@@ -234,12 +234,12 @@ const WishlistPage = ({
                   {wishlist.map(item => (
                     <div 
                       key={item.id} 
-                      className="flex-none w-40 bg-gronik-shadow/40 backdrop-blur-sm rounded-xl p-3 border border-gronik-accent/20 hover:border-gronik-accent/40 transition-all duration-300"
+                      className="flex-none w-40 bg-[#2D1B3D]/95 backdrop-blur-sm rounded-xl p-3 border border-gronik-accent/20 hover:border-gronik-accent/40 transition-all duration-300"
                       style={{ scrollSnapAlign: 'start' }}
                     >
                       {/* Compact Book Image */}
                       <div className="relative mb-3">
-                        <div className="w-full aspect-[3/4] rounded-lg overflow-hidden shadow-md bg-gronik-primary/20">
+                        <div className="w-full aspect-[3/4] rounded-lg overflow-hidden shadow-md bg-[#2D1B3D]/80">
                           <img 
                             src={item.image} 
                             alt={item.title}

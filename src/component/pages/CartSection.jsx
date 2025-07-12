@@ -21,7 +21,7 @@ const CartSection = ({
   const total = subtotal + tax;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gronik-bg via-gronik-primary to-gronik-bg pt-20">
+    <div className="min-h-screen bg-gradient-to-br from-[#9B7BB8] to-[#8A6AA7] pt-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Desktop Header */}
         <div className="hidden sm:flex items-center mb-8">
@@ -66,7 +66,7 @@ const CartSection = ({
             {/* Cart Items */}
             <div className="lg:col-span-2 space-y-6">
               {cart.length === 0 ? (
-                <div className="text-center py-16 bg-gronik-shadow/30 backdrop-blur-sm rounded-2xl border border-gronik-accent/20">
+                <div className="text-center py-16 bg-[#2D1B3D]/80 backdrop-blur-sm rounded-2xl border border-gronik-accent/20">
                     <ShoppingBag className="w-16 h-16 text-gronik-light/50 mx-auto mb-4" />
                     <h3 className="text-xl font-semibold text-gronik-light mb-2">Your cart is empty</h3>
                     <p className="text-gronik-light/60 mb-6">Add some books to get started!</p>
@@ -79,7 +79,7 @@ const CartSection = ({
                   </div>
               ) : (
                 cart.map(item => (
-                  <div key={item.id} className="flex flex-col sm:flex-row gap-6">
+                  <div key={item.id} className="flex flex-col sm:flex-row gap-6 bg-[#2D1B3D]/95 rounded-2xl p-6 border border-gronik-accent/20 hover:border-gronik-accent/40 transition-all duration-300 group hover:scale-105">
                     {/* Book Image */}
                     <div className="flex-shrink-0">
                       <div className="relative w-24 h-32 sm:w-28 sm:h-36 rounded-lg overflow-hidden shadow-lg group-hover:scale-105 transition-transform duration-300">
@@ -91,9 +91,9 @@ const CartSection = ({
                         <div className="absolute top-2 right-2">
                           <button
                             onClick={() => addToWishlist(item)}
-                            className="p-1 bg-gronik-primary/80 rounded-full hover:bg-gronik-accent transition-colors duration-200"
+                            className={`p-1 bg-gronik-primary/80 rounded-full hover:bg-gronik-accent transition-colors duration-200 ${wishlist.some(w => w.id === item.id) ? 'animate-pulse' : ''}`}
                           >
-                            <Heart className="w-4 h-4 text-white" />
+                            <Heart className={`w-4 h-4 ${wishlist.some(w => w.id === item.id) ? 'fill-current text-gronik-accent' : 'text-white'}`} />
                           </button>
                         </div>
                       </div>
@@ -168,7 +168,7 @@ const CartSection = ({
             {/* Order Summary */}
             {cart.length > 0 && (
               <div className="lg:col-span-1">
-                <div className="bg-gronik-shadow/40 backdrop-blur-sm rounded-2xl p-6 border border-gronik-accent/20 sticky top-24">
+                <div className="bg-[#2D1B3D]/95 backdrop-blur-sm rounded-2xl p-6 border border-gronik-accent/20 sticky top-24">
                   <h2 className="text-xl font-bold text-white mb-6 flex items-center">
                     <ShoppingBag className="w-5 h-5 mr-2 text-gronik-accent" />
                     Order Summary
@@ -195,7 +195,10 @@ const CartSection = ({
                       </div>
                     </div>
                   </div>
-                  <button className="w-full bg-gradient-to-r from-gronik-accent to-gronik-secondary hover:from-gronik-secondary hover:to-gronik-accent text-white py-4 rounded-xl font-bold text-lg transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-gronik-accent/25 mb-4">
+                  <button
+                    className="w-full bg-gradient-to-r from-gronik-accent to-gronik-secondary hover:from-gronik-secondary hover:to-gronik-accent text-white py-4 rounded-xl font-bold text-lg transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-gronik-accent/25 mb-4"
+                    onClick={() => navigate('/checkout')}
+                  >
                     Proceed to Checkout
                   </button>
                 </div>
@@ -207,7 +210,7 @@ const CartSection = ({
         {/* Enhanced Mobile Cart View */}
         <div className="sm:hidden">
           {cart.length === 0 ? (
-            <div className="text-center py-16 bg-gronik-shadow/30 backdrop-blur-sm rounded-2xl border border-gronik-accent/20">
+            <div className="text-center py-16 bg-[#2D1B3D]/80 backdrop-blur-sm rounded-2xl border border-gronik-accent/20">
               <ShoppingBag className="w-16 h-16 text-gronik-light/50 mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-gronik-light mb-2">Your cart is empty</h3>
               <p className="text-gronik-light/60 mb-6">Add some books to get started!</p>
@@ -219,104 +222,143 @@ const CartSection = ({
               </button>
             </div>
           ) : (
-            <div className="flex flex-col gap-4 pb-32">
-              {cart.map(item => (
-                <div
-                  key={item.id}
-                  className="bg-gronik-shadow/40 backdrop-blur-sm rounded-2xl p-4 border border-gronik-accent/20 hover:border-gronik-accent/40 transition-all duration-300"
-                >
-                  <div className="flex gap-4">
-                    {/* Product Image */}
-                    <div className="relative flex-shrink-0">
-                      <div className="w-20 h-28 rounded-xl overflow-hidden shadow-lg bg-gronik-primary/20">
-                        <img
-                          src={item.image}
-                          alt={item.title}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      <button
-                         onClick={() => addToWishlist(item)}
-                        className="absolute -top-0.5 -right-0.5 w-6 h-6 bg-gronik-primary/90 hover:bg-gronik-accent rounded-full transition-colors duration-200 shadow-lg flex items-center justify-center"
-                      >
-                        <Heart className="w-4 h-4 text-gronik-light hover:text-white" />
-                      </button>
-                    </div>
-
-                    {/* Product Details */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex justify-between items-start mb-2">
-                        <div className="flex-1 min-w-0 pr-2">
-                          <h3 className="font-bold text-white text-base leading-tight mb-1 line-clamp-2">
-                            {item.title}
-                          </h3>
-                          <p className="text-gronik-light/80 text-sm mb-1 truncate">
-                            by {item.author}
-                          </p>
-                          <div className="flex items-center gap-1">
-                            {[...Array(5)].map((_, i) => (
-                              <Star 
-                                key={i} 
-                                className={`w-3 h-3 ${i < Math.floor(item.rating) ? 'text-yellow-400 fill-current' : 'text-gronik-light/30'}`} 
-                              />
-                            ))}
-                            <span className="text-xs text-gronik-light/60 ml-1">({item.rating})</span>
-                          </div>
+            <>
+              <div className="flex flex-col gap-4 pb-4">
+                {cart.map(item => (
+                  <div
+                    key={item.id}
+                    className="bg-[#2D1B3D]/95 backdrop-blur-sm rounded-2xl p-4 border border-gronik-accent/20 hover:border-gronik-accent/40 transition-all duration-300"
+                  >
+                    <div className="flex gap-4">
+                      {/* Product Image */}
+                      <div className="relative flex-shrink-0">
+                        <div className="w-20 h-28 rounded-xl overflow-hidden shadow-lg bg-gronik-primary/20">
+                          <img
+                            src={item.image}
+                            alt={item.title}
+                            className="w-full h-full object-cover"
+                          />
                         </div>
                         <button
-                          onClick={() => removeFromCart(item.id)}
-                          className="p-2 text-gronik-light/60 hover:text-red-400 hover:bg-red-400/20 rounded-lg transition-all duration-200"
+                           onClick={() => addToWishlist(item)}
+                          className={`absolute -top-0.5 -right-0.5 w-6 h-6 bg-gronik-primary/90 hover:bg-gronik-accent rounded-full transition-colors duration-200 shadow-lg flex items-center justify-center ${wishlist.some(w => w.id === item.id) ? 'animate-pulse' : ''}`}
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Heart className={`w-4 h-4 ${wishlist.some(w => w.id === item.id) ? 'fill-current text-gronik-accent' : 'text-gronik-light hover:text-white'}`} />
                         </button>
                       </div>
 
-                      {/* Price Section */}
-                      <div className="mb-3">
-                        <div className="flex items-center gap-2">
-                          <span className="text-lg font-bold text-gronik-accent">
-                            ${item.price.toFixed(2)}
-                          </span>
-                          {item.originalPrice !== item.price && (
-                            <span className="text-sm text-gronik-light/60 line-through">
-                              ${item.originalPrice.toFixed(2)}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Quantity Controls */}
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center bg-gronik-primary/50 rounded-xl border border-gronik-accent/30 overflow-hidden">
-                          <button
-                            onClick={() => updateCartItemQuantity(item.id, item.quantity - 1)}
-                            disabled={item.quantity <= 1}
-                            className="p-2 hover:bg-gronik-accent/20 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            <Minus className="w-4 h-4 text-gronik-light" />
-                          </button>
-                          <div className="px-4 py-2 bg-gronik-accent/20 min-w-[3rem] text-center">
-                            <span className="text-white font-semibold">{item.quantity}</span>
+                      {/* Product Details */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="flex-1 min-w-0 pr-2">
+                            <h3 className="font-bold text-white text-base leading-tight mb-1 line-clamp-2">
+                              {item.title}
+                            </h3>
+                            <p className="text-gronik-light/80 text-sm mb-1 truncate">
+                              by {item.author}
+                            </p>
+                            <div className="flex items-center gap-1">
+                              {[...Array(5)].map((_, i) => (
+                                <Star 
+                                  key={i} 
+                                  className={`w-3 h-3 ${i < Math.floor(item.rating) ? 'text-yellow-400 fill-current' : 'text-gronik-light/30'}`} 
+                                />
+                              ))}
+                              <span className="text-xs text-gronik-light/60 ml-1">({item.rating})</span>
+                            </div>
                           </div>
                           <button
-                            onClick={() => updateCartItemQuantity(item.id, item.quantity + 1)}
-                            className="p-2 hover:bg-gronik-accent/20 transition-colors duration-200"
+                            onClick={() => removeFromCart(item.id)}
+                            className="p-2 text-gronik-light/60 hover:text-red-400 hover:bg-red-400/20 rounded-lg transition-all duration-200"
                           >
-                            <Plus className="w-4 h-4 text-gronik-light" />
+                            <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
-                        <div className="text-right">
-                          <div className="text-xs text-gronik-light/60 mb-1">Subtotal</div>
-                          <div className="text-lg font-bold text-gronik-accent">
-                            ${(item.price * item.quantity).toFixed(2)}
+
+                        {/* Price Section */}
+                        <div className="mb-3">
+                          <div className="flex items-center gap-2">
+                            <span className="text-lg font-bold text-gronik-accent">
+                              ${item.price.toFixed(2)}
+                            </span>
+                            {item.originalPrice !== item.price && (
+                              <span className="text-sm text-gronik-light/60 line-through">
+                                ${item.originalPrice.toFixed(2)}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Quantity Controls */}
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center bg-gronik-primary/50 rounded-xl border border-gronik-accent/30 overflow-hidden">
+                            <button
+                              onClick={() => updateCartItemQuantity(item.id, item.quantity - 1)}
+                              disabled={item.quantity <= 1}
+                              className="p-2 hover:bg-gronik-accent/20 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              <Minus className="w-4 h-4 text-gronik-light" />
+                            </button>
+                            <div className="px-4 py-2 bg-gronik-accent/20 min-w-[3rem] text-center">
+                              <span className="text-white font-semibold">{item.quantity}</span>
+                            </div>
+                            <button
+                              onClick={() => updateCartItemQuantity(item.id, item.quantity + 1)}
+                              className="p-2 hover:bg-gronik-accent/20 transition-colors duration-200"
+                            >
+                              <Plus className="w-4 h-4 text-gronik-light" />
+                            </button>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-xs text-gronik-light/60 mb-1">Subtotal</div>
+                            <div className="text-lg font-bold text-gronik-accent">
+                              ${(item.price * item.quantity).toFixed(2)}
+                            </div>
                           </div>
                         </div>
                       </div>
                     </div>
                   </div>
+                ))}
+              </div>
+              {/* Mobile Order Summary/Checkout Box */}
+              <div className="mt-6 mb-4">
+                <div className="bg-[#2D1B3D]/95 backdrop-blur-sm rounded-2xl p-6 border border-gronik-accent/20">
+                  <h2 className="text-lg font-bold text-white mb-6 flex items-center">
+                    <ShoppingBag className="w-5 h-5 mr-2 text-gronik-accent" />
+                    Order Summary
+                  </h2>
+                  <div className="space-y-4 mb-6">
+                    <div className="flex justify-between text-gronik-light">
+                      <span>Subtotal ({cart.reduce((sum, item) => sum + item.quantity, 0)} items)</span>
+                      <span>${subtotal.toFixed(2)}</span>
+                    </div>
+                    {savings > 0 && (
+                      <div className="flex justify-between text-green-400">
+                        <span>You Save</span>
+                        <span>-${savings.toFixed(2)}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between text-gronik-light">
+                      <span>Tax (8%)</span>
+                      <span>${tax.toFixed(2)}</span>
+                    </div>
+                    <div className="border-t border-gronik-accent/20 pt-4">
+                      <div className="flex justify-between text-base font-bold text-white">
+                        <span>Total</span>
+                        <span className="text-gronik-accent">${total.toFixed(2)}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    className="w-full bg-gradient-to-r from-gronik-accent to-gronik-secondary hover:from-gronik-secondary hover:to-gronik-accent text-white py-4 rounded-xl font-bold text-base transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-gronik-accent/25 mb-2"
+                    onClick={() => navigate('/checkout')}
+                  >
+                    Proceed to Checkout
+                  </button>
                 </div>
-              ))}
-            </div>
+              </div>
+            </>
           )}
         </div>
       </div>
