@@ -55,31 +55,6 @@ const HeroSection = ({ cart = [], wishlist = [], onAddToCart, onAddToWishlist, o
   // Get the current active book data
   const currentBook = heroBooks[activeBook];
 
-  // Helper functions
-  const isInCart = (book) => cart.some(item => item.id === book.id);
-  const isInWishlist = (book) => wishlist.some(item => item.id === book.id);
-
-  const handleAddToCart = (e, book) => {
-    e.stopPropagation();
-    if (!book.inStock) {
-      return;
-    }
-    if (!isInCart(book)) {
-      onAddToCart && onAddToCart(book);
-    } else {
-      onRemoveFromCart && onRemoveFromCart(book.id);
-    }
-  };
-
-  const handleAddToWishlist = (e, book) => {
-    e.stopPropagation();
-    if (isInWishlist(book)) {
-      onRemoveFromWishlist && onRemoveFromWishlist(book.id);
-    } else {
-      onAddToWishlist && onAddToWishlist(book);
-    }
-  };
-
   if (!heroBooks || heroBooks.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#9B7BB8] via-[#A67FC4] to-[#B894D1]">
@@ -92,7 +67,15 @@ const HeroSection = ({ cart = [], wishlist = [], onAddToCart, onAddToWishlist, o
   }
 
   return (
-    <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-[#9B7BB8] via-[#A67FC4] to-[#B894D1]">
+    <div
+      className="min-h-screen relative overflow-hidden bg-gradient-to-br from-[#9B7BB8] via-[#A67FC4] to-[#B894D1]"
+      style={{
+        backgroundImage: `url('/images/hero.jpeg')`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+      }}
+    >
       
       {/* Floating Background Elements */}
       <div className="absolute inset-0 overflow-hidden">

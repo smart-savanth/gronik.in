@@ -1,23 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { 
   BookOpen, 
   Users, 
   ShoppingCart, 
   DollarSign, 
-  TrendingUp, 
-  TrendingDown,
   ArrowUpRight,
   ArrowDownRight,
-  BarChart3,
-  LineChart
+  BarChart3
 } from 'lucide-react';
 import AdminLayout from './Adminlayout';
 
 const AdminDashboard = () => {
   const [isLoaded, setIsLoaded] = useState(false);
-  const [hoveredCard, setHoveredCard] = useState(null);
-  const [selectedStat, setSelectedStat] = useState('sales'); // Default to sales
+  const [selectedStat, setSelectedStat] = useState('sales'); 
 
   useEffect(() => {
     setIsLoaded(true);
@@ -78,7 +73,13 @@ const AdminDashboard = () => {
         { month: 'Mar', value: 180 },
         { month: 'Apr', value: 200 },
         { month: 'May', value: 250 },
-        { month: 'Jun', value: 280 }
+        { month: 'Jun', value: 280 },
+        { month: 'Jul', value: 300 },
+        { month: 'Aug', value: 320 },
+        { month: 'Sep', value: 340 },
+        { month: 'Oct', value: 360 },
+        { month: 'Nov', value: 380 },
+        { month: 'Dec', value: 400 }
       ],
       color: 'from-blue-500 to-blue-600'
     },
@@ -91,7 +92,13 @@ const AdminDashboard = () => {
         { month: 'Mar', value: 1100 },
         { month: 'Apr', value: 1150 },
         { month: 'May', value: 1200 },
-        { month: 'Jun', value: 1234 }
+        { month: 'Jun', value: 1234 },
+        { month: 'Jul', value: 1300 },
+        { month: 'Aug', value: 1350 },
+        { month: 'Sep', value: 1400 },
+        { month: 'Oct', value: 1450 },
+        { month: 'Nov', value: 1500 },
+        { month: 'Dec', value: 1550 }
       ],
       color: 'from-green-500 to-green-600'
     },
@@ -104,7 +111,13 @@ const AdminDashboard = () => {
         { month: 'Mar', value: 42000 },
         { month: 'Apr', value: 41000 },
         { month: 'May', value: 44000 },
-        { month: 'Jun', value: 45678 }
+        { month: 'Jun', value: 45678 },
+        { month: 'Jul', value: 47000 },
+        { month: 'Aug', value: 48000 },
+        { month: 'Sep', value: 49000 },
+        { month: 'Oct', value: 50000 },
+        { month: 'Nov', value: 51000 },
+        { month: 'Dec', value: 52000 }
       ],
       color: 'from-purple-500 to-purple-600'
     },
@@ -117,7 +130,13 @@ const AdminDashboard = () => {
         { month: 'Mar', value: 200 },
         { month: 'Apr', value: 190 },
         { month: 'May', value: 220 },
-        { month: 'Jun', value: 856 }
+        { month: 'Jun', value: 856 },
+        { month: 'Jul', value: 900 },
+        { month: 'Aug', value: 950 },
+        { month: 'Sep', value: 1000 },
+        { month: 'Oct', value: 1100 },
+        { month: 'Nov', value: 1200 },
+        { month: 'Dec', value: 1300 }
       ],
       color: 'from-orange-500 to-orange-600'
     }
@@ -128,36 +147,163 @@ const AdminDashboard = () => {
     setSelectedStat(statId);
   };
 
-  // Simple chart component
-  const SimpleChart = ({ data, type, color }) => {
+  // Responsive full-width chart: use ref and resize observer
+  const useContainerWidth = () => {
+    const ref = React.useRef(null);
+    const [width, setWidth] = React.useState(900);
+    React.useEffect(() => {
+      if (!ref.current) return;
+      const handleResize = () => {
+        if (ref.current) setWidth(ref.current.offsetWidth);
+      };
+      handleResize();
+      window.addEventListener('resize', handleResize);
+      return () => window.removeEventListener('resize', handleResize);
+    }, []);
+    return [ref, width];
+  };
+
+  // Custom SVG/React chart for React 19 compatibility
+  const AnalyticsChart = ({ data, type, statId }) => {
+    // Color mapping for Gronik palette
+    const colorMap = {
+      sales: '#a67fc4',
+      users: '#4ade80',
+      books: '#60a5fa',
+      orders: '#f59e42',
+    };
+    const mainColor = colorMap[statId] || '#a67fc4';
+    const [containerRef, width] = useContainerWidth();
+    const height = 260;
+    const labelPadding = 72; // For Y labels
+    const chartPadding = 16; // For chart area (small margin)
+    const barWidth = 40;
     const maxValue = Math.max(...data.map(d => d.value));
     const minValue = Math.min(...data.map(d => d.value));
-    const range = maxValue - minValue;
+    const yRange = maxValue - minValue || 1;
+    const getX = (i) => chartPadding + labelPadding + i * ((width - 2 * chartPadding - labelPadding) / (data.length - 1));
+    const getY = (v) => height - chartPadding - ((v - minValue) / yRange) * (height - 2 * chartPadding);
+    const [hovered, setHovered] = React.useState(null);
 
+    // Smooth animation: animate line/points from previous to new positions
+    const prevStat = React.useRef(statId);
+    const prevValues = React.useRef(data.map(d => d.value));
+    const [animValues, setAnimValues] = React.useState(data.map(d => d.value));
+    const [isAnimating, setIsAnimating] = React.useState(false);
+    const lerp = (a, b, t) => a + (b - a) * t;
+    React.useEffect(() => {
+      let frame;
+      let start;
+      const duration = 900;
+      const from = prevValues.current;
+      const to = data.map(d => d.value);
+      // Only animate if statId changed
+      if (prevStat.current !== statId) {
+        setIsAnimating(true);
+        function animate(ts) {
+          if (!start) start = ts;
+          const t = Math.min(1, (ts - start) / duration);
+          setAnimValues(from.map((v, i) => lerp(v, to[i], t)));
+          if (t < 1) {
+            frame = requestAnimationFrame(animate);
+          } else {
+            setAnimValues(to);
+            setIsAnimating(false);
+            prevValues.current = to;
+          }
+        }
+        frame = requestAnimationFrame(animate);
+        prevStat.current = statId;
+        return () => frame && cancelAnimationFrame(frame);
+      } else {
+        setAnimValues(to);
+        setIsAnimating(false);
+        prevValues.current = to;
+      }
+    }, [data, statId]);
     return (
-      <div className="w-full h-64 bg-[#2D1B3D]/40 rounded-xl p-4">
-        <div className="flex items-end justify-between h-48 space-x-2">
-          {data.map((item, index) => {
-            const height = range > 0 ? ((item.value - minValue) / range) * 100 : 50;
-            return (
-              <div key={index} className="flex-1 flex flex-col items-center">
-                <div 
-                  className={`w-full bg-gradient-to-t ${color} rounded-t-lg transition-all duration-500`}
-                  style={{ 
-                    height: `${height}%`,
-                    minHeight: '20px'
-                  }}
-                />
-                <span className="text-white/60 text-xs mt-2">{item.month}</span>
-                <span className="text-white/80 text-xs font-medium">
-                  {typeof item.value === 'number' && item.value > 1000 
-                    ? `$${(item.value / 1000).toFixed(1)}k` 
-                    : item.value}
-                </span>
-              </div>
-            );
+      <div className="w-full flex justify-center items-center" ref={containerRef} style={{width: '100%'}}>
+        <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{width: '100%'}}>
+          {/* Y axis grid lines */}
+          {[0, 0.25, 0.5, 0.75, 1].map((t, i) => {
+            const y = getY(minValue + t * yRange);
+            return <line key={i} x1={labelPadding} x2={width-chartPadding} y1={y} y2={y} stroke="#fff2" strokeDasharray="4 4" />;
           })}
-        </div>
+          {/* X axis labels */}
+          {data.map((d, i) => (
+            <text key={i} x={getX(i)} y={height-chartPadding+24} textAnchor="middle" fill="#fff" fontWeight="bold" fontSize="16">{d.month}</text>
+          ))}
+          {/* Y axis labels */}
+          {[0, 0.25, 0.5, 0.75, 1].map((t, i) => {
+            const v = minValue + t * yRange;
+            const y = getY(v);
+            return <text key={i} x={labelPadding-18} y={y+6} textAnchor="end" fill="#fff" fontWeight="bold" fontSize="16">{v > 1000 ? `$${(v/1000).toFixed(1)}k` : Math.round(v)}</text>;
+          })}
+          {/* Chart */}
+          {type === 'line' ? (
+            <>
+              {/* Line path with animation on first load */}
+              <polyline
+                fill="none"
+                stroke={mainColor}
+                strokeWidth="5"
+                points={animValues.map((v, i) => `${getX(i)},${getY(v)}`).join(' ')}
+                style={{ filter: 'drop-shadow(0 2px 8px #0004)', transition: isAnimating ? 'none' : 'all 0.7s cubic-bezier(.4,2,.6,1)' }}
+              />
+              {/* Dots */}
+              {animValues.map((v, i) => (
+                <g key={i}>
+                  <circle
+                    cx={getX(i)}
+                    cy={getY(v)}
+                    r={hovered === i ? 12 : 8}
+                    fill={mainColor}
+                    stroke="#fff"
+                    strokeWidth={hovered === i ? 4 : 2}
+                    style={{ cursor: 'pointer', transition: 'all 0.2s' }}
+                    onMouseEnter={() => setHovered(i)}
+                    onMouseLeave={() => setHovered(null)}
+                  />
+                  {/* Tooltip */}
+                  {hovered === i && (
+                    <g>
+                      <rect x={getX(i)-48} y={getY(v)-54} width="96" height="38" rx="10" fill="#2D1B3D" stroke={mainColor} strokeWidth="2" />
+                      <text x={getX(i)} y={getY(v)-34} textAnchor="middle" fill="#fff" fontWeight="bold" fontSize="16">{data[i].month}</text>
+                      <text x={getX(i)} y={getY(v)-16} textAnchor="middle" fill={mainColor} fontWeight="bold" fontSize="18">{data[i].value > 1000 ? `$${(data[i].value/1000).toFixed(1)}k` : data[i].value}</text>
+                    </g>
+                  )}
+                </g>
+              ))}
+            </>
+          ) : (
+            <>
+              {/* Bars */}
+              {data.map((d, i) => (
+                <g key={i}>
+                  <rect
+                    x={getX(i) - barWidth/2}
+                    y={getY(d.value)}
+                    width={barWidth}
+                    height={height-chartPadding-getY(d.value)}
+                    fill={mainColor}
+                    rx="8"
+                    style={{ cursor: 'pointer', filter: hovered === i ? `drop-shadow(0 0 16px ${mainColor}88)` : 'none', transition: 'all 0.2s' }}
+                    onMouseEnter={() => setHovered(i)}
+                    onMouseLeave={() => setHovered(null)}
+                  />
+                  {/* Tooltip */}
+                  {hovered === i && (
+                    <g>
+                      <rect x={getX(i)-48} y={getY(d.value)-54} width="96" height="38" rx="10" fill="#2D1B3D" stroke={mainColor} strokeWidth="2" />
+                      <text x={getX(i)} y={getY(d.value)-34} textAnchor="middle" fill="#fff" fontWeight="bold" fontSize="16">{d.month}</text>
+                      <text x={getX(i)} y={getY(d.value)-16} textAnchor="middle" fill={mainColor} fontWeight="bold" fontSize="18">{d.value > 1000 ? `$${(d.value/1000).toFixed(1)}k` : d.value}</text>
+                    </g>
+                  )}
+                </g>
+              ))}
+            </>
+          )}
+        </svg>
       </div>
     );
   };
@@ -185,8 +331,6 @@ const AdminDashboard = () => {
                   transitionDelay: `${index * 100}ms`,
                   border: 'none'
                 }}
-                onMouseEnter={() => setHoveredCard(index)}
-                onMouseLeave={() => setHoveredCard(null)}
               >
                 {/* Glow effect */}
                 <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
@@ -222,11 +366,7 @@ const AdminDashboard = () => {
               <div className="flex items-center justify-between mb-6">
               <div className="flex items-center space-x-3">
                 <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${analyticsData[selectedStat].color} flex items-center justify-center`}>
-                  {analyticsData[selectedStat].type === 'line' ? (
-                    <LineChart className="w-4 h-4 text-white" />
-                  ) : (
-                    <BarChart3 className="w-4 h-4 text-white" />
-                  )}
+                  <BarChart3 className="w-4 h-4 text-white" />
                 </div>
                 <h3 className="text-xl font-bold text-white">{analyticsData[selectedStat].title}</h3>
               </div>
@@ -235,10 +375,10 @@ const AdminDashboard = () => {
               </div>
             </div>
 
-            <SimpleChart 
-              data={analyticsData[selectedStat].data} 
+            <AnalyticsChart
+              data={analyticsData[selectedStat].data}
               type={analyticsData[selectedStat].type}
-              color={analyticsData[selectedStat].color}
+              statId={selectedStat}
             />
             
             <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">

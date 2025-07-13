@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ShoppingCart, Heart, Star, Filter, ChevronDown, Check, Zap, X } from 'lucide-react';
+import { ShoppingCart, Heart, Star, Filter, ChevronDown, Check, X } from 'lucide-react';
 
 // Centralized Books Data - This will be your single source of truth
 export const centralizedBooksData = [
@@ -201,15 +201,14 @@ const LibraryPage = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCart, 
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
   const searchQuery = searchParams.get('search')?.toLowerCase() || '';
-  const [hoveredBook, setHoveredBook] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [addedBookIds, setAddedBookIds] = useState({});
   const [cartButtonClicked, setCartButtonClicked] = useState({});
   const [wishlistButtonClicked, setWishlistButtonClicked] = useState({});
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(8); // Show 8 items per page
   const navigate = useNavigate();
+  const [hoveredBook, setHoveredBook] = useState(null);
 
   // Use centralized books data
   const allBooks = centralizedBooksData;
@@ -365,29 +364,6 @@ const LibraryPage = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCart, 
                       {book.category}
                     </div>
                   </div>
-
-                  {/* Product Badge - Simple, left-aligned, not diagonal, not overlapping the image, visually clean */}
-                  {book.badge && (
-                    <div className="absolute z-30" style={{ top: '14px', left: '14px', pointerEvents: 'none' }}>
-                      <div
-                        className="bg-yellow-400 text-black px-3 py-1 text-xs font-bold rounded shadow-md whitespace-nowrap select-none"
-                        style={{
-                          minWidth: '70px',
-                          textAlign: 'center',
-                          letterSpacing: '0.5px',
-                          boxShadow: '0 2px 8px 0 #FFD70033',
-                          borderRadius: '6px',
-                          border: '1.5px solid #fff8',
-                          fontFamily: 'inherit',
-                          fontWeight: 700,
-                          marginTop: '2px',
-                          marginLeft: '2px',
-                        }}
-                      >
-                        {book.badge}
-                      </div>
-                    </div>
-                  )}
 
                   {/* Book Image */}
                   <div className="mb-2 sm:mb-3 lg:mb-4 flex justify-center mt-1 sm:mt-2 lg:mt-4">

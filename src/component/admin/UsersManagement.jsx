@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User, Search, Edit, Trash2, Eye, X, Save, Ban, Plus, Filter, Download, Mail, Phone, MapPin, Calendar, AlertCircle, ChevronDown } from 'lucide-react';
+import { Search, Edit, Trash2, Eye, X, Save, Plus, Download, Mail, Phone, Calendar, ChevronDown } from 'lucide-react';
 import AdminLayout from './Adminlayout';
 
 const sampleUsers = [
@@ -73,7 +73,6 @@ const sampleUsers = [
 const statusColors = {
   active: 'bg-green-500/20 text-green-400 border-green-500/30',
   blocked: 'bg-red-500/20 text-red-400 border-red-500/30',
-  pending: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
 };
 
 const roleColors = {
@@ -90,7 +89,6 @@ const UsersManagement = () => {
   const [editingUser, setEditingUser] = useState(null);
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterRole, setFilterRole] = useState('all');
-  const [isLoaded, setIsLoaded] = useState(false);
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
   const [roleDropdownOpen, setRoleDropdownOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -98,7 +96,8 @@ const UsersManagement = () => {
     name: '',
     email: '',
     phone: '',
-    role: 'User',
+    password: '',
+    role: 'Admin',
     status: 'active',
     avatar: '',
     joined: '',
@@ -108,7 +107,6 @@ const UsersManagement = () => {
   const addImageInputRef = React.useRef();
 
   React.useEffect(() => {
-    setIsLoaded(true);
   }, []);
 
   const filteredUsers = users.filter(user => {
@@ -143,14 +141,6 @@ const UsersManagement = () => {
     }
   };
 
-  const handleToggleStatus = (userId) => {
-    setUsers(users.map(user => 
-      user.id === userId 
-        ? { ...user, status: user.status === 'active' ? 'blocked' : 'active' }
-        : user
-    ));
-  };
-
   const handleExportUsers = () => {
     const csvContent = "data:text/csv;charset=utf-8," + 
       "Name,Email,Phone,Role,Status,Joined,Orders,Total Spent\n" +
@@ -172,25 +162,11 @@ const UsersManagement = () => {
     setStatusDropdownOpen(false);
   };
 
-  const handleRoleSelect = (role) => {
-    setFilterRole(role);
-    setRoleDropdownOpen(false);
-  };
-
   const getStatusLabel = () => {
     switch(filterStatus) {
       case 'active': return 'Active';
       case 'blocked': return 'Blocked';
-      case 'pending': return 'Pending';
       default: return 'All Status';
-    }
-  };
-
-  const getRoleLabel = () => {
-    switch(filterRole) {
-      case 'Admin': return 'Admin';
-      case 'User': return 'User';
-      default: return 'All Roles';
     }
   };
 
@@ -200,7 +176,8 @@ const UsersManagement = () => {
       name: '',
       email: '',
       phone: '',
-      role: 'User',
+      password: '',
+      role: 'Admin',
       status: 'active',
       avatar: '',
       joined: '',
@@ -229,6 +206,14 @@ const UsersManagement = () => {
   };
   const handleAddSubmit = (e) => {
     e.preventDefault();
+    if (!newUser.name || !newUser.email || !newUser.password) {
+      alert('Name, email, and password are required.');
+      return;
+    }
+    if (newUser.password.length < 8 || !/[A-Z]/.test(newUser.password) || !/[0-9]/.test(newUser.password)) {
+      alert('Password must be at least 8 characters, include a number and an uppercase letter.');
+      return;
+    }
     setUsers(prev => [
       ...prev,
       {
@@ -288,15 +273,9 @@ const UsersManagement = () => {
                   </button>
                   <button
                     onClick={() => handleStatusSelect('blocked')}
-                    className="w-full px-4 py-2 text-left text-white hover:bg-[#9B7BB8]/20 transition-colors duration-200"
-                  >
-                    Blocked
-                  </button>
-                  <button
-                    onClick={() => handleStatusSelect('pending')}
                     className="w-full px-4 py-2 text-left text-white hover:bg-[#9B7BB8]/20 transition-colors duration-200 last:rounded-b-lg"
                   >
-                    Pending
+                    Blocked
                   </button>
                 </div>
               )}
@@ -315,7 +294,7 @@ const UsersManagement = () => {
               className="flex items-center space-x-2 px-4 py-2 bg-[#2D1B3D] text-white rounded-lg hover:bg-[#9B7BB8] transition-colors text-sm font-semibold"
             >
               <Plus className="w-4 h-4" />
-              <span>Add User</span>
+              <span>Add Admin</span>
             </button>
           </div>
         </div>
@@ -560,59 +539,79 @@ const UsersManagement = () => {
         )}
         {/* Add User Modal */}
         {isAddModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center" style={{backdropFilter: 'blur(10px)', background: 'rgba(30, 18, 46, 0.55)'}}>
-            <div className="bg-[#2D1B3D]/95 rounded-2xl shadow-2xl max-w-lg w-full p-6 md:p-8 relative" style={{fontSize: '0.95rem', minWidth: 340}}>
-              <button onClick={closeAddModal} className="absolute top-3 right-3 text-white/60 hover:text-white z-10"><X className="w-5 h-5" /></button>
-              <h2 className="text-xl font-bold text-white mb-4">Add User</h2>
-              <form onSubmit={handleAddSubmit} className="space-y-3">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-white/70 mb-1 text-xs">Name</label>
-                    <input type="text" value={newUser.name} onChange={e => handleAddChange('name', e.target.value)} className="w-full bg-[#9B7BB8]/10 text-white p-2 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-sm" required />
-                  </div>
-                  <div>
-                    <label className="block text-white/70 mb-1 text-xs">Email</label>
-                    <input type="email" value={newUser.email} onChange={e => handleAddChange('email', e.target.value)} className="w-full bg-[#9B7BB8]/10 text-white p-2 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-sm" required />
-                  </div>
-                  <div>
-                    <label className="block text-white/70 mb-1 text-xs">Phone</label>
-                    <input type="text" value={newUser.phone} onChange={e => handleAddChange('phone', e.target.value)} className="w-full bg-[#9B7BB8]/10 text-white p-2 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-sm" required />
-                  </div>
-                  <div>
-                    <label className="block text-white/70 mb-1 text-xs">Role</label>
-                    <select value={newUser.role} onChange={e => handleAddChange('role', e.target.value)} className="w-full bg-[#9B7BB8]/10 text-white p-2 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-sm">
-                      <option value="User" className="bg-[#2D1B3D] text-white">User</option>
-                      <option value="Admin" className="bg-[#2D1B3D] text-white">Admin</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-white/70 mb-1 text-xs">Status</label>
-                    <select value={newUser.status} onChange={e => handleAddChange('status', e.target.value)} className="w-full bg-[#9B7BB8]/10 text-white p-2 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-sm">
-                      <option value="active" className="bg-[#2D1B3D] text-white">Active</option>
-                      <option value="blocked" className="bg-[#2D1B3D] text-white">Blocked</option>
-                      <option value="pending" className="bg-[#2D1B3D] text-white">Pending</option>
-                    </select>
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="block text-white/70 mb-1 text-xs">Avatar</label>
-                    {addImagePreview ? (
-                      <div className="mb-2 flex items-center gap-4">
-                        <img src={addImagePreview} alt="Avatar" className="w-14 h-14 object-cover rounded-full border border-[#9B7BB8]/30" />
-                        <button type="button" onClick={() => { setAddImagePreview(''); setNewUser(prev => ({ ...prev, avatar: '' })); }} className="text-red-400 hover:text-red-600 text-xs">Remove</button>
-                      </div>
-                    ) : null}
-                    <input type="file" accept="image/*" ref={addImageInputRef} onChange={handleAddImageChange} className="w-full bg-[#9B7BB8]/10 text-white p-2 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-xs" />
-                  </div>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+            <form onSubmit={handleAddSubmit} className="bg-[#2D1B3D] rounded-2xl p-8 w-full max-w-md shadow-2xl border border-white/10 relative">
+              <button type="button" onClick={closeAddModal} className="absolute top-4 right-4 text-white/60 hover:text-white"><X className="w-6 h-6" /></button>
+              <h2 className="text-2xl font-bold text-white mb-6">Add Admin</h2>
+              <div className="flex flex-col items-center mb-6">
+                <div className="relative w-24 h-24 mb-2">
+                  <img
+                    src={addImagePreview || '/images/icon.png'}
+                    alt="Preview"
+                    className="w-24 h-24 rounded-full object-cover border-2 border-white/20"
+                  />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    ref={addImageInputRef}
+                    onChange={handleAddImageChange}
+                    className="absolute inset-0 opacity-0 cursor-pointer"
+                    title="Upload profile picture"
+                  />
                 </div>
-                <div className="flex justify-end gap-2 mt-4">
-                  <button type="button" onClick={closeAddModal} className="px-6 py-2 bg-[#9B7BB8]/20 text-white rounded-lg hover:bg-[#9B7BB8]/40 transition-colors text-sm font-semibold">Cancel</button>
-                  <button type="submit" className="flex items-center space-x-2 px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm font-semibold">
-                    <Save className="w-5 h-5" />
-                    <span>Add User</span>
-                  </button>
-                </div>
-              </form>
-            </div>
+                <button type="button" onClick={() => addImageInputRef.current && addImageInputRef.current.click()} className="text-xs text-white/70 hover:underline">Change Photo</button>
+              </div>
+              <div className="mb-4">
+                <label className="block text-white/70 mb-1">Name</label>
+                <input
+                  type="text"
+                  value={newUser.name}
+                  onChange={e => handleAddChange('name', e.target.value)}
+                  className="w-full px-4 py-2 rounded-lg bg-[#1A0F26] text-white border border-white/10 focus:outline-none focus:border-white/20"
+                  required
+                />
+              </div>
+              <div className="mb-4">
+                <label className="block text-white/70 mb-1">Email</label>
+                <input
+                  type="email"
+                  value={newUser.email}
+                  onChange={e => handleAddChange('email', e.target.value)}
+                  className="w-full px-4 py-2 rounded-lg bg-[#1A0F26] text-white border border-white/10 focus:outline-none focus:border-white/20"
+                  required
+                />
+              </div>
+              <div className="mb-4">
+                <label className="block text-white/70 mb-1">Phone</label>
+                <input
+                  type="text"
+                  value={newUser.phone}
+                  onChange={e => handleAddChange('phone', e.target.value)}
+                  className="w-full px-4 py-2 rounded-lg bg-[#1A0F26] text-white border border-white/10 focus:outline-none focus:border-white/20"
+                />
+              </div>
+              <div className="mb-4">
+                <label className="block text-white/70 mb-1">Password</label>
+                <input
+                  type="password"
+                  value={newUser.password || ''}
+                  onChange={e => handleAddChange('password', e.target.value)}
+                  className="w-full px-4 py-2 rounded-lg bg-[#1A0F26] text-white border border-white/10 focus:outline-none focus:border-white/20"
+                  required
+                  minLength={8}
+                  autoComplete="new-password"
+                  placeholder="At least 8 chars, 1 number, 1 uppercase"
+                />
+              </div>
+              <div className="flex justify-end mt-6">
+                <button
+                  type="submit"
+                  className="bg-gradient-to-r from-[#9B7BB8] to-[#A67FC4] text-white px-6 py-2 rounded-lg font-semibold hover:from-[#A67FC4] hover:to-[#9B7BB8] transition-all"
+                >
+                  Add Admin
+                </button>
+              </div>
+            </form>
           </div>
         )}
       </div>

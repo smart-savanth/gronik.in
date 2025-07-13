@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, ShoppingCart, Heart, Star, Eye, Share2, Download, BookOpen, Clock, Award, Users, Zap, Check } from 'lucide-react';
+import { ArrowLeft, ShoppingCart, Heart, Star, Eye, Users, Zap, Check, BookOpen } from 'lucide-react';
 import { centralizedBooksData } from './LibrarySection';
 
 const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCart, onAddToWishlist, onRemoveFromWishlist }) => {
@@ -495,7 +495,7 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
                     ? 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white' 
                     : !enhancedProductData.inStock
                       ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
-                      : 'bg-gradient-to-r from-white to-gray-100 hover:from-gray-100 hover:to-white text-[#2D1B3D] shadow-xl'
+                    : 'bg-gradient-to-r from-white to-gray-100 hover:from-gray-100 hover:to-white text-[#2D1B3D] shadow-xl'
                 }`}
               >
                 {/* Animation Icons */}
@@ -527,7 +527,7 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
                     ? 'bg-gradient-to-r from-red-500 to-red-600 text-white' 
                     : !enhancedProductData.inStock
                       ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
-                      : 'bg-[#9B7BB8] text-[#2D1B3D] hover:bg-[#8A6AA7]'
+                    : 'bg-[#9B7BB8] text-[#2D1B3D] hover:bg-[#8A6AA7]'
                 }`}
                 style={{ minWidth: 0 }}
               >

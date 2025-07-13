@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Settings, User, Save, LogOut, Edit, X } from 'lucide-react';
+import { User, Save, LogOut, Edit, X } from 'lucide-react';
 import AdminLayout from './Adminlayout';
 
 const SettingsPage = () => {
@@ -34,9 +34,12 @@ const SettingsPage = () => {
   };
 
   const handleLogout = () => {
-    // Add logout logic here
-    console.log('Logging out...');
-    // You can add navigation to login page or clear session here
+    if (window.confirm('Are you sure you want to logout?')) {
+      // Clear session/localStorage (simulate logout)
+      localStorage.removeItem('adminToken');
+      sessionStorage.removeItem('adminToken');
+      window.location.href = '/admin-login';
+    }
   };
 
   return (
@@ -129,12 +132,12 @@ const SettingsPage = () => {
           </div>
 
           {/* Logout Button */}
-          <div className="mt-6">
+          <div className="mt-8">
             <button 
               onClick={handleLogout}
-              className="w-full px-6 py-3 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-xl transition-all duration-300 font-medium flex items-center justify-center gap-2 border border-red-500/40"
+              className="w-full px-8 py-2 bg-red-600 hover:bg-red-700 text-white rounded-2xl shadow-lg transition-all duration-300 font-bold text-lg flex items-center justify-center gap-3 border-2 border-red-700/40"
             >
-              <LogOut className="w-4 h-4" />
+              <LogOut className="w-6 h-6" />
               <span>Logout</span>
             </button>
           </div>

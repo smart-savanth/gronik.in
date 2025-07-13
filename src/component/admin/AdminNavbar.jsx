@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { BookOpen, LayoutDashboard, Users, ShoppingCart, BarChart3, Settings } from 'lucide-react';
+import { BookOpen, LayoutDashboard, Users, ShoppingCart, Settings } from 'lucide-react';
 
 const adminMenu = [
   { name: 'Dashboard', icon: LayoutDashboard, path: '/admin' },
@@ -15,11 +15,11 @@ const AdminNavbar = ({ currentPage }) => (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
       <div className="flex items-center justify-between h-24 px-2">
         <Link to="/admin" className="flex items-center">
-          <div className="w-32 h-12 flex items-center justify-center">
+          <div className="w-32 h-14 flex items-center justify-center">
             <img
               src="/images/logo.png"
               alt="Gronik Admin Logo"
-              className="w-full h-full object-contain"
+              className="w-full h-full object-contain drop-shadow-lg"
             />
           </div>
         </Link>
