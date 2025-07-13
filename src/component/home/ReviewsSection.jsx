@@ -6,32 +6,38 @@ const ReviewsSection = () => {
     { 
       id: 1,
       rating: 5, 
-      text: "Books are easy to get and the quality is amazing! The reading experience is seamless and the collection is vast."
+      text: "Books are easy to get and the quality is amazing! The reading experience is seamless and the collection is vast.",
+      name: "Aarav Sharma"
     },
     { 
       id: 2,
       rating: 5, 
-      text: "Great collection and smooth reading experience. Love the variety and user interface. Perfect for daily reading."
+      text: "Great collection and smooth reading experience. Love the variety and user interface. Perfect for daily reading.",
+      name: "Priya Patel"
     },
     { 
       id: 3,
       rating: 4, 
-      text: "Love the variety of books available here. Perfect for my daily reading routine and the quality is top-notch."
+      text: "Love the variety of books available here. Perfect for my daily reading routine and the quality is top-notch.",
+      name: "Rahul Verma"
     },
     { 
       id: 4,
       rating: 5, 
-      text: "Outstanding platform with incredible book selection. The reading experience is smooth and enjoyable."
+      text: "Outstanding platform with incredible book selection. The reading experience is smooth and enjoyable.",
+      name: "Sneha Reddy"
     },
     { 
       id: 5,
       rating: 4, 
-      text: "Fantastic digital library with great features. Love how easy it is to find and read books on any device."
+      text: "Fantastic digital library with great features. Love how easy it is to find and read books on any device.",
+      name: "Vikram Singh"
     },
     { 
       id: 6,
       rating: 5, 
-      text: "Best e-book platform I've used! Great selection, amazing quality, and the interface is beautifully designed."
+      text: "Best e-book platform I've used! Great selection, amazing quality, and the interface is beautifully designed.",
+      name: "Ananya Iyer"
     }
   ]);
 
@@ -39,7 +45,8 @@ const ReviewsSection = () => {
   const [isPaused, setIsPaused] = useState(false);
   const [newReview, setNewReview] = useState({
     rating: 5,
-    text: ''
+    text: '',
+    name: ''
   });
 
   const scrollContainerRef = useRef(null);
@@ -48,13 +55,13 @@ const ReviewsSection = () => {
   const duplicatedReviews = [...reviews, ...reviews];
 
   const handleSubmitReview = () => {
-    if (newReview.text) {
+    if (newReview.text && newReview.name) {
       const review = {
         id: reviews.length + 1,
         ...newReview
       };
       setReviews([review, ...reviews]);
-      setNewReview({ rating: 5, text: '' });
+      setNewReview({ rating: 5, text: '', name: '' });
       setShowForm(false);
     }
   };
@@ -126,6 +133,12 @@ const ReviewsSection = () => {
                 <p className="italic leading-relaxed text-sm sm:text-base text-white/90 text-center">
                   "{review.text}"
                 </p>
+
+                <div className="flex justify-center mt-3">
+                  <span className="text-xs sm:text-sm text-[#FFD700] font-semibold opacity-80 rounded-full px-2 py-0.5 bg-[#2D1B3D]/30" style={{fontFamily: 'cursive'}}>
+                    {review.name}
+                  </span>
+                </div>
               </div>
             ))}
           </div>
@@ -146,6 +159,18 @@ const ReviewsSection = () => {
             <h3 className="text-xl sm:text-2xl font-bold text-[#2D1B3D] mb-4 sm:mb-6 pr-8">Share Your Experience</h3>
             
             <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-[#2D1B3D] mb-2">Your Name</label>
+                <input
+                  type="text"
+                  value={newReview.name}
+                  onChange={e => setNewReview({ ...newReview, name: e.target.value })}
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#9B7BB8] focus:border-transparent transition-all text-sm sm:text-base mb-2"
+                  placeholder="Enter your name..."
+                  maxLength={32}
+                />
+              </div>
+              
               <div>
                 <label className="block text-sm font-medium text-[#2D1B3D] mb-2">Rating</label>
                 <div className="flex space-x-1">

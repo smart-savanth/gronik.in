@@ -1,17 +1,31 @@
-import React, { useState } from 'react';
-import { Eye, EyeOff, Mail, Phone, Lock, ArrowRight, Check, X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Eye, EyeOff, Mail, Phone, Lock, ArrowRight, Check, X, RefreshCw } from 'lucide-react';
 
 const LoginPage = () => {
-  const [currentStep, setCurrentStep] = useState('choice'); // 'choice', 'signup', 'login'
+  const [currentStep, setCurrentStep] = useState('choice'); // 'choice', 'signup', 'login', 'otp', 'forgot', 'reset'
   const [loginMethod, setLoginMethod] = useState('email'); // 'email' or 'mobile'
   const [formData, setFormData] = useState({
     email: '',
     mobile: '',
-    password: ''
+    password: '',
+    newPassword: '',
+    confirmPassword: '',
+    otp: ['', '', '', '', '', ''], // 6-digit OTP
+    jwtToken: ''
   });
   const [showPassword, setShowPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
+  const [resetSuccess, setResetSuccess] = useState(false);
+  
+  // OTP and JWT related states
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpVerified, setOtpVerified] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [otpError, setOtpError] = useState('');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   // Mock existing users database
   const existingUsers = [
@@ -51,6 +65,122 @@ const LoginPage = () => {
     }
   };
 
+  // Mock OTP generation (in real app, this would come from backend)
+  const generateOTP = () => {
+    return Math.floor(100000 + Math.random() * 900000).toString();
+  };
+
+  // Mock JWT token generation
+  const generateJWT = (userData) => {
+    // In real app, this would be a proper JWT token from backend
+    return `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.${btoa(JSON.stringify(userData))}`;
+  };
+
+  // OTP input handling
+  const handleOtpChange = (index, value) => {
+    if (value.length > 1) return; // Only allow single digit
+    
+    const newOtp = [...formData.otp];
+    newOtp[index] = value;
+    setFormData(prev => ({ ...prev, otp: newOtp }));
+
+    // Auto-focus next input
+    if (value && index < 5) {
+      const nextInput = document.querySelector(`input[data-otp-index="${index + 1}"]`);
+      if (nextInput) nextInput.focus();
+    }
+
+    // Clear error when user starts typing
+    if (otpError) setOtpError('');
+  };
+
+  // Handle OTP key events
+  const handleOtpKeyDown = (index, e) => {
+    if (e.key === 'Backspace' && !formData.otp[index] && index > 0) {
+      const prevInput = document.querySelector(`input[data-otp-index="${index - 1}"]`);
+      if (prevInput) prevInput.focus();
+    }
+  };
+
+  // Send OTP function
+  const sendOTP = async (emailOrMobile) => {
+    setIsLoading(true);
+    setOtpError('');
+    
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    const otp = generateOTP();
+    console.log(`OTP sent to ${emailOrMobile}: ${otp}`); // For testing purposes
+    
+    setOtpSent(true);
+    setIsLoading(false);
+    setResendCooldown(60); // 60 seconds cooldown
+    
+    // Start cooldown timer
+    const timer = setInterval(() => {
+      setResendCooldown(prev => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  // Verify OTP function
+  const verifyOTP = async () => {
+    const enteredOtp = formData.otp.join('');
+    if (enteredOtp.length !== 6) {
+      setOtpError('Please enter a 6-digit OTP');
+      return;
+    }
+
+    setIsLoading(true);
+    setOtpError('');
+
+    // Simulate API verification
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // For demo purposes, accept any 6-digit OTP
+    if (enteredOtp.length === 6) {
+      setOtpVerified(true);
+      setIsLoading(false);
+      
+      // Generate JWT token
+      const userData = {
+        email: formData.email || formData.mobile,
+        loginMethod: loginMethod,
+        timestamp: new Date().toISOString()
+      };
+      
+      const jwtToken = generateJWT(userData);
+      setFormData(prev => ({ ...prev, jwtToken }));
+      
+      // Store in localStorage (in real app, use secure storage)
+      localStorage.setItem('gronik_jwt', jwtToken);
+      localStorage.setItem('gronik_user', JSON.stringify(userData));
+      
+      setIsAuthenticated(true);
+      
+      // Redirect to home page
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 1000);
+    } else {
+      setOtpError('Invalid OTP. Please try again.');
+      setIsLoading(false);
+    }
+  };
+
+  // Resend OTP function
+  const handleResendOTP = async () => {
+    if (resendCooldown > 0) return;
+    
+    await sendOTP(loginMethod === 'email' ? formData.email : formData.mobile);
+  };
+
   // Handle signup
   const handleSignup = () => {
     const newErrors = {};
@@ -83,13 +213,9 @@ const LoginPage = () => {
     setErrors(newErrors);
 
     if (Object.keys(newErrors).length === 0) {
-      setIsLoading(true);
-      setTimeout(() => {
-        setIsLoading(false);
-        alert('Signup successful! Please login to continue.');
-        setCurrentStep('login');
-        setFormData(prev => ({ ...prev, password: '' }));
-      }, 1500);
+      // Send OTP for verification
+      sendOTP(loginMethod === 'email' ? formData.email : formData.mobile);
+      setCurrentStep('otp');
     }
   };
 
@@ -133,11 +259,64 @@ const LoginPage = () => {
     setErrors(newErrors);
 
     if (Object.keys(newErrors).length === 0 && user) {
+      // Send OTP for verification
+      sendOTP(loginMethod === 'email' ? formData.email : formData.mobile);
+      setCurrentStep('otp');
+    }
+  };
+
+  // Handle forgot password submit (step 1)
+  const handleForgotSubmit = () => {
+    const newErrors = {};
+    if (loginMethod === 'email') {
+      if (!formData.email) {
+        newErrors.email = 'Email is required';
+      } else if (!validateEmail(formData.email)) {
+        newErrors.email = 'Please enter a valid email address';
+      }
+    } else {
+      if (!formData.mobile) {
+        newErrors.mobile = 'Mobile number is required';
+      } else if (!validateMobile(formData.mobile)) {
+        newErrors.mobile = 'Please enter a valid 10-digit mobile number';
+      }
+    }
+    setErrors(newErrors);
+    if (Object.keys(newErrors).length === 0) {
       setIsLoading(true);
       setTimeout(() => {
         setIsLoading(false);
-        alert('Login successful! Redirecting to home page...');
-      }, 1500);
+        setCurrentStep('reset');
+      }, 1000);
+    }
+  };
+
+  // Handle password reset (step 2)
+  const handleResetPassword = () => {
+    const newErrors = {};
+    const passwordValidation = validatePassword(formData.newPassword);
+    if (!formData.newPassword) {
+      newErrors.newPassword = 'New password is required';
+    } else if (!passwordValidation.isValid) {
+      newErrors.newPassword = 'Password does not meet requirements';
+    }
+    if (!formData.confirmPassword) {
+      newErrors.confirmPassword = 'Please confirm your password';
+    } else if (formData.newPassword !== formData.confirmPassword) {
+      newErrors.confirmPassword = 'Passwords do not match';
+    }
+    setErrors(newErrors);
+    if (Object.keys(newErrors).length === 0) {
+      setIsLoading(true);
+      setTimeout(() => {
+        setIsLoading(false);
+        setResetSuccess(true);
+        setTimeout(() => {
+          setResetSuccess(false);
+          setCurrentStep('login');
+          setFormData(prev => ({ ...prev, password: '', newPassword: '', confirmPassword: '' }));
+        }, 1500);
+      }, 1200);
     }
   };
 
@@ -177,7 +356,7 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#9B7BB8] relative overflow-hidden flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-gronik-primary via-gronik-bg to-gronik-secondary relative overflow-hidden flex items-center justify-center p-4">
       {/* Animated background elements with glow effects */}
       <div className="absolute inset-0">
         <div className="absolute top-10 left-10 w-40 h-40 bg-[#2D1B3D]/20 rounded-full blur-3xl animate-pulse shadow-2xl shadow-[#2D1B3D]/30"></div>
@@ -188,10 +367,10 @@ const LoginPage = () => {
       </div>
 
       {/* Centered Login Container */}
-      <div className="relative z-10 w-full max-w-sm">
+      <div className="relative z-10 w-full max-w-sm sm:max-w-lg">
         {/* Form Container */}
         <div className="bg-[#2D1B3D]/90 backdrop-blur-xl rounded-3xl border border-[#2D1B3D]/50 shadow-2xl shadow-[#2D1B3D]/20 overflow-hidden">
-          <div className="p-6 sm:p-8">
+          <div className="p-6 sm:p-10">
             {/* Logo/Title */}
             <div className="text-center mb-8">
               <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2 drop-shadow-lg">
@@ -211,7 +390,7 @@ const LoginPage = () => {
                   <div className="grid grid-cols-2 gap-3 mb-6">
                     <button
                       onClick={() => setLoginMethod('email')}
-                      className={`p-3 rounded-xl border-2 transition-all duration-300 ${
+                      className={`p-3 rounded-xl border-2 transition-all duration-200 login-gold-glow ${
                         loginMethod === 'email'
                           ? 'border-white bg-white/10 text-white shadow-lg shadow-white/20'
                           : 'border-white/30 bg-white/5 text-white/70 hover:border-white/50 hover:shadow-lg hover:shadow-white/10'
@@ -222,7 +401,7 @@ const LoginPage = () => {
                     </button>
                     <button
                       onClick={() => setLoginMethod('mobile')}
-                      className={`p-3 rounded-xl border-2 transition-all duration-300 ${
+                      className={`p-3 rounded-xl border-2 transition-all duration-200 login-gold-glow ${
                         loginMethod === 'mobile'
                           ? 'border-white bg-white/10 text-white shadow-lg shadow-white/20'
                           : 'border-white/30 bg-white/5 text-white/70 hover:border-white/50 hover:shadow-lg hover:shadow-white/10'
@@ -237,14 +416,14 @@ const LoginPage = () => {
                 <div className="space-y-3">
                   <button
                     onClick={() => setCurrentStep('signup')}
-                    className="w-full bg-white text-[#2D1B3D] hover:bg-white/90 font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-[1.02] shadow-lg shadow-white/40 hover:shadow-xl hover:shadow-white/50 flex items-center justify-center space-x-2"
+                    className="w-full bg-gradient-to-r from-[#FFD700]/90 to-[#9B7BB8]/80 text-[#2D1B3D] font-semibold py-3 px-6 rounded-xl transition-all duration-200 flex items-center justify-center space-x-2 gold-glow-cta"
                   >
                     <span>Create Account</span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => setCurrentStep('login')}
-                    className="w-full bg-white/10 hover:bg-white/15 text-white py-3 px-6 rounded-xl font-semibold transition-all duration-300 border border-white/20 hover:border-white/40 hover:shadow-lg hover:shadow-white/20"
+                    className="w-full bg-white/10 hover:bg-white/15 text-white py-3 px-6 rounded-xl font-semibold transition-all duration-200 border border-white/20 hover:border-white/40 login-gold-glow"
                   >
                     Sign In
                   </button>
@@ -316,11 +495,11 @@ const LoginPage = () => {
                 <button
                   onClick={handleSignup}
                   disabled={isLoading}
-                  className="w-full bg-white text-[#2D1B3D] hover:bg-white/90 font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-[1.02] shadow-lg shadow-white/40 hover:shadow-xl hover:shadow-white/50 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center space-x-2 mt-6"
+                  className="w-full bg-gradient-to-r from-[#FFD700]/90 to-[#9B7BB8]/80 text-[#2D1B3D] font-semibold py-3 px-6 rounded-xl transition-all duration-200 flex items-center justify-center space-x-2 mt-6 gold-glow-cta disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isLoading ? (
                     <>
-                      <div className="w-4 h-4 border-2 border-[#2D1B3D] border-t-transparent rounded-full animate-spin"></div>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                       <span>CREATING...</span>
                     </>
                   ) : (
@@ -403,7 +582,11 @@ const LoginPage = () => {
 
                 {/* Forgot Password */}
                 <div className="text-right">
-                  <button className="text-white/70 hover:text-white text-xs transition-colors duration-300">
+                  <button
+                    type="button"
+                    className="text-white/70 hover:text-[#9B7BB8] text-xs transition-colors duration-300 underline underline-offset-2"
+                    onClick={() => setCurrentStep('forgot')}
+                  >
                     Forgot Password?
                   </button>
                 </div>
@@ -412,11 +595,11 @@ const LoginPage = () => {
                 <button
                   onClick={handleLogin}
                   disabled={isLoading}
-                  className="w-full bg-white text-[#2D1B3D] hover:bg-white/90 font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-[1.02] shadow-lg shadow-white/40 hover:shadow-xl hover:shadow-white/50 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center space-x-2 mt-6"
+                  className="w-full bg-gradient-to-r from-[#FFD700]/90 to-[#9B7BB8]/80 text-[#2D1B3D] font-semibold py-3 px-6 rounded-xl transition-all duration-200 flex items-center justify-center space-x-2 mt-6 gold-glow-cta disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isLoading ? (
                     <>
-                      <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                       <span>SIGNING IN...</span>
                     </>
                   ) : (
@@ -432,9 +615,288 @@ const LoginPage = () => {
                 </button>
               </div>
             )}
+
+            {/* Step 4: OTP Verification */}
+            {currentStep === 'otp' && (
+              <div className="space-y-6">
+                <div className="text-center mb-6">
+                  <h2 className="text-xl font-bold text-white mb-2">Verify Your Account</h2>
+                  <p className="text-white/70 text-sm">
+                    We've sent a 6-digit verification code to your {loginMethod === 'email' ? 'email' : 'mobile'}
+                  </p>
+                  <p className="text-white/60 text-xs mt-1">
+                    {loginMethod === 'email' ? formData.email : formData.mobile}
+                  </p>
+                </div>
+
+                {/* OTP Input */}
+                <div className="space-y-4">
+                  <label className="block text-xs font-medium text-white/80 mb-3 text-center">
+                    ENTER VERIFICATION CODE
+                  </label>
+                  <div className="flex justify-center space-x-2 mb-4">
+                    {formData.otp.map((digit, index) => (
+                      <input
+                        key={index}
+                        type="text"
+                        maxLength="1"
+                        value={digit}
+                        onChange={(e) => handleOtpChange(index, e.target.value)}
+                        onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                        data-otp-index={index}
+                        className="w-12 h-12 text-center text-white bg-transparent border-2 border-white/30 rounded-lg focus:outline-none focus:border-white focus:shadow-lg focus:shadow-white/20 transition-all duration-300 text-lg font-semibold"
+                        style={{ caretColor: 'transparent' }}
+                      />
+                    ))}
+                  </div>
+                  
+                  {otpError && (
+                    <div className="text-red-400 text-xs text-center flex items-center justify-center space-x-1">
+                      <X className="w-3 h-3" />
+                      <span>{otpError}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Verify Button */}
+                <button
+                  onClick={verifyOTP}
+                  disabled={isLoading || formData.otp.join('').length !== 6}
+                  className="w-full bg-gradient-to-r from-[#FFD700]/90 to-[#9B7BB8]/80 text-[#2D1B3D] font-semibold py-3 px-6 rounded-xl transition-all duration-200 flex items-center justify-center space-x-2 mt-6 gold-glow-cta disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isLoading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span>VERIFYING...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>VERIFY OTP</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </>
+                  )}
+                </button>
+
+                {/* Resend OTP */}
+                <div className="text-center">
+                  <p className="text-white/60 text-xs mb-2">Didn't receive the code?</p>
+                  <button
+                    onClick={handleResendOTP}
+                    disabled={resendCooldown > 0 || isLoading}
+                    className="text-white/70 hover:text-[#9B7BB8] text-xs transition-colors duration-300 flex items-center justify-center space-x-1 mx-auto disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <RefreshCw className={`w-3 h-3 ${resendCooldown > 0 ? 'animate-spin' : ''}`} />
+                    <span>
+                      {resendCooldown > 0 
+                        ? `Resend in ${resendCooldown}s` 
+                        : 'Resend OTP'
+                      }
+                    </span>
+                  </button>
+                </div>
+
+                {/* Back Button */}
+                <button
+                  onClick={() => {
+                    setCurrentStep('choice');
+                    setFormData(prev => ({ ...prev, otp: ['', '', '', '', '', ''] }));
+                    setOtpError('');
+                  }}
+                  className="w-full text-white/70 hover:text-white py-2 transition-colors duration-300 text-xs"
+                >
+                  ← Back
+                </button>
+              </div>
+            )}
+
+            {/* Step 5: Forgot Password - Enter Email/Mobile */}
+            {currentStep === 'forgot' && (
+              <div className="space-y-4">
+                <div className="text-center mb-2">
+                  <h2 className="text-xl font-bold text-white mb-1">Forgot Password?</h2>
+                  <p className="text-white/70 text-sm">Enter your {loginMethod === 'email' ? 'email address' : 'mobile number'} to reset your password.</p>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-white/80 mb-2">
+                    {loginMethod === 'email' ? 'EMAIL' : 'MOBILE'}
+                  </label>
+                  <div className="relative">
+                    <div className="absolute top-0 left-0 flex items-center">
+                      {loginMethod === 'email' ?
+                        <Mail className="w-4 h-4 text-white/60" /> :
+                        <Phone className="w-4 h-4 text-white/60" />
+                      }
+                    </div>
+                    <input
+                      type={loginMethod === 'email' ? 'email' : 'tel'}
+                      value={loginMethod === 'email' ? formData.email : formData.mobile}
+                      onChange={(e) => handleInputChange(loginMethod, e.target.value)}
+                      className="w-full bg-transparent border-b-2 border-white/30 text-white pl-6 pr-4 py-3 focus:outline-none focus:border-white focus:shadow-lg focus:shadow-white/20 transition-all duration-300 placeholder-white/40 text-sm"
+                    />
+                  </div>
+                  {errors[loginMethod] && (
+                    <p className="text-red-400 text-xs mt-1 flex items-center space-x-1">
+                      <X className="w-3 h-3" />
+                      <span>{errors[loginMethod]}</span>
+                    </p>
+                  )}
+                </div>
+                <button
+                  onClick={handleForgotSubmit}
+                  disabled={isLoading}
+                  className="w-full bg-gradient-to-r from-[#FFD700]/90 to-[#9B7BB8]/80 text-[#2D1B3D] font-semibold py-3 px-6 rounded-xl transition-all duration-200 flex items-center justify-center space-x-2 mt-4 gold-glow-cta disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isLoading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span>VERIFYING...</span>
+                    </>
+                  ) : (
+                    <span>Continue</span>
+                  )}
+                </button>
+                <button
+                  onClick={() => setCurrentStep('login')}
+                  className="w-full text-white/70 hover:text-white py-2 transition-colors duration-300 text-xs"
+                >
+                  ← Back to Login
+                </button>
+              </div>
+            )}
+
+            {/* Step 6: Reset Password - Enter New Password */}
+            {currentStep === 'reset' && (
+              <div className="space-y-4">
+                <div className="text-center mb-2">
+                  <h2 className="text-xl font-bold text-white mb-1">Reset Password</h2>
+                  <p className="text-white/70 text-sm">Enter your new password below.</p>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-white/80 mb-2">NEW PASSWORD</label>
+                  <div className="relative">
+                    <div className="absolute top-0 left-0 flex items-center">
+                      <Lock className="w-4 h-4 text-white/60" />
+                    </div>
+                    <input
+                      type={showNewPassword ? 'text' : 'password'}
+                      value={formData.newPassword}
+                      onChange={(e) => handleInputChange('newPassword', e.target.value)}
+                      className="w-full bg-transparent border-b-2 border-white/30 text-white pl-6 pr-10 py-3 focus:outline-none focus:border-white focus:shadow-lg focus:shadow-white/20 transition-all duration-300 placeholder-white/40 text-sm"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      className="absolute top-0 right-0 flex items-center text-white/60 hover:text-white"
+                    >
+                      {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  {errors.newPassword && (
+                    <p className="text-red-400 text-xs mt-1 flex items-center space-x-1">
+                      <X className="w-3 h-3" />
+                      <span>{errors.newPassword}</span>
+                    </p>
+                  )}
+                  {formData.newPassword && <PasswordRequirements password={formData.newPassword} />}
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-white/80 mb-2">CONFIRM PASSWORD</label>
+                  <div className="relative">
+                    <div className="absolute top-0 left-0 flex items-center">
+                      <Lock className="w-4 h-4 text-white/60" />
+                    </div>
+                    <input
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      value={formData.confirmPassword}
+                      onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+                      className="w-full bg-transparent border-b-2 border-white/30 text-white pl-6 pr-10 py-3 focus:outline-none focus:border-white focus:shadow-lg focus:shadow-white/20 transition-all duration-300 placeholder-white/40 text-sm"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute top-0 right-0 flex items-center text-white/60 hover:text-white"
+                    >
+                      {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  {errors.confirmPassword && (
+                    <p className="text-red-400 text-xs mt-1 flex items-center space-x-1">
+                      <X className="w-3 h-3" />
+                      <span>{errors.confirmPassword}</span>
+                    </p>
+                  )}
+                </div>
+                <button
+                  onClick={handleResetPassword}
+                  disabled={isLoading}
+                  className="w-full bg-gradient-to-r from-[#FFD700]/90 to-[#9B7BB8]/80 text-[#2D1B3D] font-semibold py-3 px-6 rounded-xl transition-all duration-200 flex items-center justify-center space-x-2 mt-4 gold-glow-cta disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isLoading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span>RESETTING...</span>
+                    </>
+                  ) : (
+                    <span>Reset Password</span>
+                  )}
+                </button>
+                <button
+                  onClick={() => setCurrentStep('login')}
+                  className="w-full text-white/70 hover:text-white py-2 transition-colors duration-300 text-xs"
+                >
+                  ← Back to Login
+                </button>
+                {resetSuccess && (
+                  <div className="text-green-400 text-center mt-2 font-semibold">Password reset successful!</div>
+                )}
+              </div>
+            )}
+
+            {/* Authentication Success Message */}
+            {isAuthenticated && (
+              <div className="space-y-4">
+                <div className="text-center mb-6">
+                  <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Check className="w-8 h-8 text-white" />
+                  </div>
+                  <h2 className="text-xl font-bold text-white mb-2">Authentication Successful!</h2>
+                  <p className="text-white/70 text-sm">Redirecting to home page...</p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
+
+      <style jsx>{`
+.login-gold-glow:hover, .login-gold-glow:focus {
+  box-shadow: 0 0 0 2px #ffe9b3, 0 4px 24px 0 #ffe9b3cc, 0 1.5px 8px 0 #fff7c1 !important;
+  border-color: #FFD700 !important;
+}
+.gold-glow-cta {
+  box-shadow: 0 2px 12px 0 #FFD70033;
+  position: relative;
+  z-index: 1;
+}
+.gold-glow-cta:hover, .gold-glow-cta:focus {
+  background: linear-gradient(90deg, #FFD700 0%, #ffe9b3 60%, #9B7BB8 100%) !important;
+  color: #2D1B3D !important;
+  box-shadow: 0 0 0 2px #ffe9b3, 0 4px 24px 0 #ffe9b3cc, 0 1.5px 8px 0 #fff7c1;
+  border: none;
+  outline: none;
+  transition: box-shadow 0.18s cubic-bezier(.4,1.2,.6,1), background 0.18s cubic-bezier(.4,1.2,.6,1);
+}
+/* Modern button animation: scale and soft shadow, purple palette */
+.modern-animated-btn {
+  transition: all 0.18s cubic-bezier(.4,1.2,.6,1);
+  box-shadow: 0 2px 12px 0 #2D1B3D33;
+}
+.modern-animated-btn:hover, .modern-animated-btn:focus {
+  transform: scale(1.045);
+  box-shadow: 0 4px 24px 0 #9B7BB8cc, 0 1.5px 8px 0 #8A6AA7;
+  background: #8A6AA7 !important;
+}
+      `}</style>
     </div>
   );
 };

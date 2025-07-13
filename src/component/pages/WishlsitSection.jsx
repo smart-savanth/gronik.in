@@ -1,107 +1,50 @@
-import React, { useState, useRef } from 'react';
-import { Plus, Minus, Trash2, ShoppingBag, ArrowLeft, Heart, Star, ShoppingCart, ChevronLeft, ChevronRight } from 'lucide-react';
+import React, { useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Trash2, ShoppingBag, ArrowLeft, Heart, Star, ShoppingCart, ChevronLeft, ChevronRight } from 'lucide-react';
 
-const WishlistPage = () => {
-  
-  const [wishlistItems, setWishlistItems] = useState([
-    {
-      id: 1,
-      title: "The Art of Web Development",
-      author: "John Smith",
-      price: 29.99,
-      originalPrice: 39.99,
-      image: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=200&h=280&fit=crop",
-      rating: 4.5,
-      category: "Technology",
-      inStock: true
-    },
-    {
-      id: 2,
-      title: "Mysteries of the Universe",
-      author: "Sarah Johnson",
-      price: 24.99,
-      originalPrice: 34.99,
-      image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=280&fit=crop",
-      rating: 4.8,
-      category: "Science",
-      inStock: true
-    },
-    {
-      id: 3,
-      title: "Digital Marketing Mastery",
-      author: "Mike Wilson",
-      price: 34.99,
-      originalPrice: 44.99,
-      image: "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=200&h=280&fit=crop",
-      rating: 4.3,
-      category: "Business",
-      inStock: false
-    },
-    {
-      id: 4,
-      title: "Psychology of Success",
-      author: "Emma Davis",
-      price: 19.99,
-      originalPrice: 29.99,
-      image: "https://images.unsplash.com/photo-1512820790803-83ca734da794?w=200&h=280&fit=crop",
-      rating: 4.6,
-      category: "Self Help",
-      inStock: true
-    }
-  ]);
-
-  const [currentIndex, setCurrentIndex] = useState(0);
+const WishlistPage = ({
+  wishlist = [],
+  removeFromWishlist,
+  addToCart,
+  cart = []
+}) => {
   const scrollContainerRef = useRef(null);
-
-  const removeFromWishlist = (id) => {
-    setWishlistItems(items => items.filter(item => item.id !== id));
-  };
-
-  const addToCart = (item) => {
-    console.log(`Added ${item.title} to cart`);
-  };
-
-  const clearWishlist = () => {
-    setWishlistItems([]);
-  };
+  const navigate = useNavigate();
 
   const handleContinueShopping = () => {
-    window.location.href = '/library';
+    navigate('/library');
   };
 
   const handleExploreBooks = () => {
-    window.location.href = '/library';
+    navigate('/library');
   };
 
   const scrollToNext = () => {
     if (scrollContainerRef.current) {
       const container = scrollContainerRef.current;
-      const itemWidth = container.children[0]?.offsetWidth + 12; // width + gap
+      const itemWidth = container.children[0]?.offsetWidth + 12;
       const maxScroll = container.scrollWidth - container.clientWidth;
       const newScrollLeft = Math.min(container.scrollLeft + itemWidth * 2, maxScroll);
-      
-      container.scrollTo({
-        left: newScrollLeft,
-        behavior: 'smooth'
-      });
+      container.scrollTo({ left: newScrollLeft, behavior: 'smooth' });
     }
   };
 
   const scrollToPrev = () => {
     if (scrollContainerRef.current) {
       const container = scrollContainerRef.current;
-      const itemWidth = container.children[0]?.offsetWidth + 12; // width + gap
+      const itemWidth = container.children[0]?.offsetWidth + 12;
       const newScrollLeft = Math.max(container.scrollLeft - itemWidth * 2, 0);
-      
-      container.scrollTo({
-        left: newScrollLeft,
-        behavior: 'smooth'
-      });
+      container.scrollTo({ left: newScrollLeft, behavior: 'smooth' });
     }
   };
 
+  const handleAddToCart = (item) => {
+    addToCart(item);
+    removeFromWishlist(item.id);
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gronik-bg via-gronik-primary to-gronik-bg pt-20">
+    <div className="min-h-screen bg-gradient-to-br from-[#9B7BB8] to-[#8A6AA7] pt-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Desktop Header */}
         <div className="hidden sm:flex items-center justify-between mb-8">
@@ -117,14 +60,13 @@ const WishlistPage = () => {
               <Heart className="w-8 h-8 text-gronik-accent mr-3" />
               <h1 className="text-3xl font-bold text-white">My Wishlist</h1>
               <span className="ml-3 bg-gronik-accent text-white text-sm px-3 py-1 rounded-full">
-                {wishlistItems.length} items
+                {wishlist.length} items
               </span>
             </div>
           </div>
-          
-          {wishlistItems.length > 0 && (
+          {wishlist.length > 0 && (
             <button 
-              onClick={clearWishlist}
+              onClick={() => wishlist.forEach(item => removeFromWishlist(item.id))}
               className="text-gronik-light hover:text-red-400 transition-colors duration-200 font-medium"
             >
               Clear All
@@ -142,31 +84,29 @@ const WishlistPage = () => {
               <ArrowLeft className="w-4 h-4 mr-1" />
               <span className="text-sm">Back</span>
             </button>
-            
-            {wishlistItems.length > 0 && (
+            {wishlist.length > 0 && (
               <button 
-                onClick={clearWishlist}
+                onClick={() => wishlist.forEach(item => removeFromWishlist(item.id))}
                 className="text-xs text-gronik-light hover:text-red-400 transition-colors duration-200 bg-gronik-shadow/40 px-3 py-1.5 rounded-full backdrop-blur-sm border border-gronik-accent/20"
               >
                 Clear All
               </button>
             )}
           </div>
-          
           <div className="text-center">
             <div className="flex items-center justify-center mb-2">
               <Heart className="w-6 h-6 text-gronik-accent mr-2 fill-current" />
               <h1 className="text-xl font-bold text-white">My Wishlist</h1>
             </div>
             <span className="inline-block bg-gradient-to-r from-gronik-accent to-gronik-secondary text-white text-xs px-3 py-1 rounded-full">
-              {wishlistItems.length} {wishlistItems.length === 1 ? 'item' : 'items'}
+              {wishlist.length} {wishlist.length === 1 ? 'item' : 'items'}
             </span>
           </div>
         </div>
 
         {/* Wishlist Content */}
-        {wishlistItems.length === 0 ? (
-          <div className="text-center py-16 bg-gronik-shadow/30 backdrop-blur-sm rounded-2xl border border-gronik-accent/20">
+        {wishlist.length === 0 ? (
+          <div className="text-center py-16 bg-[#2D1B3D]/80 backdrop-blur-sm rounded-2xl border border-gronik-accent/20">
             <Heart className="w-16 h-16 text-gronik-light/50 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-gronik-light mb-2">Your wishlist is empty</h3>
             <p className="text-gronik-light/60 mb-6">Save your favorite books for later!</p>
@@ -181,11 +121,11 @@ const WishlistPage = () => {
           <>
             {/* Desktop Grid View */}
             <div className="hidden sm:grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {wishlistItems.map(item => (
-                <div key={item.id} className="bg-gronik-shadow/30 backdrop-blur-sm rounded-2xl p-6 border border-gronik-accent/20 hover:border-gronik-accent/40 transition-all duration-300 group hover:transform hover:scale-105">
+              {wishlist.map(item => (
+                <div key={item.id} className="bg-[#2D1B3D]/95 backdrop-blur-sm rounded-2xl p-6 border border-gronik-accent/20 hover:border-gronik-accent/40 transition-all duration-300 group hover:transform hover:scale-105">
                   {/* Book Image */}
                   <div className="relative mb-4">
-                    <div className="w-full aspect-[3/4] rounded-lg overflow-hidden shadow-lg bg-gronik-primary/20">
+                    <div className="w-full aspect-[3/4] rounded-lg overflow-hidden shadow-lg bg-[#2D1B3D]/80">
                       <img 
                         src={item.image} 
                         alt={item.title}
@@ -206,7 +146,6 @@ const WishlistPage = () => {
                       <Heart className="w-4 h-4 text-gronik-accent fill-current hover:text-white" />
                     </button>
                   </div>
-
                   {/* Book Details */}
                   <div className="space-y-3">
                     <div>
@@ -226,7 +165,6 @@ const WishlistPage = () => {
                         <span className="text-xs text-gronik-light/60 ml-2">({item.rating})</span>
                       </div>
                     </div>
-
                     {/* Price */}
                     <div className="flex items-center space-x-2">
                       {item.originalPrice !== item.price && (
@@ -238,18 +176,16 @@ const WishlistPage = () => {
                         ${item.price.toFixed(2)}
                       </span>
                     </div>
-
                     {/* Category */}
                     <div className="flex items-center">
                       <span className="text-xs bg-gronik-accent/20 text-gronik-accent px-2 py-1 rounded-full">
                         {item.category}
                       </span>
                     </div>
-
                     {/* Actions */}
                     <div className="flex space-x-2 pt-2">
                       <button 
-                        onClick={() => addToCart(item)}
+                        onClick={() => handleAddToCart(item)}
                         disabled={!item.inStock}
                         className={`flex-1 flex items-center justify-center py-2 px-3 rounded-lg font-medium text-sm transition-all duration-200 ${
                           item.inStock 
@@ -271,12 +207,10 @@ const WishlistPage = () => {
                 </div>
               ))}
             </div>
-
             {/* Mobile Carousel View */}
             <div className="sm:hidden">
               <div className="relative">
-                {/* Navigation Arrows */}
-                {wishlistItems.length > 2 && (
+                {wishlist.length > 2 && (
                   <>
                     <button 
                       onClick={scrollToPrev}
@@ -292,22 +226,20 @@ const WishlistPage = () => {
                     </button>
                   </>
                 )}
-
-                {/* Scrollable Container */}
                 <div 
                   ref={scrollContainerRef}
                   className="flex gap-3 overflow-x-auto scrollbar-hide px-8 py-4"
                   style={{ scrollSnapType: 'x mandatory' }}
                 >
-                  {wishlistItems.map(item => (
+                  {wishlist.map(item => (
                     <div 
                       key={item.id} 
-                      className="flex-none w-40 bg-gronik-shadow/40 backdrop-blur-sm rounded-xl p-3 border border-gronik-accent/20 hover:border-gronik-accent/40 transition-all duration-300"
+                      className="flex-none w-40 bg-[#2D1B3D]/95 backdrop-blur-sm rounded-xl p-3 border border-gronik-accent/20 hover:border-gronik-accent/40 transition-all duration-300"
                       style={{ scrollSnapAlign: 'start' }}
                     >
                       {/* Compact Book Image */}
                       <div className="relative mb-3">
-                        <div className="w-full aspect-[3/4] rounded-lg overflow-hidden shadow-md bg-gronik-primary/20">
+                        <div className="w-full aspect-[3/4] rounded-lg overflow-hidden shadow-md bg-[#2D1B3D]/80">
                           <img 
                             src={item.image} 
                             alt={item.title}
@@ -328,52 +260,37 @@ const WishlistPage = () => {
                           <Heart className="w-3 h-3 text-gronik-accent fill-current hover:text-white" />
                         </button>
                       </div>
-
-                      {/* Compact Book Details */}
+                      {/* Compact Details */}
                       <div className="space-y-2">
-                        <div>
-                          <h3 className="font-semibold text-sm text-white line-clamp-2 leading-tight">
-                            {item.title}
-                          </h3>
-                          <p className="text-gronik-light/70 text-xs mt-1">by {item.author}</p>
-                          
-                          {/* Compact Rating */}
-                          <div className="flex items-center mt-1">
-                            <div className="flex items-center">
-                              {[...Array(5)].map((_, i) => (
-                                <Star 
-                                  key={i} 
-                                  className={`w-2 h-2 ${i < Math.floor(item.rating) ? 'text-yellow-400 fill-current' : 'text-gronik-light/30'}`} 
-                                />
-                              ))}
-                            </div>
-                            <span className="text-xs text-gronik-light/60 ml-1">({item.rating})</span>
+                        <h3 className="font-bold text-xs text-white line-clamp-2">{item.title}</h3>
+                        <p className="text-gronik-light/80 text-xs">{item.author}</p>
+                        <div className="flex items-center mt-1">
+                          <div className="flex items-center">
+                            {[...Array(5)].map((_, i) => (
+                              <Star 
+                                key={i} 
+                                className={`w-3 h-3 ${i < Math.floor(item.rating) ? 'text-yellow-400 fill-current' : 'text-gronik-light/30'}`} 
+                              />
+                            ))}
                           </div>
+                          <span className="text-xs text-gronik-light/60 ml-2">({item.rating})</span>
                         </div>
-
-                        {/* Compact Price */}
-                        <div className="flex items-center justify-between">
-                          <div className="flex flex-col">
-                            {item.originalPrice !== item.price && (
-                              <span className="text-xs text-gronik-light/60 line-through">
-                                ${item.originalPrice.toFixed(2)}
-                              </span>
-                            )}
-                            <span className="text-sm font-bold text-gronik-accent">
-                              ${item.price.toFixed(2)}
+                        <div className="flex items-center space-x-1">
+                          {item.originalPrice !== item.price && (
+                            <span className="text-xs text-gronik-light/60 line-through">
+                              ${item.originalPrice.toFixed(2)}
                             </span>
-                          </div>
-                          
-                          {/* Category Badge */}
-                          <span className="text-xs bg-gronik-accent/20 text-gronik-accent px-1.5 py-0.5 rounded-full">
-                            {item.category}
+                          )}
+                          <span className="text-sm font-bold text-gronik-accent">
+                            ${item.price.toFixed(2)}
                           </span>
                         </div>
-
-                        {/* Compact Actions */}
+                        <span className="text-xs bg-gronik-accent/20 text-gronik-accent px-1.5 py-0.5 rounded-full">
+                          {item.category}
+                        </span>
                         <div className="flex flex-col gap-1.5 pt-1">
                           <button 
-                            onClick={() => addToCart(item)}
+                            onClick={() => handleAddToCart(item)}
                             disabled={!item.inStock}
                             className={`w-full flex items-center justify-center py-1.5 px-2 rounded-lg font-medium text-xs transition-all duration-200 ${
                               item.inStock 
@@ -399,9 +316,7 @@ const WishlistPage = () => {
             </div>
           </>
         )}
-
       </div>
-
       {/* Custom Styles */}
       <style jsx>{`
         .scrollbar-hide {
@@ -411,65 +326,27 @@ const WishlistPage = () => {
         .scrollbar-hide::-webkit-scrollbar {
           display: none;
         }
-        
         .line-clamp-2 {
           display: -webkit-box;
           -webkit-line-clamp: 2;
           -webkit-box-orient: vertical;
           overflow: hidden;
         }
-        
         .aspect-[3/4] {
           aspect-ratio: 3/4;
         }
-
-        /* Mobile specific optimizations */
         @media (max-width: 400px) {
-          .w-40 {
-            width: 9rem;
-          }
-          
-          .gap-3 {
-            gap: 0.5rem;
-          }
-          
-          .px-8 {
-            padding-left: 2rem;
-            padding-right: 2rem;
-          }
-          
-          .py-4 {
-            padding-top: 0.75rem;
-            padding-bottom: 0.75rem;
-          }
-          
-          .p-3 {
-            padding: 0.5rem;
-          }
-          
-          .mb-3 {
-            margin-bottom: 0.5rem;
-          }
-          
-          .space-y-2 > * + * {
-            margin-top: 0.375rem;
-          }
-          
-          .rounded-xl {
-            border-radius: 0.75rem;
-          }
-          
-          .text-sm {
-            font-size: 0.8125rem;
-          }
-          
-          .text-xs {
-            font-size: 0.6875rem;
-          }
-          
-          .leading-tight {
-            line-height: 1.1;
-          }
+          .w-40 { width: 9rem; }
+          .gap-3 { gap: 0.5rem; }
+          .px-8 { padding-left: 2rem; padding-right: 2rem; }
+          .py-4 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+          .p-3 { padding: 0.5rem; }
+          .mb-3 { margin-bottom: 0.5rem; }
+          .space-y-2 > * + * { margin-top: 0.375rem; }
+          .rounded-xl { border-radius: 0.75rem; }
+          .text-sm { font-size: 0.8125rem; }
+          .text-xs { font-size: 0.6875rem; }
+          .leading-tight { line-height: 1.1; }
         }
       `}</style>
     </div>

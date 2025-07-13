@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { ShoppingCart, Heart, Star, Filter, ChevronDown } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { ShoppingCart, Heart, Star, Filter, ChevronDown, Check, X } from 'lucide-react';
 
 // Centralized Books Data - This will be your single source of truth
 export const centralizedBooksData = [
@@ -12,12 +13,16 @@ export const centralizedBooksData = [
     originalPrice: 200,
     rating: 4.8,
     reviews: 234,
-    image: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=300&h=400&fit=crop",
+    // image: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=300&h=400&fit=crop",
+    image: "/images/book1.jpg",
     description: "Transform your mindset and unlock the secrets to wealth and success.",
     badge: "BESTSELLER",
     discount: "25% OFF",
     featured: true,
-    hero: true
+    hero: true,
+    inStock: true,
+    tags: ["Success", "Mindset", "Wealth", "Motivation"],
+    fileSize: "2.4 MB"
   },
   {
     id: 2,
@@ -33,7 +38,10 @@ export const centralizedBooksData = [
     badge: "TRENDING",
     discount: "20% OFF",
     featured: true,
-    hero: true
+    hero: true,
+    inStock: true,
+    tags: ["Power", "Influence", "Strategy", "Leadership"],
+    fileSize: "1.8 MB"
   },
   {
     id: 3,
@@ -49,7 +57,10 @@ export const centralizedBooksData = [
     badge: "NEW RELEASE",
     discount: "22% OFF",
     featured: true,
-    hero: true
+    hero: true,
+    inStock: true,
+    tags: ["Habits", "Productivity", "Self-Improvement", "Behavior"],
+    fileSize: "1.2 MB"
   },
   {
     id: 4,
@@ -65,7 +76,10 @@ export const centralizedBooksData = [
     badge: "CLASSIC",
     discount: "18% OFF",
     featured: false,
-    hero: true
+    hero: true,
+    inStock: true,
+    tags: ["Effectiveness", "Leadership", "Personal Development", "Success"],
+    fileSize: "2.0 MB"
   },
   {
     id: 5,
@@ -81,7 +95,10 @@ export const centralizedBooksData = [
     badge: "POPULAR",
     discount: "16% OFF",
     featured: false,
-    hero: true
+    hero: true,
+    inStock: true,
+    tags: ["Mindset", "Psychology", "Growth", "Success"],
+    fileSize: "1.5 MB"
   },
   {
     id: 6,
@@ -97,7 +114,10 @@ export const centralizedBooksData = [
     badge: "RECOMMENDED",
     discount: "15% OFF",
     featured: false,
-    hero: false
+    hero: false,
+    inStock: false,
+    tags: ["Productivity", "Time Management", "Organization", "Stress-Free"],
+    fileSize: "1.0 MB"
   },
   {
     id: 7,
@@ -113,7 +133,10 @@ export const centralizedBooksData = [
     badge: "RECOMMENDED",
     discount: "15% OFF",
     featured: false,
-    hero: false
+    hero: false,
+    inStock: true,
+    tags: ["Focus", "Deep Work", "Concentration", "Success"],
+    fileSize: "1.1 MB"
   },
   {
     id: 8,
@@ -129,7 +152,10 @@ export const centralizedBooksData = [
     badge: "POPULAR",
     discount: "16% OFF",
     featured: false,
-    hero: false
+    hero: false,
+    inStock: true,
+    tags: ["Life Philosophy", "Happiness", "Mindfulness", "Self-Help"],
+    fileSize: "0.8 MB"
   },
   {
     id: 9,
@@ -145,7 +171,10 @@ export const centralizedBooksData = [
     badge: "BESTSELLER",
     discount: "21% OFF",
     featured: false,
-    hero: false
+    hero: false,
+    inStock: false,
+    tags: ["History", "Anthropology", "Human Evolution", "Civilization"],
+    fileSize: "2.5 MB"
   },
   {
     id: 10,
@@ -161,15 +190,25 @@ export const centralizedBooksData = [
     badge: "INSPIRING",
     discount: "17% OFF",
     featured: false,
-    hero: false
+    hero: false,
+    inStock: true,
+    tags: ["Spirituality", "Mindfulness", "Enlightenment", "Present Moment"],
+    fileSize: "1.3 MB"
   }
 ];
 
-const LibraryPage = ({ onAddToCart, onAddToWishlist, onNavigateToProduct }) => {
-  const [addedToCart, setAddedToCart] = useState({});
-  const [addedToWishlist, setAddedToWishlist] = useState({});
+const LibraryPage = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCart, onAddToWishlist, onRemoveFromWishlist, onQuickView }) => {
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const searchQuery = searchParams.get('search')?.toLowerCase() || '';
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [cartButtonClicked, setCartButtonClicked] = useState({});
+  const [wishlistButtonClicked, setWishlistButtonClicked] = useState({});
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(8); // Show 8 items per page
+  const navigate = useNavigate();
+  const [hoveredBook, setHoveredBook] = useState(null);
 
   // Use centralized books data
   const allBooks = centralizedBooksData;
@@ -177,34 +216,70 @@ const LibraryPage = ({ onAddToCart, onAddToWishlist, onNavigateToProduct }) => {
   // Get unique categories
   const categories = ['All', ...new Set(allBooks.map(book => book.category))];
 
-  // Filter books based on category
+  // Filter books based on category and search query
   const filteredBooks = allBooks.filter(book => {
     const matchesCategory = selectedCategory === 'All' || book.category === selectedCategory;
-    return matchesCategory;
+    const matchesSearch = !searchQuery ||
+      book.title.toLowerCase().includes(searchQuery) ||
+      book.author.toLowerCase().includes(searchQuery) ||
+      book.category.toLowerCase().includes(searchQuery);
+    return matchesCategory && matchesSearch;
   });
 
+  // Pagination logic
+  const totalPages = Math.ceil(filteredBooks.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentBooks = filteredBooks.slice(startIndex, endIndex);
+
+  // Reset to first page when category changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedCategory]);
+
+  // Load more books
+  const handleLoadMore = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(prev => prev + 1);
+    }
+  };
+
+  // Helper functions to check if a book is in cart/wishlist
+  const isInCart = (book) => cart.some(item => item.id === book.id);
+  const isInWishlist = (book) => wishlist.some(item => item.id === book.id);
+
+  // Update add to cart/wishlist logic to only allow adding, not removing
   const handleAddToCart = (e, book) => {
-    e.stopPropagation(); // Prevent card click
-    onAddToCart && onAddToCart(book);
-    setAddedToCart(prev => ({ ...prev, [book.id]: true }));
-    
-    setTimeout(() => {
-      setAddedToCart(prev => ({ ...prev, [book.id]: false }));
-    }, 2000);
+    e.stopPropagation();
+    if (!book.inStock) {
+      return;
+    }
+    if (!isInCart(book)) {
+      setCartButtonClicked(prev => ({ ...prev, [book.id]: true }));
+      setTimeout(() => setCartButtonClicked(prev => ({ ...prev, [book.id]: false })), 1500);
+      onAddToCart && onAddToCart(book);
+    } else {
+      onRemoveFromCart && onRemoveFromCart(book.id);
+    }
   };
 
   const handleAddToWishlist = (e, book) => {
-    e.stopPropagation(); // Prevent card click
-    onAddToWishlist && onAddToWishlist(book);
-    setAddedToWishlist(prev => ({ ...prev, [book.id]: !prev[book.id] }));
+    e.stopPropagation();
+    if (isInWishlist(book)) {
+      onRemoveFromWishlist && onRemoveFromWishlist(book.id);
+    } else {
+      setWishlistButtonClicked(prev => ({ ...prev, [book.id]: true }));
+      setTimeout(() => setWishlistButtonClicked(prev => ({ ...prev, [book.id]: false })), 2000);
+      onAddToWishlist && onAddToWishlist(book);
+    }
   };
 
   const handleCardClick = (book) => {
-    onNavigateToProduct && onNavigateToProduct(book);
+    navigate(`/product/${book.id}`, { state: { from: 'library' } });
   };
 
   return (
-    <div className="min-h-screen bg-[#9B7BB8] relative overflow-hidden">
+    <div className="min-h-screen bg-[#9B7BB8] relative overflow-hidden" key={JSON.stringify(cart) + JSON.stringify(wishlist)}>
       {/* Background Pattern */}
       <div className="absolute inset-0 opacity-10">
         <div className="absolute top-10 left-10 w-32 h-32 bg-[#2D1B3D] rounded-full blur-3xl"></div>
@@ -258,31 +333,53 @@ const LibraryPage = ({ onAddToCart, onAddToWishlist, onNavigateToProduct }) => {
         {/* Books Grid */}
         <div className="flex justify-center mb-12">
           <div className="grid gap-3 sm:gap-6 lg:gap-8 grid-cols-2 lg:grid-cols-4 w-full max-w-[340px] sm:max-w-none">
-            {filteredBooks.map((book, index) => (
+            {currentBooks.map((book, index) => (
               <div
                 key={book.id}
                 className="group relative cursor-pointer"
+                onMouseEnter={() => setHoveredBook(book.id)}
+                onMouseLeave={() => setHoveredBook(null)}
                 onClick={() => handleCardClick(book)}
                 style={{ animationDelay: `${index * 100}ms` }}
               >
                 {/* Book Card - Mobile first, perfect spacing */}
-                <div className="relative bg-[#1A0F2E]/80 backdrop-blur-md rounded-xl lg:rounded-3xl border border-white/10 hover:border-white/30 transition-all duration-500 transform hover:scale-105 hover:-translate-y-2 shadow-2xl hover:shadow-[0_25px_50px_rgba(0,0,0,0.4)] w-full p-3 sm:p-4 lg:p-6 flex flex-col">
+                <div className={`relative bg-[#1A0F2E]/80 backdrop-blur-md rounded-xl lg:rounded-3xl border border-white/10 hover:border-yellow-300 transition-all duration-300 shadow-2xl hover:shadow-yellow-200 w-full p-3 sm:p-4 lg:p-6 flex flex-col card-hover-gold`}>
                   
-                  {/* Category Badge - Desktop only */}
-                  <div className="absolute -top-2 lg:-top-3 left-1/2 transform -translate-x-1/2 z-20 hidden lg:block">
-                    <div className="bg-gradient-to-r from-[#2D1B3D] to-[#3D2A54] text-white px-4 py-2 rounded-full text-xs font-bold shadow-lg border border-white/20">
+                  {/* Out of Stock Overlay */}
+                  {!book.inStock && (
+                    <div className="absolute inset-0 bg-black/70 backdrop-blur-sm rounded-xl lg:rounded-3xl z-30 flex items-center justify-center">
+                      <div className="text-center">
+                        <div className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-2">
+                          <X className="w-6 h-6 text-white" />
+                        </div>
+                        <p className="text-white font-semibold text-sm">Out of Stock</p>
+                        <p className="text-white/70 text-xs">Coming Soon</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Category Badge - Centered above card (original design) */}
+                  <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 z-20">
+                    <div className="bg-gradient-to-r from-[#2D1B3D] to-[#3D2A54] text-white px-4 py-2 rounded-full text-xs font-bold shadow-lg border border-white/20 whitespace-nowrap">
                       {book.category}
                     </div>
                   </div>
 
                   {/* Book Image */}
                   <div className="mb-2 sm:mb-3 lg:mb-4 flex justify-center mt-1 sm:mt-2 lg:mt-4">
-                    <div className="relative w-20 h-28 sm:w-24 sm:h-32 lg:w-48 lg:h-64 rounded-lg lg:rounded-xl overflow-hidden shadow-2xl group-hover:scale-105 transition-transform duration-500">
+                    <div className="relative w-20 h-28 sm:w-24 sm:h-32 lg:w-48 lg:h-64 rounded-lg lg:rounded-xl overflow-hidden shadow-2xl">
                       <img 
                         src={book.image} 
                         alt={book.title}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                        className="w-full h-full object-cover"
+                        style={{ transition: 'none' }}
                       />
+                      {/* Stock Status Indicator */}
+                      {!book.inStock && (
+                        <div className="absolute top-2 left-2 bg-red-500 text-white px-2 py-1 rounded-full text-xs font-bold">
+                          SOLD OUT
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -324,31 +421,44 @@ const LibraryPage = ({ onAddToCart, onAddToWishlist, onNavigateToProduct }) => {
                     </div>
 
                     {/* Action Buttons */}
-                    <div className="flex items-center space-x-2 mt-auto">
-                      <button 
-                        onClick={(e) => handleAddToCart(e, book)}
-                        className={`flex-1 py-2 sm:py-2.5 lg:py-3 px-2 sm:px-3 lg:px-4 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl font-semibold text-xs sm:text-xs lg:text-sm flex items-center justify-center space-x-1 ${
-                          addedToCart[book.id] 
-                            ? 'bg-green-500 hover:bg-green-600 text-white' 
-                            : 'bg-gradient-to-r from-[#2D1B3D] to-[#3D2A54] hover:from-[#3D2A54] hover:to-[#2D1B3D] text-white'
+                    <div className="flex flex-row gap-2 w-full mb-4">
+                      <button
+                        onClick={e => handleAddToCart(e, book)}
+                        disabled={!book.inStock}
+                        className={`cart-button-animated ${cartButtonClicked[book.id] ? 'clicked' : ''} flex-1 py-3 px-4 rounded-xl font-semibold text-base flex items-center justify-center gap-2 transition-all duration-300 hover:scale-105 shadow-xl hover:shadow-2xl ${
+                          isInCart(book)
+                            ? 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white'
+                            : !book.inStock
+                              ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
+                              : 'bg-gradient-to-r from-white to-gray-100 hover:from-gray-100 hover:to-white text-[#2D1B3D] shadow-xl'
                         }`}
                       >
-                        <ShoppingCart className="w-3 h-3 sm:w-3.5 sm:h-3.5 lg:w-4 lg:h-4" />
-                        <span className="hidden sm:inline lg:inline">{addedToCart[book.id] ? 'Added!' : 'Cart'}</span>
-                        <span className="sm:hidden">{addedToCart[book.id] ? '✓' : '+'}</span>
+                        <ShoppingCart className="cart-icon w-5 h-5" />
+                        <div className="box-icon w-3 h-3 bg-current rounded-sm"></div>
+                        <span className="cart-text">
+                          {isInCart(book) ? (
+                            <Check className="w-5 h-5 mr-2 inline" />
+                          ) : (
+                            <ShoppingCart className="w-5 h-5 mr-2 inline" />
+                          )}
+                          {isInCart(book) ? 'Added to Cart!' : !book.inStock ? 'Out of Stock' : 'Add to Cart'}
+                        </span>
+                        <span className="added-text">
+                          <Check className="w-5 h-5 mr-2 inline" />
+                          Added!
+                        </span>
                       </button>
-                      
-                      <button 
-                        onClick={(e) => handleAddToWishlist(e, book)}
-                        className={`p-2 sm:p-2.5 lg:p-3 backdrop-blur-sm border rounded-lg transition-all duration-300 transform hover:scale-105 ${
-                          addedToWishlist[book.id] 
-                            ? 'bg-red-500/20 border-red-500/60 text-red-400' 
-                            : 'bg-white/10 hover:bg-white/20 border-white/20 hover:border-white/40 text-white hover:text-red-400'
+                      <button
+                        onClick={e => handleAddToWishlist(e, book)}
+                        className={`wishlist-button-animated ${wishlistButtonClicked[book.id] ? 'clicked' : ''} p-3 rounded-xl transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl ${
+                          isInWishlist(book)
+                            ? 'bg-gradient-to-r from-red-500 to-red-600 text-white'
+                            : 'bg-[#9B7BB8] text-[#2D1B3D] hover:bg-[#8A6AA7]'
                         }`}
+                        style={{ minWidth: 0 }}
                       >
-                        <Heart className={`w-3 h-3 sm:w-3.5 sm:h-3.5 lg:w-5 lg:h-5 transition-colors duration-300 ${
-                          addedToWishlist[book.id] ? 'fill-current' : ''
-                        }`} />
+                        <Heart className="heart-icon w-5 h-5" />
+                        <Heart className={`w-5 h-5 ${isInWishlist(book) ? 'fill-current' : ''}`} />
                       </button>
                     </div>
                   </div>
@@ -358,13 +468,62 @@ const LibraryPage = ({ onAddToCart, onAddToWishlist, onNavigateToProduct }) => {
           </div>
         </div>
 
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="flex justify-center items-center space-x-4 mb-8">
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+              className="bg-[#2D1B3D]/90 backdrop-blur-sm text-white px-4 py-2 rounded-lg border border-[#2D1B3D]/30 hover:bg-[#2D1B3D] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Previous
+            </button>
+            
+            <div className="flex items-center space-x-2">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  className={`w-8 h-8 rounded-lg transition-all duration-300 ${
+                    currentPage === page
+                      ? 'bg-[#9B7BB8] text-white'
+                      : 'bg-[#2D1B3D]/50 text-white/70 hover:bg-[#2D1B3D]/70'
+                  }`}
+                >
+                  {page}
+                </button>
+              ))}
+            </div>
+            
+            <button
+              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+              disabled={currentPage === totalPages}
+              className="bg-[#2D1B3D]/90 backdrop-blur-sm text-white px-4 py-2 rounded-lg border border-[#2D1B3D]/30 hover:bg-[#2D1B3D] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Next
+            </button>
+          </div>
+        )}
+
+        {/* Load More Button (Alternative to pagination) */}
+        {currentPage < totalPages && (
+          <div className="text-center mb-8">
+            <button
+              onClick={handleLoadMore}
+              className="bg-gradient-to-r from-[#9B7BB8] to-[#8A6AA7] hover:from-[#8A6AA7] hover:to-[#9B7BB8] text-white px-8 py-3 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg"
+            >
+              Load More Books
+            </button>
+          </div>
+        )}
+
         {/* No Results */}
         {filteredBooks.length === 0 && (
           <div className="text-center py-12">
             <div className="bg-[#2D1B3D]/90 backdrop-blur-md rounded-2xl p-8 border border-[#3D2A54]/50 max-w-md mx-auto shadow-xl">
               <h3 className="text-2xl font-bold text-white mb-4">No Books Found</h3>
               <p className="text-white/80 mb-6">
-                Try selecting a different category
+                Try selecting a different category or adjusting your search.
               </p>
               <button
                 onClick={() => setSelectedCategory('All')}
@@ -376,6 +535,136 @@ const LibraryPage = ({ onAddToCart, onAddToWishlist, onNavigateToProduct }) => {
           </div>
         )}
       </div>
+      <style jsx>{`
+        .card-hover-gold:hover, .card-hover-gold.gold-glow {
+          box-shadow: 0 0 0 2px #ffe9b3, 0 4px 24px 0 #ffe9b3cc, 0 1.5px 8px 0 #fff7c1;
+          border: 1.5px solid #FFD70080 !important;
+          transform: translateY(-4px) scale(1.025);
+        }
+        @media (hover: none) and (pointer: coarse) {
+          .card-hover-gold:active {
+            box-shadow: 0 0 0 2px #ffe9b3, 0 4px 24px 0 #ffe9b3cc, 0 1.5px 8px 0 #fff7c1;
+            border: 1.5px solid #FFD70080 !important;
+            transform: translateY(-2px) scale(1.01);
+          }
+        }
+        .cart-button-animated {
+          position: relative;
+          overflow: hidden;
+        }
+        .cart-button-animated .cart-icon {
+          position: absolute;
+          z-index: 2;
+          top: 50%;
+          left: -10%;
+          transform: translate(-50%, -50%);
+          opacity: 0;
+        }
+        .cart-button-animated .box-icon {
+          position: absolute;
+          z-index: 3;
+          top: -20%;
+          left: 52%;
+          transform: translate(-50%, -50%);
+          opacity: 0;
+        }
+        .cart-button-animated .cart-text {
+          position: relative;
+          z-index: 3;
+          transition: opacity 0.3s ease;
+        }
+        .cart-button-animated .added-text {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          z-index: 3;
+          opacity: 0;
+        }
+        .cart-button-animated.clicked .cart-icon {
+          animation: cartAnimation 1.5s ease-in-out forwards;
+        }
+        .cart-button-animated.clicked .box-icon {
+          animation: boxAnimation 1.5s ease-in-out forwards;
+        }
+        .cart-button-animated.clicked .cart-text {
+          animation: textOut 1.5s ease-in-out forwards;
+        }
+        .cart-button-animated.clicked .added-text {
+          animation: textIn 1.5s ease-in-out forwards;
+        }
+        @keyframes cartAnimation {
+          0% { left: -10%; opacity: 1; }
+          40%, 60% { left: 50%; opacity: 1; }
+          100% { left: 110%; opacity: 0; }
+        }
+        @keyframes boxAnimation {
+          0%, 40% { top: -20%; opacity: 1; }
+          60% { top: 40%; left: 52%; opacity: 1; }
+          100% { top: 40%; left: 112%; opacity: 0; }
+        }
+        @keyframes textOut {
+          0% { opacity: 1; }
+          20%, 100% { opacity: 0; }
+        }
+        @keyframes textIn {
+          0%, 80% { opacity: 0; }
+          100% { opacity: 1; }
+        }
+        .wishlist-button-animated {
+          position: relative;
+          overflow: hidden;
+        }
+        .wishlist-button-animated .heart-icon {
+          position: absolute;
+          z-index: 2;
+          top: -20%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          opacity: 0;
+        }
+        .wishlist-button-animated.clicked .heart-icon {
+          animation: heartDrop 2s ease-in-out forwards;
+        }
+        @keyframes heartDrop {
+          0% {
+            top: -20%;
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(0.5);
+          }
+          20% {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+          }
+          40% {
+            top: 50%;
+            transform: translate(-50%, -50%) scale(1.2);
+          }
+          60% {
+            top: 50%;
+            transform: translate(-50%, -50%) scale(1) rotate(10deg);
+          }
+          80% {
+            top: 50%;
+            transform: translate(-50%, -50%) scale(1) rotate(-10deg);
+          }
+          100% {
+            top: 50%;
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1) rotate(0deg);
+          }
+        }
+        @keyframes bounce-slow {
+          0%, 100% { transform: rotate(-45deg) scale(1); }
+          20% { transform: rotate(-45deg) scale(1.08); }
+          40% { transform: rotate(-45deg) scale(0.97); }
+          60% { transform: rotate(-45deg) scale(1.05); }
+          80% { transform: rotate(-45deg) scale(0.98); }
+        }
+        .animate-bounce-slow {
+          animation: bounce-slow 1.2s cubic-bezier(.4,1.2,.6,1) 1;
+        }
+      `}</style>
     </div>
   );
 };

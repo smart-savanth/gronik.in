@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Search, ShoppingCart, User, Menu, X, BookOpen, Heart } from 'lucide-react';
+// Import centralizedBooksData for search
+import { centralizedBooksData } from '../pages/LibrarySection';
 
-const Navbar = () => {
+const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
-  const [cartCount, setCartCount] = useState(3);
-  const [wishlistCount, setWishlistCount] = useState(2);
   const [searchQuery, setSearchQuery] = useState('');
   const [isMobile, setIsMobile] = useState(false);
-  
+
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -18,27 +18,28 @@ const Navbar = () => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
     };
-    
     checkMobile();
     window.addEventListener('resize', checkMobile);
-    
+
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
-      // Only apply scroll logic on desktop, NOT mobile
       if (window.innerWidth >= 768) {
         setIsScrolled(currentScrollY > 100);
       } else {
-        // Always keep navbar visible on mobile
         setIsScrolled(false);
       }
     };
-    
+
     window.addEventListener('scroll', handleScroll);
     return () => {
       window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('resize', checkMobile);
     };
   }, []);
+
+  useEffect(() => {
+    if (isMenuOpen) setIsMenuOpen(false);
+  }, [location.pathname]);
 
   const scrollToSection = (sectionId) => {
     if (location.pathname !== '/') {
@@ -69,7 +70,7 @@ const Navbar = () => {
 
   const handleSearchSubmit = () => {
     if (searchQuery.trim()) {
-      console.log('Searching for:', searchQuery);
+      navigate(`/library?search=${encodeURIComponent(searchQuery.trim())}`);
       setSearchQuery('');
     }
   };
@@ -82,63 +83,56 @@ const Navbar = () => {
 
   return (
     <>
-      {/* Mobile Navbar - Simple and Always Visible */}
+      {/* Mobile Navbar */}
       {isMobile && (
         <nav className="fixed top-0 left-0 right-0 z-50 bg-gronik-primary/95 backdrop-blur-md shadow-lg border-b border-gronik-secondary/20">
           <div className="flex items-center justify-between h-16 px-4">
-            {/* Mobile Logo */}
             <Link to="/" className="flex items-center">
-              <div className="w-20 h-8">
-                <img 
-                  src="/images/logo.png" 
+              <div className="w-32 h-14">
+                <img
+                  src="/images/logo.png"
                   alt="Gronik Logo"
                   className="w-full h-full object-contain"
                 />
               </div>
             </Link>
-
-            {/* Mobile Menu Button */}
-            <button 
+            <button
               className="p-2 text-gronik-light hover:text-gronik-accent"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
             >
               {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
           </div>
-
-          {/* Mobile Dropdown Menu */}
           {isMenuOpen && (
             <div className="bg-gronik-primary/98 backdrop-blur-md border-t border-gronik-secondary/20 shadow-xl">
               <div className="p-4 space-y-3">
-                <Link 
+                <Link
                   to="/"
                   onClick={() => setIsMenuOpen(false)}
                   className="block text-gronik-light hover:text-gronik-accent py-2 font-medium"
                 >
                   Home
                 </Link>
-                <Link 
+                <Link
                   to="/library"
                   onClick={() => setIsMenuOpen(false)}
                   className="block text-gronik-light hover:text-gronik-accent py-2 font-medium"
                 >
                   Library
                 </Link>
-                <button 
+                <button
                   onClick={() => scrollToSection('about')}
                   className="block w-full text-left text-gronik-light hover:text-gronik-accent py-2 font-medium"
                 >
                   About
                 </button>
-                <Link 
+                <Link
                   to="/contact"
                   onClick={() => setIsMenuOpen(false)}
                   className="block text-gronik-light hover:text-gronik-accent py-2 font-medium"
                 >
                   Contact
                 </Link>
-                
-                {/* Mobile Search */}
                 <div className="pt-3 border-t border-gronik-secondary/20">
                   <div className="relative">
                     <input
@@ -157,15 +151,9 @@ const Navbar = () => {
                     </button>
                   </div>
                 </div>
-
-                {/* Mobile Actions */}
                 <div className="flex items-center justify-between pt-3 border-t border-gronik-secondary/20">
                   <div className="flex items-center space-x-4">
-                    <Link 
-                      to="/wishlist"
-                      onClick={() => setIsMenuOpen(false)}
-                      className="p-2 rounded-lg relative"
-                    >
+                    <Link to="/wishlist" className="p-2 rounded-lg relative">
                       <Heart className="w-5 h-5 text-gronik-light" />
                       {wishlistCount > 0 && (
                         <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
@@ -173,11 +161,7 @@ const Navbar = () => {
                         </span>
                       )}
                     </Link>
-                    <Link 
-                      to="/cart"
-                      onClick={() => setIsMenuOpen(false)}
-                      className="p-2 rounded-lg relative"
-                    >
+                    <Link to="/cart" className="p-2 rounded-lg relative">
                       <ShoppingCart className="w-5 h-5 text-gronik-light" />
                       {cartCount > 0 && (
                         <span className="absolute -top-1 -right-1 bg-gronik-accent text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
@@ -185,7 +169,7 @@ const Navbar = () => {
                         </span>
                       )}
                     </Link>
-                    <Link 
+                    <Link
                       to="/profile"
                       onClick={() => setIsMenuOpen(false)}
                       className="p-2 rounded-lg"
@@ -193,8 +177,7 @@ const Navbar = () => {
                       <User className="w-5 h-5 text-gronik-light" />
                     </Link>
                   </div>
-                  
-                  <button 
+                  <button
                     onClick={() => {
                       navigate('/login');
                       setIsMenuOpen(false);
@@ -210,9 +193,9 @@ const Navbar = () => {
         </nav>
       )}
 
-      {/* Desktop Navbar - With Your Original Animations */}
+      {/* Desktop Navbar */}
       {!isMobile && (
-        <nav 
+        <nav
           className={`fixed top-0 left-0 right-0 z-50 bg-gronik-primary/95 backdrop-blur-md shadow-lg border-b border-gronik-secondary/20 
             ${(!isScrolled || isHovering) ? 'translate-y-0' : '-translate-y-full pointer-events-none'
             } transition-transform duration-500 ease-in-out`}
@@ -221,48 +204,42 @@ const Navbar = () => {
         >
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
             <div className="flex items-center justify-between h-24 px-2">
-              {/* Desktop Logo */}
-              <Link to="/" className="flex items-center absolute left-6">
-                <div className="w-32 h-12 flex items-center justify-center">
-                  <img 
-                    src="/images/logo.png" 
-                    alt="Gronik Logo"
-                    className="w-full h-full object-contain"
-                  />
-                </div>
-              </Link>
-
-              {/* Desktop Navigation */}
-              <div className="flex items-center space-x-8 ml-40">
-                <Link 
+            <Link to="/" className="flex items-center absolute left-0 -ml-16">
+          <div className="w-40 h-16 flex items-center justify-center">
+            <img
+              src="/images/logo.png"
+              alt="Gronik Logo"
+              className="w-full h-full mr-[150px]"
+            />
+          </div>
+        </Link>
+              <div className="flex items-center space-x-8 ml-48">
+                <Link
                   to="/"
                   className="text-gronik-light hover:text-gronik-accent transition-colors duration-200 font-medium hover:scale-105 transform"
                 >
                   Home
                 </Link>
-                <Link 
+                <Link
                   to="/library"
                   className="text-gronik-light hover:text-gronik-accent transition-colors duration-200 font-medium hover:scale-105 transform"
                 >
                   Library
                 </Link>
-                <button 
+                <button
                   onClick={() => scrollToSection('about')}
                   className="text-gronik-light hover:text-gronik-accent transition-colors duration-200 font-medium hover:scale-105 transform"
                 >
                   About
                 </button>
-                <Link 
+                <Link
                   to="/contact"
                   className="text-gronik-light hover:text-gronik-accent transition-colors duration-200 font-medium hover:scale-105 transform"
                 >
                   Contact
                 </Link>
               </div>
-
-              {/* Desktop Actions */}
               <div className="flex items-center space-x-4">
-                {/* Search */}
                 <div className="relative">
                   <input
                     type="text"
@@ -274,16 +251,12 @@ const Navbar = () => {
                   />
                   <button
                     onClick={handleSearchSubmit}
-                    className="absolute right-2 p-1 hover:bg-gronik-accent/20 rounded transition-all duration-200"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-gronik-accent/20 rounded transition-all duration-200"
                   >
                     <Search className="w-4 h-4 text-gronik-light hover:text-gronik-accent" />
                   </button>
                 </div>
-
-                <Link 
-                  to="/wishlist"
-                  className="p-2 hover:bg-gronik-secondary/20 rounded-lg transition-colors duration-200 relative group"
-                >
+                <Link to="/wishlist" className="p-2 hover:bg-gronik-secondary/20 rounded-lg transition-colors duration-200 relative group">
                   <Heart className="w-5 h-5 text-gronik-light group-hover:text-gronik-accent transition-colors duration-200" />
                   {wishlistCount > 0 && (
                     <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
@@ -291,11 +264,7 @@ const Navbar = () => {
                     </span>
                   )}
                 </Link>
-                
-                <Link 
-                  to="/cart"
-                  className="p-2 hover:bg-gronik-secondary/20 rounded-lg transition-colors duration-200 relative group"
-                >
+                <Link to="/cart" className="p-2 hover:bg-gronik-secondary/20 rounded-lg transition-colors duration-200 relative group">
                   <ShoppingCart className="w-5 h-5 text-gronik-light group-hover:text-gronik-accent transition-colors duration-200" />
                   {cartCount > 0 && (
                     <span className="absolute -top-1 -right-1 bg-gronik-accent text-white text-xs rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
@@ -303,26 +272,24 @@ const Navbar = () => {
                     </span>
                   )}
                 </Link>
-
-                <Link 
+                <Link
                   to="/profile"
                   className="p-2 hover:bg-gronik-secondary/20 rounded-lg transition-colors duration-200 group"
                 >
                   <User className="w-5 h-5 text-gronik-light group-hover:text-gronik-accent transition-colors duration-200" />
                 </Link>
-
-                <button 
+                <button
                   onClick={() => navigate('/login')}
                   className="bg-gradient-to-r from-gronik-accent to-gronik-secondary hover:from-gronik-secondary hover:to-gronik-accent text-white px-6 py-2 rounded-lg transition-all duration-200 transform hover:scale-105 font-medium shadow-lg"
                 >
                   Login
                 </button>
-                <button 
-                  onClick={() => handleNavigation('page', '/admin')}
+                <Link
+                  to="/admin"
                   className="bg-gradient-to-r from-gronik-accent to-gronik-secondary hover:from-gronik-secondary hover:to-gronik-accent text-white px-6 py-2 rounded-lg transition-all duration-200 transform hover:scale-105 font-medium shadow-lg"
                 >
                   Admin
-                </button>
+                </Link>
               </div>
             </div>
           </div>
@@ -347,14 +314,14 @@ const Navbar = () => {
             <img 
               src="/images/icon.png" 
               alt="Gronik G Logo"
-              className="w-20 h-20 object-contain drop-shadow-2xl group-hover:drop-shadow-[0_0_20px_rgba(168,85,247,0.8)] group-hover:brightness-125 transition-all duration-300 filter contrast-125 saturate-150"
+              className="w-24 h-24 object-contain drop-shadow-2xl group-hover:drop-shadow-[0_0_20px_rgba(168,85,247,0.8)] group-hover:brightness-125 transition-all duration-300 filter contrast-125 saturate-150"
               style={{
                 filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.5)) drop-shadow(0 0 8px rgba(168,85,247,0.3)) contrast(1.3) saturate(1.4) brightness(1.1)'
               }}
             />
           </Link>
           
-          <div className="absolute inset-0 w-20 h-20 rounded-full bg-gradient-to-br from-gronik-accent/20 to-gronik-secondary/20 blur-xl animate-pulse opacity-60 group-hover:opacity-100 transition-opacity duration-300"></div>
+          <div className="absolute inset-0 w-24 h-24 rounded-full bg-gradient-to-br from-gronik-accent/20 to-gronik-secondary/20 blur-xl animate-pulse opacity-60 group-hover:opacity-100 transition-opacity duration-300"></div>
         </div>
       )}
 
