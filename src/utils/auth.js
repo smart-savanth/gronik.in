@@ -1,33 +1,30 @@
-// Authentication utility functions for Gronik app
+import store from '../store';
+import { login, logout as reduxLogout, setUser, setToken } from '../slices/userAuthSlice';
 
 // Check if user is authenticated
 export const isAuthenticated = () => {
-  const token = localStorage.getItem('gronik_jwt');
-  return !!token;
+  return store.getState().userAuth.isAuthenticated;
 };
 
 // Get current user data
 export const getCurrentUser = () => {
-  const userData = localStorage.getItem('gronik_user');
-  return userData ? JSON.parse(userData) : null;
+  return store.getState().userAuth.user;
 };
 
 // Get JWT token
 export const getToken = () => {
-  return localStorage.getItem('gronik_jwt');
+  return store.getState().userAuth.token;
 };
 
 // Logout user
 export const logout = () => {
-  localStorage.removeItem('gronik_jwt');
-  localStorage.removeItem('gronik_user');
+  store.dispatch(reduxLogout());
   window.location.href = '/login';
 };
 
 // Set authentication data
 export const setAuthData = (token, userData) => {
-  localStorage.setItem('gronik_jwt', token);
-  localStorage.setItem('gronik_user', JSON.stringify(userData));
+  store.dispatch(login({ token, user: userData }));
 };
 
 // Check if token is expired (basic check)
@@ -50,6 +47,5 @@ export const requireAuth = (callback) => {
     window.location.href = '/login';
     return;
   }
-  
   if (callback) callback();
 }; 
