@@ -4,6 +4,8 @@ import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 import { BrowserRouter as Router, useLocation } from 'react-router-dom';
+import { Provider } from 'react-redux';
+import store from './store';
 
 function AppWithScroll() {
   const location = useLocation();
@@ -21,9 +23,11 @@ function AppWithScroll() {
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <Router>
-      <AppWithScroll />
-    </Router>
+    <Provider store={store}>
+      <Router>
+        <AppWithScroll />
+      </Router>
+    </Provider>
   </React.StrictMode>
 );
 
