@@ -248,14 +248,6 @@ const MyLibrarySection = () => {
                             <Play className="w-4 h-4" /> View
                           </button>
                         )}
-                        {book.downloadUrl && (
-                          <button
-                            onClick={() => window.open(book.downloadUrl, '_blank')}
-                            className="flex items-center gap-1 px-4 py-2 rounded-lg bg-white text-[#9B7BB8] font-semibold hover:bg-[#f3eafd] transition text-xs shadow-md focus:outline-none focus:ring-2 focus:ring-[#9B7BB8]"
-                          >
-                            <Download className="w-4 h-4 text-[#9B7BB8]" /> Download
-                          </button>
-                        )}
                       </div>
                     </div>
                   </div>
@@ -291,14 +283,6 @@ const MyLibrarySection = () => {
                             className="flex items-center gap-1 px-5 py-2 rounded-lg bg-[#9B7BB8] text-white font-semibold hover:bg-[#8A6AA7] transition text-sm shadow-md focus:outline-none focus:ring-2 focus:ring-[#9B7BB8]"
                           >
                             <Play className="w-4 h-4" /> View
-                          </button>
-                        )}
-                        {book.downloadUrl && (
-                          <button
-                            onClick={() => window.open(book.downloadUrl, '_blank')}
-                            className="flex items-center gap-1 px-5 py-2 rounded-lg bg-white text-[#9B7BB8] font-semibold hover:bg-[#f3eafd] transition text-sm shadow-md focus:outline-none focus:ring-2 focus:ring-[#9B7BB8]"
-                          >
-                            <Download className="w-4 h-4 text-[#9B7BB8]" /> Download
                           </button>
                         )}
                       </div>

@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { User, Save, LogOut, Edit, X } from 'lucide-react';
 import AdminLayout from './Adminlayout';
+import { useSelector, useDispatch } from 'react-redux';
+import { adminLogout } from '../../slices/adminAuthSlice';
 
 const SettingsPage = () => {
   const [isEditing, setIsEditing] = useState(false);
@@ -12,6 +14,9 @@ const SettingsPage = () => {
   });
   
   const [editData, setEditData] = useState({ ...profile });
+
+  const dispatch = useDispatch();
+  const { adminRole } = useSelector(state => state.adminAuth);
 
   const handleEdit = () => {
     setIsEditing(true);
@@ -35,9 +40,7 @@ const SettingsPage = () => {
 
   const handleLogout = () => {
     if (window.confirm('Are you sure you want to logout?')) {
-      // Clear session/localStorage (simulate logout)
-      localStorage.removeItem('adminToken');
-      sessionStorage.removeItem('adminToken');
+      dispatch(adminLogout());
       window.location.href = '/admin-login';
     }
   };

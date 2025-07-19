@@ -12,7 +12,8 @@ import {
   Upload,
   Zap,
   X,
-  Save
+  Save,
+  FileText
 } from 'lucide-react';
 
 const initialBooks = [
@@ -29,7 +30,8 @@ const initialBooks = [
     image: '/api/placeholder/80/100',
     isFeatured: true,
     isHero: false,
-    description: 'Transform your mindset and unlock the secrets to wealth and success.'
+    description: 'Transform your mindset and unlock the secrets to wealth and success.',
+    pdf: ''
   },
   {
     id: 2,
@@ -44,7 +46,8 @@ const initialBooks = [
     image: '/api/placeholder/80/100',
     isFeatured: false,
     isHero: true,
-    description: 'Master advanced React patterns for scalable applications.'
+    description: 'Master advanced React patterns for scalable applications.',
+    pdf: ''
   },
   {
     id: 3,
@@ -59,7 +62,8 @@ const initialBooks = [
     image: '/api/placeholder/80/100',
     isFeatured: true,
     isHero: false,
-    description: 'Become a digital marketing expert with this comprehensive guide.'
+    description: 'Become a digital marketing expert with this comprehensive guide.',
+    pdf: ''
   },
   {
     id: 4,
@@ -74,7 +78,8 @@ const initialBooks = [
     image: '/api/placeholder/80/100',
     isFeatured: false,
     isHero: false,
-    description: 'A beginner-friendly introduction to machine learning.'
+    description: 'A beginner-friendly introduction to machine learning.',
+    pdf: ''
   }
 ];
 
@@ -91,6 +96,8 @@ const BooksManagement = () => {
   const [imagePreview, setImagePreview] = useState('');
   const fileInputRef = useRef();
   const imageInputRef = useRef();
+  const [pdfFileName, setPdfFileName] = useState('');
+  const [formErrors, setFormErrors] = useState({});
 
   // Filtered books
   const filteredBooks = books.filter(book => {
@@ -167,47 +174,84 @@ const BooksManagement = () => {
       image: '',
       isFeatured: false,
       isHero: false,
-      description: ''
+      description: '',
+      pdf: ''
     });
     setImagePreview('');
     setIsEdit(false);
     setShowAddEditModal(true);
+    setPdfFileName('');
+    setFormErrors({}); // Clear previous errors
   };
   const openEditModal = (book) => {
     setModalBook({ ...book });
     setImagePreview(book.image || '');
     setIsEdit(true);
     setShowAddEditModal(true);
+    setPdfFileName(book.pdf || '');
+    setFormErrors({}); // Clear previous errors
   };
   const closeAddEditModal = () => {
     setShowAddEditModal(false);
     setModalBook(null);
     setImagePreview('');
+    setPdfFileName('');
+    setFormErrors({}); // Clear errors on close
   };
   const handleAddEditChange = (field, value) => {
     setModalBook(prev => ({ ...prev, [field]: value }));
-  };
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result);
-        setModalBook(prev => ({ ...prev, image: reader.result }));
-      };
-      reader.readAsDataURL(file);
+    // Inline validation for negative values
+    if (["price", "originalPrice", "pages"].includes(field)) {
+      if (Number(value) < 0) {
+        setFormErrors(prev => ({ ...prev, [field]: 'No negative values allowed.' }));
+      } else {
+        setFormErrors(prev => ({ ...prev, [field]: undefined }));
+      }
     }
+  };
+  const handlePdfChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (file.type !== 'application/pdf') {
+      alert('Only PDF files are allowed.');
+      setPdfFileName('');
+      setModalBook(prev => ({ ...prev, pdf: '' }));
+      return;
+    }
+    setPdfFileName(file.name);
+    setModalBook(prev => ({ ...prev, pdf: file.name }));
   };
   const handleAddEditSubmit = (e) => {
     e.preventDefault();
+    // Inline validation: prevent submission if any negative value
+    const errors = {};
+    if (Number(modalBook.price) < 0) errors.price = 'No negative values allowed.';
+    if (Number(modalBook.originalPrice) < 0) errors.originalPrice = 'No negative values allowed.';
+    if (Number(modalBook.pages) < 0) errors.pages = 'No negative values allowed.';
+    setFormErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+    if (!modalBook.pdf) {
+      alert('Please upload a PDF file.');
+      return;
+    }
+    const newBook = {
+      ...modalBook,
+      price: Number(modalBook.price),
+      originalPrice: Number(modalBook.originalPrice),
+      pages: Number(modalBook.pages),
+      id: isEdit ? modalBook.id : Date.now(),
+      image: '',
+      pdf: modalBook.pdf
+    };
     if (isEdit) {
-      setBooks(prev => prev.map(b => b.id === modalBook.id ? { ...modalBook, id: b.id, image: imagePreview } : b));
+      setBooks(prev => prev.map(b => b.id === modalBook.id ? newBook : b));
     } else {
       setBooks(prev => [
         ...prev,
-        { ...modalBook, id: Date.now(), image: imagePreview }
+        newBook
       ]);
     }
+    setPdfFileName('');
     closeAddEditModal();
   };
 
@@ -322,7 +366,13 @@ const BooksManagement = () => {
                 filteredBooks.map(book => (
                   <tr key={book.id} className="hover:bg-white/5 transition-colors">
                     <td className="px-4 py-3">
-                      <img src={book.image} alt={book.title} className="w-10 h-14 object-cover rounded-lg border border-white/10" />
+                      {book.pdf ? (
+                        <div className="flex items-center justify-center h-14">
+                          <FileText className="w-8 h-8 text-[#9B7BB8]" title="PDF Book" />
+                        </div>
+                      ) : (
+                        <img src={book.image} alt={book.title} className="w-10 h-14 object-cover rounded-lg border border-white/10" />
+                      )}
                     </td>
                     <td className="px-4 py-3 text-white font-medium">{book.title}</td>
                     <td className="px-4 py-3 text-white/80">{book.author}</td>
@@ -390,14 +440,17 @@ const BooksManagement = () => {
                   <div>
                     <label className="block text-white/70 mb-0.5 text-xs">Price</label>
                     <input type="number" value={modalBook.price} onChange={e => handleAddEditChange('price', e.target.value)} className="w-full bg-[#9B7BB8]/10 text-white p-1.5 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-xs" required />
+                    {formErrors.price && <span className="text-xs text-red-400 mt-1 block">{formErrors.price}</span>}
                   </div>
                   <div>
                     <label className="block text-white/70 mb-0.5 text-xs">Original Price</label>
                     <input type="number" value={modalBook.originalPrice} onChange={e => handleAddEditChange('originalPrice', e.target.value)} className="w-full bg-[#9B7BB8]/10 text-white p-1.5 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-xs" />
+                    {formErrors.originalPrice && <span className="text-xs text-red-400 mt-1 block">{formErrors.originalPrice}</span>}
                   </div>
                   <div>
                     <label className="block text-white/70 mb-0.5 text-xs">Pages</label>
                     <input type="number" value={modalBook.pages} onChange={e => handleAddEditChange('pages', e.target.value)} className="w-full bg-[#9B7BB8]/10 text-white p-1.5 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-xs" />
+                    {formErrors.pages && <span className="text-xs text-red-400 mt-1 block">{formErrors.pages}</span>}
                   </div>
                   <div>
                     <label className="block text-white/70 mb-0.5 text-xs">Published Date</label>
@@ -408,14 +461,10 @@ const BooksManagement = () => {
                     <textarea value={modalBook.description} onChange={e => handleAddEditChange('description', e.target.value)} className="w-full bg-[#9B7BB8]/10 text-white p-1.5 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-xs" rows={2} required />
                   </div>
                   <div className="md:col-span-2">
-                    <label className="block text-white/70 mb-0.5 text-xs">Book Image</label>
-                    {imagePreview ? (
-                      <div className="mb-1 flex items-center gap-3">
-                        <img src={imagePreview} alt="Book" className="w-14 h-20 object-cover rounded-lg border border-[#9B7BB8]/30" />
-                        <button type="button" onClick={() => { setImagePreview(''); setModalBook(prev => ({ ...prev, image: '' })); }} className="text-red-400 hover:text-red-600 text-xs">Remove</button>
-                      </div>
-                    ) : null}
-                    <input type="file" accept="image/*" ref={imageInputRef} onChange={handleImageChange} className="w-full bg-[#9B7BB8]/10 text-white p-1.5 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-xs" />
+                    <label className="block text-white/70 mb-0.5 text-xs">Book PDF</label>
+                    <input type="file" accept="application/pdf" onChange={handlePdfChange} className="w-full bg-[#9B7BB8]/10 text-white p-1.5 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-xs" required />
+                    {pdfFileName && <span className="text-xs text-[#9B7BB8] mt-1 block">Selected: {pdfFileName}</span>}
+                    <span className="text-xs text-[#9B7BB8] mt-1 block">Only PDF files are allowed.</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-6 mt-1">

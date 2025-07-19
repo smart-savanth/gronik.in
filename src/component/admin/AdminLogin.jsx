@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Lock, Mail } from 'lucide-react';
+import { useDispatch } from 'react-redux';
+import { adminLogin } from '../../slices/adminAuthSlice';
 
 const AdminLogin = () => {
   const navigate = useNavigate();
@@ -8,6 +10,7 @@ const AdminLogin = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const dispatch = useDispatch();
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -17,6 +20,7 @@ const AdminLogin = () => {
     setTimeout(() => {
       setLoading(false);
       if (email === 'admin@gronik.com' && password === 'admin123') {
+        dispatch(adminLogin({ token: 'adminTokenValue', role: 'admin' }));
         navigate('/admin');
       } else {
         setError('Invalid email or password');
