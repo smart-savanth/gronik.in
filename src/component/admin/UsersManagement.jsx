@@ -73,6 +73,7 @@ const sampleUsers = [
 const statusColors = {
   active: 'bg-green-500/20 text-green-400 border-green-500/30',
   blocked: 'bg-red-500/20 text-red-400 border-red-500/30',
+  deactivated: 'bg-gray-500/20 text-gray-400 border-gray-500/30',
 };
 
 const roleColors = {
@@ -166,6 +167,7 @@ const UsersManagement = () => {
     switch(filterStatus) {
       case 'active': return 'Active';
       case 'blocked': return 'Blocked';
+      case 'deactivated': return 'Deactivated';
       default: return 'All Status';
     }
   };
@@ -270,6 +272,12 @@ const UsersManagement = () => {
                     className="w-full px-4 py-2 text-left text-white hover:bg-[#9B7BB8]/20 transition-colors duration-200"
                   >
                     Active
+                  </button>
+                  <button
+                    onClick={() => handleStatusSelect('deactivated')}
+                    className="w-full px-4 py-2 text-left text-white hover:bg-[#9B7BB8]/20 transition-colors duration-200"
+                  >
+                    Deactivated
                   </button>
                   <button
                     onClick={() => handleStatusSelect('blocked')}
@@ -407,8 +415,8 @@ const UsersManagement = () => {
 
         {/* View User Modal */}
         {isViewModalOpen && selectedUser && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-[#2D1B3D]/95 backdrop-blur-md rounded-2xl border border-white/20 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-[#2D1B3D]/95 backdrop-blur-md rounded-2xl border border-white/20 max-w-2xl w-full max-h-[calc(100%-2rem)] overflow-y-auto">
               <div className="sticky top-0 bg-[#2D1B3D]/95 backdrop-blur-md border-b border-white/10 px-6 py-4 flex items-center justify-between">
                 <h3 className="text-xl font-bold text-white">User Details</h3>
                 <button
@@ -521,8 +529,8 @@ const UsersManagement = () => {
                     <label className="block text-white/70 mb-1 text-xs">Status</label>
                     <select value={editingUser.status} onChange={e => setEditingUser(prev => ({ ...prev, status: e.target.value }))} className="w-full bg-[#9B7BB8]/10 text-white p-2 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-sm">
                       <option value="active" className="bg-[#2D1B3D] text-white">Active</option>
+                      <option value="deactivated" className="bg-[#2D1B3D] text-white">Deactivated</option>
                       <option value="blocked" className="bg-[#2D1B3D] text-white">Blocked</option>
-                      <option value="pending" className="bg-[#2D1B3D] text-white">Pending</option>
                     </select>
                   </div>
                 </div>

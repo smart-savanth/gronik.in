@@ -3,6 +3,7 @@ import { User, Save, LogOut, Edit, X } from 'lucide-react';
 import AdminLayout from './Adminlayout';
 import { useSelector, useDispatch } from 'react-redux';
 import { adminLogout } from '../../slices/adminAuthSlice';
+import BackButton from '../layout/BackButton';
 
 const SettingsPage = () => {
   const [isEditing, setIsEditing] = useState(false);

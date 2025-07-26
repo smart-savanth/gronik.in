@@ -10,6 +10,8 @@ const FeaturedBooksSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveF
   const [addedBookIds, setAddedBookIds] = useState({});
   const [cartButtonClicked, setCartButtonClicked] = useState({});
   const [wishlistButtonClicked, setWishlistButtonClicked] = useState({});
+  const [animatingCart, setAnimatingCart] = useState({});
+  const [animatingWishlist, setAnimatingWishlist] = useState({});
   const navigate = useNavigate();
 
   // Get only featured books from centralized data
@@ -20,23 +22,25 @@ const FeaturedBooksSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveF
   const isInWishlist = (book) => wishlist.some(item => item.id === book.id);
 
   const handleAddToCart = (book) => {
-    if (!isInCart(book)) {
-      setCartButtonClicked(prev => ({ ...prev, [book.id]: true }));
-      setTimeout(() => setCartButtonClicked(prev => ({ ...prev, [book.id]: false })), 1500);
+    if (isInCart(book) || animatingCart[book.id]) return;
+    setAnimatingCart(prev => ({ ...prev, [book.id]: true }));
+    setCartButtonClicked(prev => ({ ...prev, [book.id]: true }));
+    setTimeout(() => {
       onAddToCart && onAddToCart(book);
-    } else {
-      onRemoveFromCart && onRemoveFromCart(book.id);
-    }
+      setAnimatingCart(prev => ({ ...prev, [book.id]: false }));
+      setCartButtonClicked(prev => ({ ...prev, [book.id]: false }));
+    }, 1200);
   };
 
   const handleAddToWishlist = (book) => {
+    if (isInWishlist(book) || animatingWishlist[book.id]) return;
+    setAnimatingWishlist(prev => ({ ...prev, [book.id]: true }));
     setWishlistButtonClicked(prev => ({ ...prev, [book.id]: true }));
-    setTimeout(() => setWishlistButtonClicked(prev => ({ ...prev, [book.id]: false })), 2000);
-    if (isInWishlist(book)) {
-      onRemoveFromWishlist && onRemoveFromWishlist(book.id);
-    } else {
+    setTimeout(() => {
       onAddToWishlist && onAddToWishlist(book);
-    }
+      setAnimatingWishlist(prev => ({ ...prev, [book.id]: false }));
+      setWishlistButtonClicked(prev => ({ ...prev, [book.id]: false }));
+    }, 1500);
   };
 
   return (
@@ -143,22 +147,34 @@ const FeaturedBooksSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveF
                     {/* Action Buttons - Better spacing and sizing */}
                     <div className="flex flex-row gap-2 w-full mb-4">
                       <button
-                        onClick={e => { e.stopPropagation(); handleAddToCart(book); }}
+                        onClick={() => handleAddToCart(book)}
+                        disabled={!book.inStock || isInCart(book) || animatingCart[book.id]}
                         className={`cart-button-animated ${cartButtonClicked[book.id] ? 'clicked' : ''} flex-1 py-3 px-4 rounded-xl font-semibold text-base flex items-center justify-center gap-2 transition-all duration-300 hover:scale-105 shadow-xl hover:shadow-2xl ${
-                          isInCart(book)
-                            ? 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white'
-                            : 'bg-gradient-to-r from-white to-gray-100 hover:from-gray-100 hover:to-white text-[#2D1B3D] shadow-xl'
+                          !book.inStock
+                            ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
+                            : isInCart(book)
+                              ? 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white'
+                              : 'bg-gradient-to-r from-white to-gray-100 hover:from-gray-100 hover:to-white text-[#2D1B3D] shadow-xl'
                         }`}
                       >
                         <ShoppingCart className="cart-icon w-5 h-5" />
                         <div className="box-icon w-3 h-3 bg-current rounded-sm"></div>
                         <span className="cart-text">
-                          {isInCart(book) ? (
-                            <Check className="w-5 h-5 mr-2 inline" />
+                          {animatingCart[book.id] ? (
+                            <>
+                              <span className="hidden sm:inline">Add to </span>Cart
+                            </>
+                          ) : isInCart(book) ? (
+                            <>
+                              <span className="hidden sm:inline">In </span>Cart!
+                            </>
+                          ) : !book.inStock ? (
+                            'Out of Stock'
                           ) : (
-                            <ShoppingCart className="w-5 h-5 mr-2 inline" />
+                            <>
+                              <span className="hidden sm:inline">Add to </span>Cart
+                            </>
                           )}
-                          {isInCart(book) ? 'Added to Cart!' : 'Add to Cart'}
                         </span>
                         <span className="added-text">
                           <Check className="w-5 h-5 mr-2 inline" />
@@ -166,7 +182,12 @@ const FeaturedBooksSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveF
                         </span>
                       </button>
                       <button
-                        onClick={e => { e.stopPropagation(); handleAddToWishlist(book); }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          handleAddToWishlist(book);
+                        }}
+                        disabled={isInWishlist(book) || animatingWishlist[book.id]}
                         className={`wishlist-button-animated ${wishlistButtonClicked[book.id] ? 'clicked' : ''} p-3 rounded-xl transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl ${
                           isInWishlist(book)
                             ? 'bg-gradient-to-r from-red-500 to-red-600 text-white'
@@ -305,33 +326,16 @@ const FeaturedBooksSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveF
         @keyframes heartDrop {
           0% {
             top: -20%;
-            opacity: 0;
-            transform: translate(-50%, -50%) scale(0.5);
-          }
-          20% {
             opacity: 1;
-            transform: translate(-50%, -50%) scale(1);
-          }
-          40% {
-            top: 50%;
-            transform: translate(-50%, -50%) scale(1.2);
           }
           60% {
             top: 50%;
-            transform: translate(-50%, -50%) scale(1) rotate(10deg);
-          }
-          80% {
-            top: 50%;
-            transform: translate(-50%, -50%) scale(1) rotate(-10deg);
+            opacity: 1;
           }
           100% {
-            top: 50%;
-            opacity: 1;
-            transform: translate(-50%, -50%) scale(1) rotate(0deg);
+            top: 120%;
+            opacity: 0;
           }
-        }
-        .view-all-glow:hover, .view-all-glow:focus {
-          box-shadow: 0 0 0 2px #ffe9b3, 0 4px 24px 0 #ffe9b3cc, 0 1.5px 8px 0 #fff7c1 !important;
         }
       `}</style>
     </section>

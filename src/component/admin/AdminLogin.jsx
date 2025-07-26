@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Lock, Mail } from 'lucide-react';
 import { useDispatch } from 'react-redux';
 import { adminLogin } from '../../slices/adminAuthSlice';
+import BackButton from '../layout/BackButton';
 
 const AdminLogin = () => {
   const navigate = useNavigate();
@@ -29,7 +30,10 @@ const AdminLogin = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#9B7BB8] via-[#A67FC4] to-[#B894D1] px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#9B7BB8] via-[#A67FC4] to-[#B894D1] px-4 relative">
+      <div className="absolute top-6 left-6 z-10">
+        <BackButton label="Back to Home" to="/" textOnly />
+      </div>
       <div className="w-full max-w-md bg-[#2D1B3D]/95 rounded-3xl shadow-2xl p-8 flex flex-col items-center">
         <img src="/images/logo.png" alt="Gronik Admin" className="w-24 h-24 mb-6 object-contain" />
         <h1 className="text-2xl font-bold text-white mb-2">Admin Login</h1>

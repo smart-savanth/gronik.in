@@ -1,11 +1,17 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, BookOpen, Play, Bookmark, Share2, Star, XCircle, Download } from 'lucide-react';
+import { useRef } from 'react';
 
 const MyLibrarySection = () => {
   const navigate = useNavigate();
   const [selectedBook, setSelectedBook] = useState(null);
   const [sortBy, setSortBy] = useState('recent'); // 'recent' or 'purchase'
+  const [reviewModal, setReviewModal] = useState({ open: false, book: null });
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewText, setReviewText] = useState('');
+  const [reviewSuccess, setReviewSuccess] = useState(false);
+  const reviewInputRef = useRef();
 
   // Mock library data - in real app this would come from API
   const [libraryBooks] = useState([
@@ -146,6 +152,26 @@ const MyLibrarySection = () => {
     return 'bg-blue-500';
   };
 
+  function openReviewModal(book) {
+    setReviewModal({ open: true, book });
+    setReviewRating(0);
+    setReviewText('');
+    setReviewSuccess(false);
+    setTimeout(() => {
+      if (reviewInputRef.current) reviewInputRef.current.focus();
+    }, 200);
+  }
+  function closeReviewModal() {
+    setReviewModal({ open: false, book: null });
+    setReviewSuccess(false);
+  }
+  function submitReview() {
+    setReviewSuccess(true);
+    setTimeout(() => {
+      closeReviewModal();
+    }, 1200);
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#9B7BB8] to-[#8A6AA7] px-3 py-6 mt-20">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -248,6 +274,14 @@ const MyLibrarySection = () => {
                             <Play className="w-4 h-4" /> View
                           </button>
                         )}
+                        {book.purchaseDate && (
+                          <button
+                            onClick={() => openReviewModal(book)}
+                            className="flex items-center gap-1 px-4 py-2 rounded-lg border border-[#9B7BB8] text-[#9B7BB8] bg-white font-semibold hover:bg-[#9B7BB8] hover:text-white transition text-xs shadow-md focus:outline-none focus:ring-2 focus:ring-[#9B7BB8]"
+                          >
+                            <Star className="w-4 h-4" /> Add Review
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -285,6 +319,14 @@ const MyLibrarySection = () => {
                             <Play className="w-4 h-4" /> View
                           </button>
                         )}
+                        {book.purchaseDate && (
+                          <button
+                            onClick={() => openReviewModal(book)}
+                            className="flex items-center gap-1 px-5 py-2 rounded-lg border border-[#9B7BB8] text-[#9B7BB8] bg-white font-semibold hover:bg-[#9B7BB8] hover:text-white transition text-sm shadow-md focus:outline-none focus:ring-2 focus:ring-[#9B7BB8]"
+                          >
+                            <Star className="w-5 h-5" /> Add Review
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -309,8 +351,8 @@ const MyLibrarySection = () => {
 
       {/* Book Details Modal */}
       {selectedBook && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-[#2D1B3D]/95 backdrop-blur-sm rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-[#2D1B3D]/95 backdrop-blur-sm rounded-3xl shadow-2xl max-w-4xl w-full max-h-[calc(100%-2rem)] overflow-y-auto">
             <div className="p-6">
               {/* Modal Header */}
               <div className="flex items-center justify-between mb-6">
@@ -394,10 +436,56 @@ const MyLibrarySection = () => {
                     >
                       <Share2 className="w-5 h-5" />
                     </button>
+                    <button
+                      onClick={() => openReviewModal(selectedBook)}
+                      className="flex items-center gap-1 px-6 py-3 rounded-xl border border-[#9B7BB8] text-[#9B7BB8] bg-white font-medium hover:bg-[#9B7BB8] hover:text-white transition-all duration-200 shadow-md focus:outline-none focus:ring-2 focus:ring-[#9B7BB8]"
+                    >
+                      <Star className="w-5 h-5" /> Add Review
+                    </button>
                   </div>
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Review Modal */}
+      {reviewModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 relative">
+            <button onClick={closeReviewModal} className="absolute top-4 right-4 text-[#9B7BB8] hover:text-[#2D1B3D]">
+              <XCircle className="w-6 h-6" />
+            </button>
+            <h2 className="text-2xl font-bold text-[#2D1B3D] mb-2">Add Review</h2>
+            <p className="text-[#2D1B3D]/70 mb-4">for <span className="font-semibold">{reviewModal.book?.title}</span></p>
+            <div className="flex items-center gap-2 mb-4">
+              {[1,2,3,4,5].map(star => (
+                <Star
+                  key={star}
+                  className={`w-8 h-8 cursor-pointer ${reviewRating >= star ? 'fill-[#9B7BB8] text-[#9B7BB8]' : 'text-gray-300'}`}
+                  onClick={() => setReviewRating(star)}
+                />
+              ))}
+            </div>
+            <textarea
+              ref={reviewInputRef}
+              className="w-full border border-[#9B7BB8]/30 rounded-lg p-3 text-[#2D1B3D] focus:outline-none focus:ring-2 focus:ring-[#9B7BB8] mb-4 min-h-[80px]"
+              placeholder="Write your review..."
+              value={reviewText}
+              onChange={e => setReviewText(e.target.value)}
+              maxLength={500}
+            />
+            <button
+              onClick={submitReview}
+              disabled={reviewRating === 0 || reviewText.trim() === ''}
+              className="w-full py-3 rounded-lg bg-gradient-to-r from-[#9B7BB8] to-[#8A6AA7] text-white font-bold hover:from-[#8A6AA7] hover:to-[#9B7BB8] transition-all duration-200 disabled:opacity-60"
+            >
+              Submit Review
+            </button>
+            {reviewSuccess && (
+              <div className="mt-4 text-green-600 font-semibold text-center">Thank you for your review!</div>
+            )}
           </div>
         </div>
       )}

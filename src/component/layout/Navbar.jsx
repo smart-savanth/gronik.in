@@ -70,6 +70,15 @@ const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
 
   const handleSearchSubmit = () => {
     if (searchQuery.trim()) {
+      // Enhanced search: match title, author, category, tags
+      const q = searchQuery.trim().toLowerCase();
+      const filtered = centralizedBooksData.filter(book =>
+        book.title.toLowerCase().includes(q) ||
+        book.author.toLowerCase().includes(q) ||
+        book.category.toLowerCase().includes(q) ||
+        (book.tags && book.tags.some(tag => tag.toLowerCase().includes(q)))
+      );
+      // Pass filtered results via state (or fallback to query param for now)
       navigate(`/library?search=${encodeURIComponent(searchQuery.trim())}`);
       setSearchQuery('');
     }

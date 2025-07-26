@@ -22,67 +22,60 @@ const initialBooks = [
     title: 'Think and Grow Rich',
     author: 'Napoleon Hill',
     category: 'Self Development',
-    price: 29.99,
-    originalPrice: 39.99,
-    pages: 320,
+    price: 150,
+    pages: 211,
     status: 'active',
     publishedDate: '2024-01-15',
-    image: '/api/placeholder/80/100',
+    coverImages: [
+      { url: '/api/placeholder/80/100', isMain: true },
+      { url: '/api/placeholder/80/101', isMain: false }
+    ],
     isFeatured: true,
     isHero: false,
     description: 'Transform your mindset and unlock the secrets to wealth and success.',
-    pdf: ''
+    overview: 'A classic book on personal development and wealth.',
+    whatYouWillLearn: 'Mindset, habits, and strategies for success.',
+    oneLiner: 'Unlock the secrets to wealth and success.',
+    sections: [
+      {
+        title: 'Introduction',
+        chapters: [
+          { title: 'Welcome', pdf: null }
+        ]
+      }
+    ]
   },
   {
     id: 2,
     title: 'Advanced React Patterns',
     author: 'John Smith',
     category: 'Technology',
-    price: 34.99,
-    originalPrice: 44.99,
-    pages: 280,
+    price: 200,
+    pages: 320,
     status: 'active',
     publishedDate: '2024-02-20',
-    image: '/api/placeholder/80/100',
+    coverImages: [
+      { url: '/api/placeholder/80/200', isMain: true },
+      { url: '/api/placeholder/80/201', isMain: false }
+    ],
     isFeatured: false,
     isHero: true,
     description: 'Master advanced React patterns for scalable applications.',
-    pdf: ''
-  },
-  {
-    id: 3,
-    title: 'Digital Marketing Mastery',
-    author: 'Sarah Johnson',
-    category: 'Business',
-    price: 24.99,
-    originalPrice: 34.99,
-    pages: 245,
-    status: 'pending',
-    publishedDate: '2024-03-10',
-    image: '/api/placeholder/80/100',
-    isFeatured: true,
-    isHero: false,
-    description: 'Become a digital marketing expert with this comprehensive guide.',
-    pdf: ''
-  },
-  {
-    id: 4,
-    title: 'Machine Learning Basics',
-    author: 'Dr. Mike Wilson',
-    category: 'Technology',
-    price: 39.99,
-    originalPrice: 49.99,
-    pages: 350,
-    status: 'draft',
-    publishedDate: '2024-04-05',
-    image: '/api/placeholder/80/100',
-    isFeatured: false,
-    isHero: false,
-    description: 'A beginner-friendly introduction to machine learning.',
-    pdf: ''
+    overview: 'Deep dive into React best practices.',
+    whatYouWillLearn: 'Hooks, context, and scalable architecture.',
+    oneLiner: 'Master React for production.',
+    sections: [
+      {
+        title: 'Hooks',
+        chapters: [
+          { title: 'useEffect Deep Dive', pdf: null }
+        ]
+      }
+    ]
   }
 ];
 
+// Use the same categories array for both filter and add book modal
 const categories = ['All', 'Self Development', 'Technology', 'Business', 'Science', 'Health'];
 
 const BooksManagement = () => {
@@ -98,6 +91,12 @@ const BooksManagement = () => {
   const imageInputRef = useRef();
   const [pdfFileName, setPdfFileName] = useState('');
   const [formErrors, setFormErrors] = useState({});
+  const [sections, setSections] = useState([]);
+  const [bookCover, setBookCover] = useState(null);
+  const [overview, setOverview] = useState('');
+  const [whatYouWillLearn, setWhatYouWillLearn] = useState('');
+  const [oneLiner, setOneLiner] = useState('');
+  const [bookCovers, setBookCovers] = useState([]); // [{file, isMain}]
 
   // Filtered books
   const filteredBooks = books.filter(book => {
@@ -182,6 +181,12 @@ const BooksManagement = () => {
     setShowAddEditModal(true);
     setPdfFileName('');
     setFormErrors({}); // Clear previous errors
+    setSections([]); // Clear previous sections
+    setBookCover(null);
+    setOverview('');
+    setWhatYouWillLearn('');
+    setOneLiner('');
+    setBookCovers([]); // Clear previous cover images
   };
   const openEditModal = (book) => {
     setModalBook({ ...book });
@@ -190,6 +195,14 @@ const BooksManagement = () => {
     setShowAddEditModal(true);
     setPdfFileName(book.pdf || '');
     setFormErrors({}); // Clear previous errors
+    // For now, we'll just set the initial sections to the book's sections
+    // In a real app, you'd fetch the book's sections from the API
+    setSections(book.sections || []);
+    setBookCover(null); // Clear previous cover
+    setOverview(book.overview || '');
+    setWhatYouWillLearn(book.whatYouWillLearn || '');
+    setOneLiner(book.oneLiner || '');
+    setBookCovers(book.coverImages || []); // Set cover images for editing
   };
   const closeAddEditModal = () => {
     setShowAddEditModal(false);
@@ -221,37 +234,67 @@ const BooksManagement = () => {
     setPdfFileName(file.name);
     setModalBook(prev => ({ ...prev, pdf: file.name }));
   };
+  const handleBookCoverChange = (e) => {
+    setBookCover(e.target.files[0]);
+  };
+  const handleBookCoversChange = (e) => {
+    const files = Array.from(e.target.files);
+    setBookCovers(prev => [
+      ...prev,
+      ...files.filter(f => !prev.some(p => p.file.name === f.name)).map((file, idx) => ({ file, isMain: prev.length === 0 && idx === 0 }))
+    ]);
+  };
+  const setMainCover = (idx) => {
+    setBookCovers(prev => prev.map((img, i) => ({ ...img, isMain: i === idx })));
+  };
+  const removeCover = (idx) => {
+    setBookCovers(prev => prev.filter((_, i) => i !== idx));
+  };
+  const handleSectionChange = (idx, field, value) => {
+    setSections(prev => prev.map((sec, i) => i === idx ? { ...sec, [field]: value } : sec));
+  };
+  const handleAddSection = () => {
+    setSections(prev => [...prev, { title: '', chapters: [] }]);
+  };
+  const handleSectionTitleChange = (idx, value) => {
+    setSections(prev => prev.map((sec, i) => i === idx ? { ...sec, title: value } : sec));
+  };
+  const handleRemoveSection = (idx) => {
+    setSections(prev => prev.filter((_, i) => i !== idx));
+  };
+  const handleAddChapter = (secIdx) => {
+    setSections(prev => prev.map((sec, i) =>
+      i === secIdx ? { ...sec, chapters: [...sec.chapters, { title: '', cover: null, pdf: null }] } : sec
+    ));
+  };
+  const handleChapterChange = (secIdx, chapIdx, field, value) => {
+    setSections(prev => prev.map((sec, i) =>
+      i === secIdx ? {
+        ...sec,
+        chapters: sec.chapters.map((ch, j) => j === chapIdx ? { ...ch, [field]: value } : ch)
+      } : sec
+    ));
+  };
+  const handleRemoveChapter = (secIdx, chapIdx) => {
+    setSections(prev => prev.map((sec, i) =>
+      i === secIdx ? { ...sec, chapters: sec.chapters.filter((_, j) => j !== chapIdx) } : sec
+    ));
+  };
   const handleAddEditSubmit = (e) => {
     e.preventDefault();
-    // Inline validation: prevent submission if any negative value
-    const errors = {};
-    if (Number(modalBook.price) < 0) errors.price = 'No negative values allowed.';
-    if (Number(modalBook.originalPrice) < 0) errors.originalPrice = 'No negative values allowed.';
-    if (Number(modalBook.pages) < 0) errors.pages = 'No negative values allowed.';
-    setFormErrors(errors);
-    if (Object.keys(errors).length > 0) return;
-    if (!modalBook.pdf) {
-      alert('Please upload a PDF file.');
-      return;
-    }
-    const newBook = {
+    // Validate book fields, sections, chapters, etc.
+    // Prepare data for API integration
+    const bookData = {
       ...modalBook,
-      price: Number(modalBook.price),
-      originalPrice: Number(modalBook.originalPrice),
-      pages: Number(modalBook.pages),
-      id: isEdit ? modalBook.id : Date.now(),
-      image: '',
-      pdf: modalBook.pdf
+      cover: bookCover,
+      coverImages: bookCovers.map(img => ({ url: URL.createObjectURL(img.file), isMain: img.isMain })), // Convert File objects to URLs for API
+      overview,
+      whatYouWillLearn,
+      oneLiner,
+      sections
     };
-    if (isEdit) {
-      setBooks(prev => prev.map(b => b.id === modalBook.id ? newBook : b));
-    } else {
-      setBooks(prev => [
-        ...prev,
-        newBook
-      ]);
-    }
-    setPdfFileName('');
+    // For now, just log the structure
+    console.log('Book to submit:', bookData);
     closeAddEditModal();
   };
 
@@ -421,7 +464,7 @@ const BooksManagement = () => {
         {/* Add/Edit Modal */}
         {showAddEditModal && modalBook && (
           <div className="fixed inset-0 z-50 flex items-center justify-center" style={{backdropFilter: 'blur(10px)', background: 'rgba(30, 18, 46, 0.55)'}}>
-            <div className="bg-[#2D1B3D]/95 rounded-2xl shadow-2xl max-w-4xl w-full p-4 md:p-8 relative" style={{fontSize: '0.89rem', minWidth: 340, maxWidth: 600}}>
+            <div className="bg-[#2D1B3D]/95 rounded-2xl shadow-2xl w-full p-4 md:p-8 relative overflow-y-auto" style={{fontSize: '0.89rem', minWidth: 0, maxWidth: 600, maxHeight: 'calc(100vh - 2rem)'}}>
               <button onClick={closeAddEditModal} className="absolute top-3 right-3 text-white/60 hover:text-white z-10"><X className="w-5 h-5" /></button>
               <form onSubmit={handleAddEditSubmit} className="space-y-2">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
@@ -435,22 +478,23 @@ const BooksManagement = () => {
                   </div>
                   <div>
                     <label className="block text-white/70 mb-0.5 text-xs">Category</label>
-                    <input type="text" value={modalBook.category} onChange={e => handleAddEditChange('category', e.target.value)} className="w-full bg-[#9B7BB8]/10 text-white p-1.5 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-xs" required placeholder="e.g. Self Development" />
+                    <select
+                      value={modalBook.category}
+                      onChange={e => handleAddEditChange('category', e.target.value)}
+                      className="w-full bg-[#2D1B3D] text-white p-1.5 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-xs appearance-none"
+                      style={{ WebkitAppearance: 'none', MozAppearance: 'none', appearance: 'none' }}
+                      required
+                    >
+                      <option value="">Select Category</option>
+                      {categories.slice(1).map(cat => (
+                        <option key={cat} value={cat} style={{ background: '#2D1B3D', color: '#fff' }}>{cat}</option>
+                      ))}
+                    </select>
                   </div>
                   <div>
                     <label className="block text-white/70 mb-0.5 text-xs">Price</label>
                     <input type="number" value={modalBook.price} onChange={e => handleAddEditChange('price', e.target.value)} className="w-full bg-[#9B7BB8]/10 text-white p-1.5 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-xs" required />
                     {formErrors.price && <span className="text-xs text-red-400 mt-1 block">{formErrors.price}</span>}
-                  </div>
-                  <div>
-                    <label className="block text-white/70 mb-0.5 text-xs">Original Price</label>
-                    <input type="number" value={modalBook.originalPrice} onChange={e => handleAddEditChange('originalPrice', e.target.value)} className="w-full bg-[#9B7BB8]/10 text-white p-1.5 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-xs" />
-                    {formErrors.originalPrice && <span className="text-xs text-red-400 mt-1 block">{formErrors.originalPrice}</span>}
-                  </div>
-                  <div>
-                    <label className="block text-white/70 mb-0.5 text-xs">Pages</label>
-                    <input type="number" value={modalBook.pages} onChange={e => handleAddEditChange('pages', e.target.value)} className="w-full bg-[#9B7BB8]/10 text-white p-1.5 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-xs" />
-                    {formErrors.pages && <span className="text-xs text-red-400 mt-1 block">{formErrors.pages}</span>}
                   </div>
                   <div>
                     <label className="block text-white/70 mb-0.5 text-xs">Published Date</label>
@@ -461,11 +505,77 @@ const BooksManagement = () => {
                     <textarea value={modalBook.description} onChange={e => handleAddEditChange('description', e.target.value)} className="w-full bg-[#9B7BB8]/10 text-white p-1.5 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-xs" rows={2} required />
                   </div>
                   <div className="md:col-span-2">
-                    <label className="block text-white/70 mb-0.5 text-xs">Book PDF</label>
-                    <input type="file" accept="application/pdf" onChange={handlePdfChange} className="w-full bg-[#9B7BB8]/10 text-white p-1.5 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-xs" required />
-                    {pdfFileName && <span className="text-xs text-[#9B7BB8] mt-1 block">Selected: {pdfFileName}</span>}
-                    <span className="text-xs text-[#9B7BB8] mt-1 block">Only PDF files are allowed.</span>
+                    <label className="block text-white/70 mb-0.5 text-xs">Book Cover PDFs</label>
+                    <input type="file" accept="application/pdf" multiple onChange={handleBookCoversChange} className="w-full bg-[#9B7BB8]/10 text-white p-1.5 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-xs" />
+                    {bookCovers.length > 0 && (
+                      <div className="flex gap-2 mt-2 flex-wrap">
+                        {bookCovers.map((img, idx) => (
+                          <div key={idx} className="relative flex flex-col items-center">
+                            <div className={`w-16 h-20 flex items-center justify-center border-2 rounded-lg ${img.isMain ? 'border-yellow-400' : 'border-white/20'} bg-[#2D1B3D]/30 text-white text-xs`}>PDF</div>
+                            <span className="text-xs text-white/70 mt-1 truncate w-16 text-center">{img.file.name}</span>
+                            {!img.isMain && (
+                              <button type="button" onClick={() => setMainCover(idx)} className="absolute top-0 right-0 bg-yellow-400 text-xs px-1 py-0.5 rounded-bl-lg">Set Main</button>
+                            )}
+                            {img.isMain && <span className="absolute top-0 left-0 bg-yellow-400 text-xs px-1 py-0.5 rounded-br-lg font-bold">Main</span>}
+                            <button type="button" onClick={() => removeCover(idx)} className="absolute bottom-0 right-0 text-red-400 hover:text-red-600 text-xs">✕</button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-white/70 mb-0.5 text-xs">Overview</label>
+                    <textarea value={overview} onChange={e => setOverview(e.target.value)} className="w-full bg-[#9B7BB8]/10 text-white p-1.5 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-xs" rows={1} required />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-white/70 mb-0.5 text-xs">What you will learn</label>
+                    <textarea value={whatYouWillLearn} onChange={e => setWhatYouWillLearn(e.target.value)} className="w-full bg-[#9B7BB8]/10 text-white p-1.5 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-xs" rows={1} required />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-white/70 mb-0.5 text-xs">One-liner</label>
+                    <input type="text" value={oneLiner} onChange={e => setOneLiner(e.target.value)} className="w-full bg-[#9B7BB8]/10 text-white p-1.5 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-xs" required />
+                  </div>
+                </div>
+                {/* Dynamic Sections and Chapters */}
+                <div className="mt-4">
+                  <div className="flex items-center gap-3 mb-2">
+                    <h3 className="text-white/80 text-sm font-semibold">Sections</h3>
+                    <button type="button" onClick={handleAddSection} className="px-4 py-2 bg-[#9B7BB8] hover:bg-[#8A6AA7] text-white rounded-lg font-semibold text-xs md:text-sm shadow transition-all duration-150 flex items-center gap-1">
+                      <Plus className="w-4 h-4" /> Add Section
+                    </button>
+                  </div>
+                  {sections.map((section, secIdx) => (
+                    <div key={secIdx} className="bg-[#9B7BB8]/10 rounded-lg p-3 mb-3">
+                      <div className="flex flex-col md:flex-row items-center gap-2 mb-2 flex-wrap">
+                        <input type="text" value={section.title} onChange={e => handleSectionTitleChange(secIdx, e.target.value)} placeholder={`Section ${secIdx + 1} Title`} className="flex-1 min-w-0 bg-[#2D1B3D]/30 text-white p-1.5 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-xs" required />
+                        <label className="text-white/70 text-xs w-full md:w-auto">Section Image
+                          <input type="file" accept="image/*" onChange={e => handleSectionChange(secIdx, 'image', e.target.files[0])} className="block w-full md:w-auto bg-[#9B7BB8]/10 text-white p-1.5 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-xs mt-1 md:mt-0" required />
+                        </label>
+                        <button type="button" onClick={() => handleRemoveSection(secIdx)} className="text-red-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
+                      </div>
+                      {/* Chapters */}
+                      <div className="ml-0 md:ml-4">
+                        <div className="flex items-center justify-between mb-1 flex-wrap gap-2">
+                          <span className="text-white/70 text-xs font-semibold">Chapters</span>
+                          <button type="button" onClick={() => handleAddChapter(secIdx)} className="px-3 py-1 bg-[#9B7BB8] hover:bg-[#8A6AA7] text-white rounded-lg font-semibold text-xs shadow flex items-center gap-1">
+                            <Plus className="w-4 h-4" /> Add Chapter
+                          </button>
+                        </div>
+                        {section.chapters.map((chapter, chapIdx) => (
+                          <div key={chapIdx} className="flex flex-col md:flex-row md:items-center gap-2 gap-y-2 mb-2 bg-[#2D1B3D]/20 p-2 rounded-lg w-full min-w-0">
+                            <input type="text" value={chapter.title} onChange={e => handleChapterChange(secIdx, chapIdx, 'title', e.target.value)} placeholder={`Chapter ${chapIdx + 1} Title`} className="w-full md:w-1/3 min-w-0 bg-[#9B7BB8]/10 text-white p-1.5 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-xs" required />
+                            <label className="text-white/70 text-xs w-full md:w-1/3 min-w-0">Thumbnail
+                              <input type="file" accept="image/*" onChange={e => handleChapterChange(secIdx, chapIdx, 'cover', e.target.files[0])} className="block w-full bg-[#9B7BB8]/10 text-white p-1.5 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-xs mt-1 md:mt-0" required />
+                            </label>
+                            <label className="text-white/70 text-xs w-full md:w-1/3 min-w-0">Chapter PDF
+                              <input type="file" accept="application/pdf" onChange={e => handleChapterChange(secIdx, chapIdx, 'pdf', e.target.files[0])} className="block w-full bg-[#9B7BB8]/10 text-white p-1.5 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-xs mt-1 md:mt-0" required />
+                            </label>
+                            <button type="button" onClick={() => handleRemoveChapter(secIdx, chapIdx)} className="text-red-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
                 </div>
                 <div className="flex items-center gap-6 mt-1">
                   <label className="flex items-center gap-2 text-white/80 text-xs">

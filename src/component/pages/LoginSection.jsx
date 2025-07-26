@@ -3,6 +3,7 @@ import { Eye, EyeOff, Mail, Phone, Lock, ArrowRight, Check, X, RefreshCw } from 
 import { useSelector, useDispatch } from 'react-redux';
 import { login, setUser } from '../../slices/userAuthSlice';
 import { useNavigate } from 'react-router-dom';
+import api from '../../utils/api';
 
 const LoginPage = () => {
   const [currentStep, setCurrentStep] = useState('choice'); // 'choice', 'signup', 'login', 'otp', 'forgot', 'reset'
@@ -190,7 +191,7 @@ const LoginPage = () => {
   };
 
   // Handle signup
-  const handleSignup = () => {
+  const handleSignup = async () => {
     const newErrors = {};
     
     if (!formData.fullName) {
@@ -229,24 +230,29 @@ const LoginPage = () => {
     setErrors(newErrors);
 
     if (Object.keys(newErrors).length === 0) {
-      // Save user data to Redux and log in
-      const userData = {
-        fullName: formData.fullName,
-        countryCode: formData.countryCode,
-        mobile: formData.mobile,
-        email: formData.email,
-        password: formData.password // In real app, never store plain password
-      };
-      dispatch(login({ token: 'mock-token', user: userData }));
-      setShowAuthSuccess(true);
-      setTimeout(() => {
-        navigate('/'); // Redirect to home page after registration
-      }, 500);
+      try {
+        const response = await api.post('/auth/signUp', {
+          fullName: formData.fullName,
+          countryCode: formData.countryCode,
+          mobile: formData.mobile,
+          email: formData.email,
+          password: formData.password
+        });
+        const userData = response.data.user;
+        const token = response.data.token;
+        dispatch(login({ token, user: userData }));
+        setShowAuthSuccess(true);
+        setTimeout(() => {
+          navigate('/');
+        }, 500);
+      } catch (error) {
+        setErrors({ api: error.response?.data?.message || 'Registration failed. Please try again.' });
+      }
     }
   };
 
   // Handle login
-  const handleLogin = () => {
+  const handleLogin = async () => {
     const newErrors = {};
     if (loginMethod === 'email') {
       if (!formData.email) {
@@ -279,11 +285,22 @@ const LoginPage = () => {
     }
     setErrors(newErrors);
     if (Object.keys(newErrors).length === 0 && credentialsMatch) {
-      dispatch(login({ token: 'mock-token', user: reduxUser }));
-      setShowAuthSuccess(true);
-      setTimeout(() => {
-        navigate('/profile');
-      }, 500);
+      try {
+        const response = await api.post('/auth/login', {
+          email: loginMethod === 'email' ? formData.email : undefined,
+          mobile: loginMethod === 'mobile' ? formData.mobile : undefined,
+          password: formData.password
+        });
+        const userData = response.data.user;
+        const token = response.data.token;
+        dispatch(login({ token, user: userData }));
+        setShowAuthSuccess(true);
+        setTimeout(() => {
+          navigate('/profile');
+        }, 500);
+      } catch (error) {
+        setErrors({ api: error.response?.data?.message || 'Login failed. Please try again.' });
+      }
     }
   };
 
@@ -963,6 +980,9 @@ const LoginPage = () => {
                   <p className="text-white/70 text-sm">Redirecting to home page...</p>
                 </div>
               </div>
+            )}
+            {errors.api && (
+              <div className="text-red-400 text-xs text-center mb-2">{errors.api}</div>
             )}
           </div>
         </div>
