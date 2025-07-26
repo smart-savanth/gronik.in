@@ -1,6 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Mail, Phone, Edit, Save, X, BookOpen, ShoppingCart, LogOut, Heart, Settings, Camera, Trash2 } from 'lucide-react';
+import { useSelector, useDispatch } from 'react-redux';
+import { setUser } from '../../slices/userAuthSlice';
 
 const DEFAULT_AVATAR = '';
 
@@ -8,32 +10,29 @@ const ProfileSection = () => {
   const navigate = useNavigate();
   // Simulate login method: 'email' or 'mobile'
   const [loginMethod] = useState('email'); // Change to 'mobile' to test mobile login
+  const user = useSelector(state => state.userAuth.user);
+  const dispatch = useDispatch();
   const [isEditing, setIsEditing] = useState(false);
-  const [profileData, setProfileData] = useState({
-    name: 'John Doe',
-    email: 'john.doe@example.com',
-    mobile: '',
-    profileImage: '',
-  });
-  const [editData, setEditData] = useState({ ...profileData });
-  const [imagePreview, setImagePreview] = useState(profileData.profileImage);
+  const [editData, setEditData] = useState(user || {});
+  const [imagePreview, setImagePreview] = useState(user?.profileImage || '');
   const fileInputRef = useRef(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const handleEdit = () => {
     setIsEditing(true);
-    setEditData({ ...profileData });
-    setImagePreview(profileData.profileImage);
+    setEditData(user || {});
+    setImagePreview(user?.profileImage || '');
   };
 
   const handleSave = () => {
-    setProfileData({ ...editData, profileImage: imagePreview });
+    const updatedUser = { ...editData, profileImage: imagePreview };
+    dispatch(setUser(updatedUser));
     setIsEditing(false);
   };
 
   const handleCancel = () => {
-    setEditData({ ...profileData });
-    setImagePreview(profileData.profileImage);
+    setEditData(user || {});
+    setImagePreview(user?.profileImage || '');
     setIsEditing(false);
   };
 
@@ -143,12 +142,12 @@ const ProfileSection = () => {
                   {isEditing ? (
                     <input
                       type="text"
-                      value={editData.name}
-                      onChange={e => handleInputChange('name', e.target.value)}
+                      value={editData.fullName}
+                      onChange={e => handleInputChange('fullName', e.target.value)}
                       className="w-full bg-[#9B7BB8]/20 text-white p-2 rounded-lg border border-[#9B7BB8]/30 focus:outline-none focus:ring-2 focus:ring-[#9B7BB8] transition-all duration-200 text-sm placeholder-white/50"
                     />
                   ) : (
-                    <p className="text-white font-medium text-sm truncate">{profileData.name}</p>
+                    <p className="text-white font-medium text-sm truncate">{user?.fullName}</p>
                   )}
                 </div>
               </div>
@@ -167,11 +166,10 @@ const ProfileSection = () => {
                       type="email"
                       value={editData.email}
                       onChange={e => handleInputChange('email', e.target.value)}
-                      className={`w-full bg-[#9B7BB8]/20 text-white p-2 rounded-lg border border-[#9B7BB8]/30 focus:outline-none focus:ring-2 focus:ring-[#9B7BB8] transition-all duration-200 text-sm placeholder-white/50 ${loginMethod === 'email' ? 'opacity-60 cursor-not-allowed' : ''}`}
-                      disabled={loginMethod === 'email'}
+                      className="w-full bg-[#9B7BB8]/20 text-white p-2 rounded-lg border border-[#9B7BB8]/30 focus:outline-none focus:ring-2 focus:ring-[#9B7BB8] transition-all duration-200 text-sm placeholder-white/50"
                     />
                   ) : (
-                    <p className="text-white font-medium text-sm truncate">{profileData.email}</p>
+                    <p className="text-white font-medium text-sm truncate">{user?.email}</p>
                   )}
                 </div>
               </div>
@@ -183,15 +181,24 @@ const ProfileSection = () => {
                 <div className="flex-1 min-w-0">
                   <p className="text-xs text-white/60 uppercase tracking-wide font-medium mb-1">Mobile Number</p>
                   {isEditing ? (
-                    <input
-                      type="tel"
-                      value={editData.mobile}
-                      onChange={e => handleInputChange('mobile', e.target.value)}
-                      className={`w-full bg-[#9B7BB8]/20 text-white p-2 rounded-lg border border-[#9B7BB8]/30 focus:outline-none focus:ring-2 focus:ring-[#9B7BB8] transition-all duration-200 text-sm placeholder-white/50 ${loginMethod === 'mobile' ? 'opacity-60 cursor-not-allowed' : ''}`}
-                      disabled={loginMethod === 'mobile'}
-                    />
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={editData.countryCode || ''}
+                        onChange={e => handleInputChange('countryCode', e.target.value)}
+                        className="w-20 bg-[#9B7BB8]/20 text-white p-2 rounded-lg border border-[#9B7BB8]/30 focus:outline-none focus:ring-2 focus:ring-[#9B7BB8] transition-all duration-200 text-sm placeholder-white/50"
+                        placeholder="+91"
+                      />
+                      <input
+                        type="tel"
+                        value={editData.mobile || ''}
+                        onChange={e => handleInputChange('mobile', e.target.value)}
+                        className="flex-1 bg-[#9B7BB8]/20 text-white p-2 rounded-lg border border-[#9B7BB8]/30 focus:outline-none focus:ring-2 focus:ring-[#9B7BB8] transition-all duration-200 text-sm placeholder-white/50"
+                        placeholder="Mobile number"
+                      />
+                    </div>
                   ) : (
-                    <p className="text-white font-medium text-sm truncate">{profileData.mobile}</p>
+                    <p className="text-white font-medium text-sm truncate">{user?.countryCode} {user?.mobile}</p>
                   )}
                 </div>
               </div>

@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Eye, EyeOff, Mail, Phone, Lock, ArrowRight, Check, X, RefreshCw } from 'lucide-react';
+import { useSelector, useDispatch } from 'react-redux';
+import { login, setUser } from '../../slices/userAuthSlice';
+import { useNavigate } from 'react-router-dom';
+import api from '../../utils/api';
 
 const LoginPage = () => {
   const [currentStep, setCurrentStep] = useState('choice'); // 'choice', 'signup', 'login', 'otp', 'forgot', 'reset'
@@ -11,7 +15,9 @@ const LoginPage = () => {
     newPassword: '',
     confirmPassword: '',
     otp: ['', '', '', '', '', ''], // 6-digit OTP
-    jwtToken: ''
+    jwtToken: '',
+    fullName: '',
+    countryCode: ''
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
@@ -25,13 +31,18 @@ const LoginPage = () => {
   const [otpVerified, setOtpVerified] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
   const [otpError, setOtpError] = useState('');
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const isAuthenticated = useSelector(state => state.userAuth.isAuthenticated);
+  const [showAuthSuccess, setShowAuthSuccess] = useState(false);
+
+  const dispatch = useDispatch();
+  const user = useSelector(state => state.userAuth.user);
+  const navigate = useNavigate();
 
   // Mock existing users database
-  const existingUsers = [
-    { email: 'user@example.com', mobile: '9876543210', password: 'Password123!' },
-    { email: 'test@gronik.com', mobile: '9123456789', password: 'Test@123' }
-  ];
+  // const existingUsers = [
+  //   { email: 'user@example.com', mobile: '9876543210', password: 'Password123!' },
+  //   { email: 'test@gronik.com', mobile: '9123456789', password: 'Test@123' }
+  // ];
 
   // Validation functions
   const validatePassword = (password) => {
@@ -56,6 +67,9 @@ const LoginPage = () => {
     const mobileRegex = /^[6-9]\d{9}$/;
     return mobileRegex.test(mobile);
   };
+
+  // Add country code validation function
+  const validateCountryCode = (code) => /^\+\d{1,4}$/.test(code);
 
   // Handle input changes
   const handleInputChange = (field, value) => {
@@ -158,13 +172,8 @@ const LoginPage = () => {
       const jwtToken = generateJWT(userData);
       setFormData(prev => ({ ...prev, jwtToken }));
       
-      // Store in localStorage (in real app, use secure storage)
-      localStorage.setItem('gronik_jwt', jwtToken);
-      localStorage.setItem('gronik_user', JSON.stringify(userData));
-      
-      setIsAuthenticated(true);
-      
-      // Redirect to home page
+      dispatch(login({ token: jwtToken, user: userData }));
+      setShowAuthSuccess(true);
       setTimeout(() => {
         window.location.href = '/';
       }, 1000);
@@ -182,25 +191,27 @@ const LoginPage = () => {
   };
 
   // Handle signup
-  const handleSignup = () => {
+  const handleSignup = async () => {
     const newErrors = {};
     
-    if (loginMethod === 'email') {
-      if (!formData.email) {
-        newErrors.email = 'Email is required';
-      } else if (!validateEmail(formData.email)) {
-        newErrors.email = 'Please enter a valid email address';
-      } else if (existingUsers.find(user => user.email === formData.email)) {
-        newErrors.email = 'Email already exists. Please login to continue.';
-      }
-    } else {
-      if (!formData.mobile) {
-        newErrors.mobile = 'Mobile number is required';
-      } else if (!validateMobile(formData.mobile)) {
-        newErrors.mobile = 'Please enter a valid 10-digit mobile number';
-      } else if (existingUsers.find(user => user.mobile === formData.mobile)) {
-        newErrors.mobile = 'Mobile number already exists. Please login to continue.';
-      }
+    if (!formData.fullName) {
+      newErrors.fullName = 'Full name is required';
+    }
+    if (!formData.countryCode) {
+      newErrors.countryCode = 'Country code is required';
+    }
+    if (!validateCountryCode(formData.countryCode)) {
+      newErrors.countryCode = 'Invalid country code';
+    }
+    if (!formData.mobile) {
+      newErrors.mobile = 'Mobile number is required';
+    } else if (!validateMobile(formData.mobile)) {
+      newErrors.mobile = 'Please enter a valid 10-digit mobile number';
+    }
+    if (!formData.email) {
+      newErrors.email = 'Email is required';
+    } else if (!validateEmail(formData.email)) {
+      newErrors.email = 'Please enter a valid email address';
     }
 
     const passwordValidation = validatePassword(formData.password);
@@ -210,19 +221,39 @@ const LoginPage = () => {
       newErrors.password = 'Password does not meet requirements';
     }
 
+    if (!formData.confirmPassword) {
+      newErrors.confirmPassword = 'Please confirm your password';
+    } else if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = 'Passwords do not match';
+    }
+
     setErrors(newErrors);
 
     if (Object.keys(newErrors).length === 0) {
-      // Send OTP for verification
-      sendOTP(loginMethod === 'email' ? formData.email : formData.mobile);
-      setCurrentStep('otp');
+      try {
+        const response = await api.post('/auth/signUp', {
+          fullName: formData.fullName,
+          countryCode: formData.countryCode,
+          mobile: formData.mobile,
+          email: formData.email,
+          password: formData.password
+        });
+        const userData = response.data.user;
+        const token = response.data.token;
+        dispatch(login({ token, user: userData }));
+        setShowAuthSuccess(true);
+        setTimeout(() => {
+          navigate('/');
+        }, 500);
+      } catch (error) {
+        setErrors({ api: error.response?.data?.message || 'Registration failed. Please try again.' });
+      }
     }
   };
 
   // Handle login
-  const handleLogin = () => {
+  const handleLogin = async () => {
     const newErrors = {};
-    
     if (loginMethod === 'email') {
       if (!formData.email) {
         newErrors.email = 'Email is required';
@@ -236,32 +267,40 @@ const LoginPage = () => {
         newErrors.mobile = 'Please enter a valid 10-digit mobile number';
       }
     }
-
     if (!formData.password) {
       newErrors.password = 'Password is required';
     }
-
-    const user = existingUsers.find(u => 
-      (loginMethod === 'email' ? u.email === formData.email : u.mobile === formData.mobile) &&
-      u.password === formData.password
-    );
-
-    if (!user && Object.keys(newErrors).length === 0) {
-      if (loginMethod === 'email') {
-        const emailExists = existingUsers.find(u => u.email === formData.email);
-        newErrors.password = emailExists ? 'Incorrect password' : 'Email not found. Please signup first.';
-      } else {
-        const mobileExists = existingUsers.find(u => u.mobile === formData.mobile);
-        newErrors.password = mobileExists ? 'Incorrect password' : 'Mobile number not found. Please signup first.';
+    // Redux user lookup
+    const reduxUser = user;
+    let credentialsMatch = false;
+    if (reduxUser) {
+      if (loginMethod === 'email' && reduxUser.email === formData.email && reduxUser.password === formData.password) {
+        credentialsMatch = true;
+      } else if (loginMethod === 'mobile' && reduxUser.mobile === formData.mobile && reduxUser.password === formData.password) {
+        credentialsMatch = true;
       }
     }
-
+    if (!credentialsMatch && Object.keys(newErrors).length === 0) {
+      newErrors.password = 'Invalid credentials. Please check your email/mobile and password.';
+    }
     setErrors(newErrors);
-
-    if (Object.keys(newErrors).length === 0 && user) {
-      // Send OTP for verification
-      sendOTP(loginMethod === 'email' ? formData.email : formData.mobile);
-      setCurrentStep('otp');
+    if (Object.keys(newErrors).length === 0 && credentialsMatch) {
+      try {
+        const response = await api.post('/auth/login', {
+          email: loginMethod === 'email' ? formData.email : undefined,
+          mobile: loginMethod === 'mobile' ? formData.mobile : undefined,
+          password: formData.password
+        });
+        const userData = response.data.user;
+        const token = response.data.token;
+        dispatch(login({ token, user: userData }));
+        setShowAuthSuccess(true);
+        setTimeout(() => {
+          navigate('/profile');
+        }, 500);
+      } catch (error) {
+        setErrors({ api: error.response?.data?.message || 'Login failed. Please try again.' });
+      }
     }
   };
 
@@ -307,16 +346,16 @@ const LoginPage = () => {
     }
     setErrors(newErrors);
     if (Object.keys(newErrors).length === 0) {
-      setIsLoading(true);
+      // Update Redux user password
+      const updatedUser = { ...user };
+      updatedUser.password = formData.newPassword;
+      dispatch(setUser(updatedUser));
+      setResetSuccess(true);
       setTimeout(() => {
-        setIsLoading(false);
-        setResetSuccess(true);
-        setTimeout(() => {
-          setResetSuccess(false);
-          setCurrentStep('login');
-          setFormData(prev => ({ ...prev, password: '', newPassword: '', confirmPassword: '' }));
-        }, 1500);
-      }, 1200);
+        setResetSuccess(false);
+        setCurrentStep('login');
+        setFormData(prev => ({ ...prev, password: '', newPassword: '', confirmPassword: '' }));
+      }, 1500);
     }
   };
 
@@ -355,8 +394,15 @@ const LoginPage = () => {
     );
   };
 
+  // Reset showAuthSuccess when returning to choice/login/signup
+  useEffect(() => {
+    if (currentStep === 'choice' || currentStep === 'login' || currentStep === 'signup') {
+      setShowAuthSuccess(false);
+    }
+  }, [currentStep]);
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gronik-primary via-gronik-bg to-gronik-secondary relative overflow-hidden flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-gronik-primary via-gronik-bg to-gronik-secondary relative flex items-center justify-center p-4" style={{ paddingTop: '6rem' }}>
       {/* Animated background elements with glow effects */}
       <div className="absolute inset-0">
         <div className="absolute top-10 left-10 w-40 h-40 bg-[#2D1B3D]/20 rounded-full blur-3xl animate-pulse shadow-2xl shadow-[#2D1B3D]/30"></div>
@@ -369,7 +415,7 @@ const LoginPage = () => {
       {/* Centered Login Container */}
       <div className="relative z-10 w-full max-w-sm sm:max-w-lg">
         {/* Form Container */}
-        <div className="bg-[#2D1B3D]/90 backdrop-blur-xl rounded-3xl border border-[#2D1B3D]/50 shadow-2xl shadow-[#2D1B3D]/20 overflow-hidden">
+        <div className="bg-[#2D1B3D]/90 backdrop-blur-xl rounded-3xl border border-[#2D1B3D]/50 shadow-2xl shadow-[#2D1B3D]/20 overflow-hidden mt-8 mb-8">
           <div className="p-6 sm:p-10">
             {/* Logo/Title */}
             <div className="text-center mb-8">
@@ -434,32 +480,74 @@ const LoginPage = () => {
             {/* Step 2: Signup Form */}
             {currentStep === 'signup' && (
               <div className="space-y-4">
-                {/* Email/Mobile Input */}
                 <div>
-                  <label className="block text-xs font-medium text-white/80 mb-2">
-                    {loginMethod === 'email' ? 'EMAIL' : 'MOBILE'}
-                  </label>
-                  <div className="relative">
-                    <div className="absolute top-0 left-0 flex items-center">
-                      {loginMethod === 'email' ? 
-                        <Mail className="w-4 h-4 text-white/60" /> : 
-                        <Phone className="w-4 h-4 text-white/60" />
-                      }
-                    </div>
-                    <input
-                      type={loginMethod === 'email' ? 'email' : 'tel'}
-                      value={loginMethod === 'email' ? formData.email : formData.mobile}
-                      onChange={(e) => handleInputChange(loginMethod, e.target.value)}
-                      className="w-full bg-transparent border-b-2 border-white/30 text-white pl-6 pr-4 py-3 focus:outline-none focus:border-white focus:shadow-lg focus:shadow-white/20 transition-all duration-300 placeholder-white/40 text-sm"
-                    />
-                  </div>
-                  {errors[loginMethod] && (
+                  <label className="block text-xs font-medium text-white/80 mb-2">FULL NAME</label>
+                  <input
+                    type="text"
+                    value={formData.fullName || ''}
+                    onChange={e => handleInputChange('fullName', e.target.value)}
+                    className="w-full bg-transparent border-b-2 border-white/30 text-white pl-2 pr-4 py-3 focus:outline-none focus:border-white focus:shadow-lg focus:shadow-white/20 transition-all duration-300 placeholder-white/40 text-sm"
+                    placeholder="Enter your full name"
+                  />
+                  {errors.fullName && (
                     <p className="text-red-400 text-xs mt-1 flex items-center space-x-1">
                       <X className="w-3 h-3" />
-                      <span>{errors[loginMethod]}</span>
+                      <span>{errors.fullName}</span>
                     </p>
                   )}
                 </div>
+                <div>
+                  <label className="block text-xs font-medium text-white/80 mb-2">COUNTRY CODE</label>
+                  <input
+                    type="text"
+                    value={formData.countryCode || ''}
+                    onChange={e => handleInputChange('countryCode', e.target.value)}
+                    className="w-full bg-transparent border-b-2 border-white/30 text-white pl-2 pr-4 py-3 focus:outline-none focus:border-white focus:shadow-lg focus:shadow-white/20 transition-all duration-300 placeholder-white/40 text-sm"
+                    placeholder="e.g. +91"
+                  />
+                  {errors.countryCode && (
+                    <p className="text-red-400 text-xs mt-1 flex items-center space-x-1">
+                      <X className="w-3 h-3" />
+                      <span>{errors.countryCode}</span>
+                    </p>
+                  )}
+                </div>
+                {validateCountryCode(formData.countryCode) && (
+                  <div>
+                    <label className="block text-xs font-medium text-white/80 mb-2">MOBILE NUMBER</label>
+                    <input
+                      type="tel"
+                      value={formData.mobile || ''}
+                      onChange={e => handleInputChange('mobile', e.target.value)}
+                      className="w-full bg-transparent border-b-2 border-white/30 text-white pl-2 pr-4 py-3 focus:outline-none focus:border-white focus:shadow-lg focus:shadow-white/20 transition-all duration-300 placeholder-white/40 text-sm"
+                      placeholder="Enter your mobile number"
+                    />
+                    {errors.mobile && (
+                      <p className="text-red-400 text-xs mt-1 flex items-center space-x-1">
+                        <X className="w-3 h-3" />
+                        <span>{errors.mobile}</span>
+                      </p>
+                    )}
+                  </div>
+                )}
+                {validateCountryCode(formData.countryCode) && formData.mobile && (
+                  <div>
+                    <label className="block text-xs font-medium text-white/80 mb-2">EMAIL</label>
+                    <input
+                      type="email"
+                      value={formData.email || ''}
+                      onChange={e => handleInputChange('email', e.target.value)}
+                      className="w-full bg-transparent border-b-2 border-white/30 text-white pl-2 pr-4 py-3 focus:outline-none focus:border-white focus:shadow-lg focus:shadow-white/20 transition-all duration-300 placeholder-white/40 text-sm"
+                      placeholder="Enter your email address"
+                    />
+                    {errors.email && (
+                      <p className="text-red-400 text-xs mt-1 flex items-center space-x-1">
+                        <X className="w-3 h-3" />
+                        <span>{errors.email}</span>
+                      </p>
+                    )}
+                  </div>
+                )}
 
                 {/* Password Input */}
                 <div>
@@ -489,6 +577,35 @@ const LoginPage = () => {
                     </p>
                   )}
                   {formData.password && <PasswordRequirements password={formData.password} />}
+                </div>
+
+                {/* Confirm Password Input */}
+                <div>
+                  <label className="block text-xs font-medium text-white/80 mb-2">CONFIRM PASSWORD</label>
+                  <div className="relative">
+                    <div className="absolute top-0 left-0 flex items-center">
+                      <Lock className="w-4 h-4 text-white/60" />
+                    </div>
+                    <input
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      value={formData.confirmPassword}
+                      onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+                      className="w-full bg-transparent border-b-2 border-white/30 text-white pl-6 pr-10 py-3 focus:outline-none focus:border-white focus:shadow-lg focus:shadow-white/20 transition-all duration-300 placeholder-white/40 text-sm"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute top-0 right-0 flex items-center text-white/60 hover:text-white"
+                    >
+                      {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  {errors.confirmPassword && (
+                    <p className="text-red-400 text-xs mt-1 flex items-center space-x-1">
+                      <X className="w-3 h-3" />
+                      <span>{errors.confirmPassword}</span>
+                    </p>
+                  )}
                 </div>
 
                 {/* Submit Button */}
@@ -853,7 +970,7 @@ const LoginPage = () => {
             )}
 
             {/* Authentication Success Message */}
-            {isAuthenticated && (
+            {showAuthSuccess && (
               <div className="space-y-4">
                 <div className="text-center mb-6">
                   <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -863,6 +980,9 @@ const LoginPage = () => {
                   <p className="text-white/70 text-sm">Redirecting to home page...</p>
                 </div>
               </div>
+            )}
+            {errors.api && (
+              <div className="text-red-400 text-xs text-center mb-2">{errors.api}</div>
             )}
           </div>
         </div>

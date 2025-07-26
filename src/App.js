@@ -29,80 +29,36 @@ import NotFound from './component/pages/NotFound';
 import LoadingSpinner from './component/layout/LoadingSpinner';
 import SkeletonLoader from './component/layout/SkeletonLoader';
 import AccessDenied from './component/pages/AccessDenied';
+import { useSelector, useDispatch } from 'react-redux';
+import { addToCart, removeFromCart, updateCartItemQuantity } from './slices/cartSlice';
+import { addToWishlist, removeFromWishlist } from './slices/wishlistSlice';
 
 function App() {
-  // GLOBAL STATE with localStorage persistence
-  const [cart, setCart] = useState(() => {
-    const savedCart = localStorage.getItem('gronik-cart');
-    return savedCart ? JSON.parse(savedCart) : [];
-  });
-  
-  const [wishlist, setWishlist] = useState(() => {
-    const savedWishlist = localStorage.getItem('gronik-wishlist');
-    return savedWishlist ? JSON.parse(savedWishlist) : [];
-  });
-
-  // Save to localStorage whenever cart or wishlist changes
-  useEffect(() => {
-    localStorage.setItem('gronik-cart', JSON.stringify(cart));
-  }, [cart]);
-
-  useEffect(() => {
-    localStorage.setItem('gronik-wishlist', JSON.stringify(wishlist));
-  }, [wishlist]);
+  const cart = useSelector(state => state.cart.items);
+  const wishlist = useSelector(state => state.wishlist.items);
+  const dispatch = useDispatch();
 
   // HANDLERS
-  const addToCart = (book) => {
-    setCart(prev => {
-      const exists = prev.find(item => item.id === book.id);
-      if (exists) {
-        return prev.map(item =>
-          item.id === book.id ? { ...item, quantity: item.quantity + 1 } : item
-        );
-      }
-      return [...prev, { ...book, quantity: 1 }];
-    });
-  };
-
-  const removeFromCart = (id) => {
-    setCart(prev => prev.filter(item => item.id !== id));
-  };
-
-  const updateCartItemQuantity = (id, newQuantity) => {
-    if (newQuantity < 1) {
-      removeFromCart(id);
-      return;
-    }
-    setCart(prev => prev.map(item =>
-      item.id === id ? { ...item, quantity: newQuantity } : item
-    ));
-  };
-
-  const addToWishlist = (book) => {
-    setWishlist(prev => {
-      if (prev.find(item => item.id === book.id)) return prev;
-      return [...prev, book];
-    });
-  };
-
-  const removeFromWishlist = (id) => {
-    setWishlist(prev => prev.filter(item => item.id !== id));
-  };
+  const handleAddToCart = (book) => dispatch(addToCart(book));
+  const handleRemoveFromCart = (id) => dispatch(removeFromCart(id));
+  const handleUpdateCartItemQuantity = (id, newQuantity) => dispatch(updateCartItemQuantity({ id, newQuantity }));
+  const handleAddToWishlist = (book) => dispatch(addToWishlist(book));
+  const handleRemoveFromWishlist = (id) => dispatch(removeFromWishlist(id));
 
   // HOME PAGE
   const HomePage = () => (
     <>
       <HeroSection
-        onAddToCart={addToCart}
-        onAddToWishlist={addToWishlist}
-        onRemoveFromCart={removeFromCart}
-        onRemoveFromWishlist={removeFromWishlist}
+        onAddToCart={handleAddToCart}
+        onAddToWishlist={handleAddToWishlist}
+        onRemoveFromCart={handleRemoveFromCart}
+        onRemoveFromWishlist={handleRemoveFromWishlist}
         cart={cart}
         wishlist={wishlist}
       />
       <FeaturedBooks
-        onAddToCart={addToCart}
-        onAddToWishlist={addToWishlist}
+        onAddToCart={handleAddToCart}
+        onAddToWishlist={handleAddToWishlist}
         cart={cart}
         wishlist={wishlist}
       />
@@ -114,8 +70,8 @@ function App() {
   // LIBRARY PAGE
   const LibraryPageWrapper = () => (
     <LibraryPage
-      onAddToCart={addToCart}
-      onAddToWishlist={addToWishlist}
+      onAddToCart={handleAddToCart}
+      onAddToWishlist={handleAddToWishlist}
       cart={cart}
       wishlist={wishlist}
     />
@@ -123,9 +79,8 @@ function App() {
 
   const location = useLocation();
   const isAdminRoute = location.pathname.startsWith('/admin');
-
   // Dummy admin check (replace with real auth/role check after backend integration)
-  const isAdmin = localStorage.getItem('role') === 'admin';
+  const isAdmin = useSelector(state => state.adminAuth.adminRole) === 'admin';
 
   return (
     <div className="App">
@@ -138,17 +93,17 @@ function App() {
         <Route path="/wishlist" element={
           <WishlistPage
             wishlist={wishlist}
-            removeFromWishlist={removeFromWishlist}
-            addToCart={addToCart}
+            removeFromWishlist={handleRemoveFromWishlist}
+            addToCart={handleAddToCart}
             cart={cart}
           />
         } />
         <Route path="/cart" element={
           <CartSection
             cart={cart}
-            removeFromCart={removeFromCart}
-            updateCartItemQuantity={updateCartItemQuantity}
-            addToWishlist={addToWishlist}
+            removeFromCart={handleRemoveFromCart}
+            updateCartItemQuantity={handleUpdateCartItemQuantity}
+            addToWishlist={handleAddToWishlist}
             wishlist={wishlist}
           />
         } />
@@ -156,10 +111,10 @@ function App() {
           <ProductSection
             cart={cart}
             wishlist={wishlist}
-            onAddToCart={addToCart}
-            onRemoveFromCart={removeFromCart}
-            onAddToWishlist={addToWishlist}
-            onRemoveFromWishlist={removeFromWishlist}
+            onAddToCart={handleAddToCart}
+            onRemoveFromCart={handleRemoveFromCart}
+            onAddToWishlist={handleAddToWishlist}
+            onRemoveFromWishlist={handleRemoveFromWishlist}
           />
         } />
         <Route path="/profile" element={<ProfileSection />} />
@@ -176,7 +131,6 @@ function App() {
         <Route path="/admin/orders" element={<OrdersManagement />} />
         <Route path="/admin/settings" element={<SettingsPage />} />
         <Route path="/access-denied" element={<AccessDenied />} />
-        {/* 404 Not Found Route */}
         <Route path="*" element={<NotFound />} />
       </Routes>
       {!isAdminRoute && <Footer />}

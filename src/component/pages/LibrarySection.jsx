@@ -98,10 +98,29 @@ export const centralizedBooksData = [
     hero: true,
     inStock: true,
     tags: ["Mindset", "Psychology", "Growth", "Success"],
-    fileSize: "1.5 MB"
+    fileSize: "1.9 MB"
   },
   {
     id: 6,
+    title: "Out of Stock Book - Test",
+    author: "Test Author",
+    category: "Self Development",
+    price: 120,
+    originalPrice: 150,
+    rating: 4.3,
+    reviews: 89,
+    image: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=300&h=400&fit=crop",
+    description: "This book is out of stock for testing purposes.",
+    badge: "OUT OF STOCK",
+    discount: "20% OFF",
+    featured: false,
+    hero: false,
+    inStock: false,
+    tags: ["Test", "Out of Stock", "Sample"],
+    fileSize: "1.5 MB"
+  },
+  {
+    id: 7,
     title: "Getting Things Done",
     author: "David Allen",
     category: "Productivity",
@@ -120,7 +139,7 @@ export const centralizedBooksData = [
     fileSize: "1.0 MB"
   },
   {
-    id: 7,
+    id: 8,
     title: "Deep Work",
     author: "Cal Newport",
     category: "Productivity",
@@ -139,7 +158,7 @@ export const centralizedBooksData = [
     fileSize: "1.1 MB"
   },
   {
-    id: 8,
+    id: 9,
     title: "The Subtle Art of Not Giving a F*ck",
     author: "Mark Manson",
     category: "Self Development",
@@ -158,7 +177,7 @@ export const centralizedBooksData = [
     fileSize: "0.8 MB"
   },
   {
-    id: 9,
+    id: 10,
     title: "Sapiens",
     author: "Yuval Noah Harari",
     category: "History",
@@ -177,7 +196,7 @@ export const centralizedBooksData = [
     fileSize: "2.5 MB"
   },
   {
-    id: 10,
+    id: 11,
     title: "The Power of Now",
     author: "Eckhart Tolle",
     category: "Spirituality",
@@ -209,6 +228,8 @@ const LibraryPage = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCart, 
   const [itemsPerPage] = useState(8); // Show 8 items per page
   const navigate = useNavigate();
   const [hoveredBook, setHoveredBook] = useState(null);
+  const [animatingCart, setAnimatingCart] = useState({});
+  const [animatingWishlist, setAnimatingWishlist] = useState({});
 
   // Use centralized books data
   const allBooks = centralizedBooksData;
@@ -248,30 +269,28 @@ const LibraryPage = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCart, 
   const isInCart = (book) => cart.some(item => item.id === book.id);
   const isInWishlist = (book) => wishlist.some(item => item.id === book.id);
 
-  // Update add to cart/wishlist logic to only allow adding, not removing
   const handleAddToCart = (e, book) => {
     e.stopPropagation();
-    if (!book.inStock) {
-      return;
-    }
-    if (!isInCart(book)) {
-      setCartButtonClicked(prev => ({ ...prev, [book.id]: true }));
-      setTimeout(() => setCartButtonClicked(prev => ({ ...prev, [book.id]: false })), 1500);
+    if (!book.inStock || isInCart(book) || animatingCart[book.id]) return;
+    setAnimatingCart(prev => ({ ...prev, [book.id]: true }));
+    setCartButtonClicked(prev => ({ ...prev, [book.id]: true }));
+    setTimeout(() => {
       onAddToCart && onAddToCart(book);
-    } else {
-      onRemoveFromCart && onRemoveFromCart(book.id);
-    }
+      setAnimatingCart(prev => ({ ...prev, [book.id]: false }));
+      setCartButtonClicked(prev => ({ ...prev, [book.id]: false }));
+    }, 1200);
   };
 
   const handleAddToWishlist = (e, book) => {
     e.stopPropagation();
-    if (isInWishlist(book)) {
-      onRemoveFromWishlist && onRemoveFromWishlist(book.id);
-    } else {
-      setWishlistButtonClicked(prev => ({ ...prev, [book.id]: true }));
-      setTimeout(() => setWishlistButtonClicked(prev => ({ ...prev, [book.id]: false })), 2000);
+    if (isInWishlist(book) || animatingWishlist[book.id]) return;
+    setAnimatingWishlist(prev => ({ ...prev, [book.id]: true }));
+    setWishlistButtonClicked(prev => ({ ...prev, [book.id]: true }));
+    setTimeout(() => {
       onAddToWishlist && onAddToWishlist(book);
-    }
+      setAnimatingWishlist(prev => ({ ...prev, [book.id]: false }));
+      setWishlistButtonClicked(prev => ({ ...prev, [book.id]: false }));
+    }, 1500);
   };
 
   const handleCardClick = (book) => {
@@ -424,24 +443,33 @@ const LibraryPage = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCart, 
                     <div className="flex flex-row gap-2 w-full mb-4">
                       <button
                         onClick={e => handleAddToCart(e, book)}
-                        disabled={!book.inStock}
+                        disabled={!book.inStock || isInCart(book) || animatingCart[book.id]}
                         className={`cart-button-animated ${cartButtonClicked[book.id] ? 'clicked' : ''} flex-1 py-3 px-4 rounded-xl font-semibold text-base flex items-center justify-center gap-2 transition-all duration-300 hover:scale-105 shadow-xl hover:shadow-2xl ${
-                          isInCart(book)
-                            ? 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white'
-                            : !book.inStock
-                              ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
+                          !book.inStock
+                            ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
+                            : isInCart(book)
+                              ? 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white'
                               : 'bg-gradient-to-r from-white to-gray-100 hover:from-gray-100 hover:to-white text-[#2D1B3D] shadow-xl'
                         }`}
                       >
                         <ShoppingCart className="cart-icon w-5 h-5" />
                         <div className="box-icon w-3 h-3 bg-current rounded-sm"></div>
                         <span className="cart-text">
-                          {isInCart(book) ? (
-                            <Check className="w-5 h-5 mr-2 inline" />
+                          {animatingCart[book.id] ? (
+                            <>
+                              <span className="hidden sm:inline">Add to </span>Cart
+                            </>
+                          ) : isInCart(book) ? (
+                            <>
+                              <span className="hidden sm:inline">In </span>Cart!
+                            </>
+                          ) : !book.inStock ? (
+                            'Out of Stock'
                           ) : (
-                            <ShoppingCart className="w-5 h-5 mr-2 inline" />
+                            <>
+                              <span className="hidden sm:inline">Add to </span>Cart
+                            </>
                           )}
-                          {isInCart(book) ? 'Added to Cart!' : !book.inStock ? 'Out of Stock' : 'Add to Cart'}
                         </span>
                         <span className="added-text">
                           <Check className="w-5 h-5 mr-2 inline" />
@@ -449,7 +477,12 @@ const LibraryPage = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCart, 
                         </span>
                       </button>
                       <button
-                        onClick={e => handleAddToWishlist(e, book)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          handleAddToWishlist(e, book);
+                        }}
+                        disabled={isInWishlist(book) || animatingWishlist[book.id]}
                         className={`wishlist-button-animated ${wishlistButtonClicked[book.id] ? 'clicked' : ''} p-3 rounded-xl transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl ${
                           isInWishlist(book)
                             ? 'bg-gradient-to-r from-red-500 to-red-600 text-white'
@@ -521,12 +554,12 @@ const LibraryPage = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCart, 
         {filteredBooks.length === 0 && (
           <div className="text-center py-12">
             <div className="bg-[#2D1B3D]/90 backdrop-blur-md rounded-2xl p-8 border border-[#3D2A54]/50 max-w-md mx-auto shadow-xl">
-              <h3 className="text-2xl font-bold text-white mb-4">No Books Found</h3>
+              <h3 className="text-2xl font-bold text-white mb-4">No Book Found</h3>
               <p className="text-white/80 mb-6">
                 Try selecting a different category or adjusting your search.
               </p>
               <button
-                onClick={() => setSelectedCategory('All')}
+                onClick={() => navigate('/library')}
                 className="bg-gradient-to-r from-[#3D2A54] to-[#2D1B3D] hover:from-[#2D1B3D] hover:to-[#3D2A54] text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg"
               >
                 Show All Books
@@ -536,18 +569,6 @@ const LibraryPage = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCart, 
         )}
       </div>
       <style jsx>{`
-        .card-hover-gold:hover, .card-hover-gold.gold-glow {
-          box-shadow: 0 0 0 2px #ffe9b3, 0 4px 24px 0 #ffe9b3cc, 0 1.5px 8px 0 #fff7c1;
-          border: 1.5px solid #FFD70080 !important;
-          transform: translateY(-4px) scale(1.025);
-        }
-        @media (hover: none) and (pointer: coarse) {
-          .card-hover-gold:active {
-            box-shadow: 0 0 0 2px #ffe9b3, 0 4px 24px 0 #ffe9b3cc, 0 1.5px 8px 0 #fff7c1;
-            border: 1.5px solid #FFD70080 !important;
-            transform: translateY(-2px) scale(1.01);
-          }
-        }
         .cart-button-animated {
           position: relative;
           overflow: hidden;
@@ -629,40 +650,16 @@ const LibraryPage = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCart, 
         @keyframes heartDrop {
           0% {
             top: -20%;
-            opacity: 0;
-            transform: translate(-50%, -50%) scale(0.5);
-          }
-          20% {
             opacity: 1;
-            transform: translate(-50%, -50%) scale(1);
-          }
-          40% {
-            top: 50%;
-            transform: translate(-50%, -50%) scale(1.2);
           }
           60% {
             top: 50%;
-            transform: translate(-50%, -50%) scale(1) rotate(10deg);
-          }
-          80% {
-            top: 50%;
-            transform: translate(-50%, -50%) scale(1) rotate(-10deg);
+            opacity: 1;
           }
           100% {
-            top: 50%;
-            opacity: 1;
-            transform: translate(-50%, -50%) scale(1) rotate(0deg);
+            top: 120%;
+            opacity: 0;
           }
-        }
-        @keyframes bounce-slow {
-          0%, 100% { transform: rotate(-45deg) scale(1); }
-          20% { transform: rotate(-45deg) scale(1.08); }
-          40% { transform: rotate(-45deg) scale(0.97); }
-          60% { transform: rotate(-45deg) scale(1.05); }
-          80% { transform: rotate(-45deg) scale(0.98); }
-        }
-        .animate-bounce-slow {
-          animation: bounce-slow 1.2s cubic-bezier(.4,1.2,.6,1) 1;
         }
       `}</style>
     </div>

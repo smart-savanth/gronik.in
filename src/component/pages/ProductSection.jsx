@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, Fragment } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, ShoppingCart, Heart, Star, Eye, Users, Zap, Check, BookOpen } from 'lucide-react';
+import { ArrowLeft, ShoppingCart, Heart, Star, Eye, Users, Zap, Check, BookOpen, ChevronDown, ChevronRight, Quote, Plus, X, Send } from 'lucide-react';
 import { centralizedBooksData } from './LibrarySection';
 
 const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCart, onAddToWishlist, onRemoveFromWishlist }) => {
@@ -11,6 +11,63 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
   const [activeTab, setActiveTab] = useState('overview');
   const [cartButtonClicked, setCartButtonClicked] = useState(false);
   const [wishlistButtonClicked, setWishlistButtonClicked] = useState(false);
+  const [expandedSections, setExpandedSections] = useState({});
+  const reviewsSectionRef = useRef(null);
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const [newReview, setNewReview] = useState({
+    rating: 5,
+    text: '',
+    name: ''
+  });
+
+  // Track image errors for sections and chapters
+  const [imageErrors, setImageErrors] = useState({});
+  const [selectedChapter, setSelectedChapter] = useState(null);
+  const [showChapterModal, setShowChapterModal] = useState(false);
+
+  // Shared reviews data (same as home page) - MUST be at top level
+  const [reviews] = useState([
+    { 
+      id: 1,
+      rating: 5, 
+      text: "Books are easy to get and the quality is amazing! The reading experience is seamless and the collection is vast.",
+      name: "Aarav Sharma"
+    },
+    { 
+      id: 2,
+      rating: 5, 
+      text: "Great collection and smooth reading experience. Love the variety and user interface. Perfect for daily reading.",
+      name: "Priya Patel"
+    },
+    { 
+      id: 3,
+      rating: 4, 
+      text: "Love the variety of books available here. Perfect for my daily reading routine and the quality is top-notch.",
+      name: "Rahul Verma"
+    },
+    { 
+      id: 4,
+      rating: 5, 
+      text: "Outstanding platform with incredible book selection. The reading experience is smooth and enjoyable.",
+      name: "Sneha Reddy"
+    },
+    { 
+      id: 5,
+      rating: 4, 
+      text: "Fantastic digital library with great features. Love how easy it is to find and read books on any device.",
+      name: "Vikram Singh"
+    },
+    { 
+      id: 6,
+      rating: 5, 
+      text: "Best e-book platform I've used! Great selection, amazing quality, and the interface is beautifully designed.",
+      name: "Ananya Iyer"
+    }
+  ]);
+
+  // Duplicate reviews for seamless infinite scroll (same as home page)
+  const duplicatedReviews = [...reviews, ...reviews];
 
   // Get product data from centralized books data
   const productData = centralizedBooksData.find(book => book.id === parseInt(productId));
@@ -35,6 +92,14 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
       </div>
     );
   }
+
+  // Calculate discount percentage dynamically
+  const calculateDiscountPercentage = () => {
+    if (productData.originalPrice && productData.price) {
+      return Math.round(((productData.originalPrice - productData.price) / productData.originalPrice) * 100);
+    }
+    return 0;
+  };
 
   // Create enhanced product data with default values for missing fields
   const enhancedProductData = {
@@ -64,16 +129,141 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
       "Best practices and industry standards",
       "Tools and resources for continued learning"
     ],
-    tableOfContents: productData.tableOfContents || [
-      "Chapter 1: Introduction and Overview",
-      "Chapter 2: Understanding the Fundamentals",
-      "Chapter 3: Core Principles and Concepts",
-      "Chapter 4: Practical Applications",
-      "Chapter 5: Advanced Techniques",
-      "Chapter 6: Case Studies and Examples",
-      "Chapter 7: Implementation Strategies",
-      "Chapter 8: Conclusion and Next Steps"
-    ]
+    // New structured table of contents with sections and chapters (matching admin structure)
+    tableOfContents: Array.isArray(productData.tableOfContents) && productData.tableOfContents.length > 0 && typeof productData.tableOfContents[0] === 'object' 
+      ? productData.tableOfContents 
+      : [
+          {
+            title: "Getting Started",
+            image: "/images/section1.jpg", // Default section image
+            chapters: [
+              {
+                title: "Introduction to the Course",
+                thumbnail: "/images/chapter1-thumb.jpg",
+                pdf: "/pdfs/chapter1.pdf"
+              },
+              {
+                title: "Setting Up Your Environment",
+                thumbnail: "/images/chapter2-thumb.jpg",
+                pdf: "/pdfs/chapter2.pdf"
+              },
+              {
+                title: "Understanding the Basics",
+                thumbnail: "/images/chapter3-thumb.jpg",
+                pdf: "/pdfs/chapter3.pdf"
+              },
+              {
+                title: "Your First Project",
+                thumbnail: "/images/chapter4-thumb.jpg",
+                pdf: "/pdfs/chapter4.pdf"
+              }
+            ]
+          },
+          {
+            title: "Core Concepts",
+            image: "/images/section2.jpg",
+            chapters: [
+              {
+                title: "Fundamental Principles",
+                thumbnail: "/images/chapter5-thumb.jpg",
+                pdf: "/pdfs/chapter5.pdf"
+              },
+              {
+                title: "Key Theories and Models",
+                thumbnail: "/images/chapter6-thumb.jpg",
+                pdf: "/pdfs/chapter6.pdf"
+              },
+              {
+                title: "Essential Techniques",
+                thumbnail: "/images/chapter7-thumb.jpg",
+                pdf: "/pdfs/chapter7.pdf"
+              },
+              {
+                title: "Best Practices",
+                thumbnail: "/images/chapter8-thumb.jpg",
+                pdf: "/pdfs/chapter8.pdf"
+              }
+            ]
+          },
+          {
+            title: "Advanced Topics",
+            image: "/images/section3.jpg",
+            chapters: [
+              {
+                title: "Complex Scenarios",
+                thumbnail: "/images/chapter9-thumb.jpg",
+                pdf: "/pdfs/chapter9.pdf"
+              },
+              {
+                title: "Advanced Strategies",
+                thumbnail: "/images/chapter10-thumb.jpg",
+                pdf: "/pdfs/chapter10.pdf"
+              },
+              {
+                title: "Optimization Techniques",
+                thumbnail: "/images/chapter11-thumb.jpg",
+                pdf: "/pdfs/chapter11.pdf"
+              },
+              {
+                title: "Troubleshooting",
+                thumbnail: "/images/chapter12-thumb.jpg",
+                pdf: "/pdfs/chapter12.pdf"
+              }
+            ]
+          },
+          {
+            title: "Practical Applications",
+            image: "/images/section4.jpg",
+            chapters: [
+              {
+                title: "Real-World Examples",
+                thumbnail: "/images/chapter13-thumb.jpg",
+                pdf: "/pdfs/chapter13.pdf"
+              },
+              {
+                title: "Case Studies",
+                thumbnail: "/images/chapter14-thumb.jpg",
+                pdf: "/pdfs/chapter14.pdf"
+              },
+              {
+                title: "Implementation Guide",
+                thumbnail: "/images/chapter15-thumb.jpg",
+                pdf: "/pdfs/chapter15.pdf"
+              },
+              {
+                title: "Performance Tips",
+                thumbnail: "/images/chapter16-thumb.jpg",
+                pdf: "/pdfs/chapter16.pdf"
+              }
+            ]
+          },
+          {
+            title: "Conclusion",
+            image: "/images/section5.jpg",
+            chapters: [
+              {
+                title: "Summary and Review",
+                thumbnail: "/images/chapter17-thumb.jpg",
+                pdf: "/pdfs/chapter17.pdf"
+              },
+              {
+                title: "Next Steps",
+                thumbnail: "/images/chapter18-thumb.jpg",
+                pdf: "/pdfs/chapter18.pdf"
+              },
+              {
+                title: "Additional Resources",
+                thumbnail: "/images/chapter19-thumb.jpg",
+                pdf: "/pdfs/chapter19.pdf"
+              },
+              {
+                title: "Final Thoughts",
+                thumbnail: "/images/chapter20-thumb.jpg",
+                pdf: "/pdfs/chapter20.pdf"
+              }
+            ]
+          }
+        ]
   };
 
   // Helper functions to check if product is in cart/wishlist
@@ -82,30 +272,34 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
 
   const handleAddToCart = () => {
     if (!enhancedProductData.inStock) return;
-    // Only trigger animation when adding to cart
+    
+    // Only add to cart if not already in cart
     if (!isInCart) {
       setCartButtonClicked(true);
       setTimeout(() => setCartButtonClicked(false), 1500);
-    }
-    // Original functionality
-    if (isInCart) {
-      onRemoveFromCart && onRemoveFromCart(enhancedProductData.id);
-    } else {
       onAddToCart && onAddToCart(enhancedProductData);
+    }
+    // If already in cart, show message or redirect to cart
+    else {
+      // Show a brief message that item is already in cart
+      setCartButtonClicked(true);
+      setTimeout(() => setCartButtonClicked(false), 1000);
     }
   };
 
   const handleAddToWishlist = () => {
     if (!enhancedProductData.inStock) return;
-    // Trigger animation
-    setWishlistButtonClicked(true);
-    setTimeout(() => setWishlistButtonClicked(false), 2000);
     
-    // Original functionality
-    if (isInWishlist) {
-      onRemoveFromWishlist && onRemoveFromWishlist(enhancedProductData.id);
-    } else {
+    // Only add to wishlist if not already in wishlist
+    if (!isInWishlist) {
+      setWishlistButtonClicked(true);
+      setTimeout(() => setWishlistButtonClicked(false), 2000);
       onAddToWishlist && onAddToWishlist(enhancedProductData);
+    }
+    // If already in wishlist, show message
+    else {
+      setWishlistButtonClicked(true);
+      setTimeout(() => setWishlistButtonClicked(false), 1000);
     }
   };
 
@@ -118,6 +312,42 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
     } else {
       navigate('/library');
     }
+  };
+
+  // Handle section expansion for TOC
+  const toggleSection = (sectionIndex) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [sectionIndex]: !prev[sectionIndex]
+    }));
+  };
+
+  // Handle reviews click to scroll to reviews section
+  const handleReviewsClick = () => {
+    reviewsSectionRef.current?.scrollIntoView({ 
+      behavior: 'smooth',
+      block: 'start'
+    });
+  };
+
+  // Handle review form submission
+  const handleSubmitReview = () => {
+    if (newReview.text && newReview.name) {
+      // In a real app, you would send this to your API
+      console.log('New review submitted:', newReview);
+      setNewReview({ rating: 5, text: '', name: '' });
+      setShowReviewForm(false);
+    }
+  };
+
+  const handleChapterView = (chapter) => {
+    setSelectedChapter(chapter);
+    setShowChapterModal(true);
+  };
+
+  const closeChapterModal = () => {
+    setShowChapterModal(false);
+    setSelectedChapter(null);
   };
 
   return (
@@ -445,7 +675,12 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
                 </div>
                 <span className="font-semibold text-lg">{enhancedProductData.rating}</span>
                 <span className="text-white/60">•</span>
-                <span className="font-medium">({enhancedProductData.reviews} reviews)</span>
+                <button 
+                  onClick={handleReviewsClick}
+                  className="font-medium hover:text-yellow-400 transition-colors duration-300 cursor-pointer underline decoration-dotted"
+                >
+                  ({reviews.length} reviews)
+                </button>
               </div>
             </div>
 
@@ -457,7 +692,7 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
                   <span className="text-xl text-[#2D1B3D]/60 line-through">${enhancedProductData.originalPrice}</span>
                 </div>
                 <div className="bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-2 rounded-full text-sm font-bold shadow-lg">
-                  Save ${enhancedProductData.originalPrice - enhancedProductData.price}
+                  Save {calculateDiscountPercentage()}% (${enhancedProductData.originalPrice - enhancedProductData.price})
                 </div>
               </div>
             </div>
@@ -465,8 +700,8 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
             {/* Quick Info Cards */}
             <div className="flex flex-row gap-2 w-full mb-4">
               <div className="bg-[#9B7BB8] rounded-xl p-4 flex flex-col items-center justify-center shadow-lg w-[30%] min-w-[90px]">
-                <BookOpen className="w-5 h-5 text-[#2D1B3D] mb-1" />
-                <span className="text-xs text-[#2D1B3D] font-semibold">Pages</span>
+                <Eye className="w-5 h-5 text-[#2D1B3D] mb-1" />
+                <span className="text-xs text-[#2D1B3D] font-semibold">Overview</span>
                 <span className="text-base text-[#2D1B3D] font-bold">{enhancedProductData.pages}</span>
               </div>
               <div className="bg-[#9B7BB8] rounded-xl p-4 flex flex-col items-center justify-center shadow-lg w-[70%] min-w-[120px]">
@@ -509,7 +744,7 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
                   ) : (
                     <ShoppingCart className="w-5 h-5 mr-2 inline" />
                   )}
-                  {isInCart ? 'Added to Cart!' : !enhancedProductData.inStock ? 'Out of Stock' : 'Add to Cart'}
+                  {isInCart ? 'In Cart!' : !enhancedProductData.inStock ? 'Out of Stock' : 'Add to Cart'}
                 </span>
                 
                 {/* Added Text for Animation */}
@@ -547,8 +782,8 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
           <div className="flex flex-wrap justify-center gap-4 mb-12">
             {[
               { id: 'overview', label: 'Overview', icon: Eye },
-              { id: 'learning', label: "What You'll Learn", icon: BookOpen },
-              { id: 'contents', label: 'Table of Contents', icon: Users }
+              { id: 'what-you-learn', label: "What You'll Learn", icon: BookOpen },
+              { id: 'contents', label: 'Table of Contents', icon: BookOpen }
             ].map(({ id, label, icon: Icon }) => (
               <button
                 key={id}
@@ -570,31 +805,31 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
             {activeTab === 'overview' && (
               <div className="space-y-8">
                 <div className="text-center mb-8">
-                  <h3 className="text-3xl font-bold text-[#2D1B3D] mb-4">About This Book</h3>
+                  <h3 className="text-3xl font-bold text-[#2D1B3D] mb-4">Overview</h3>
                   <div className="w-24 h-1 bg-[#2D1B3D]/60 mx-auto"></div>
                 </div>
-                <div className="bg-[#2D1B3D]/10 rounded-2xl p-8 shadow-lg">
-                  <p className="text-[#2D1B3D] text-lg leading-relaxed">
+                <div className="bg-[#2D1B3D]/70 backdrop-blur-md border-[#2D1B3D]/30 shadow-xl rounded-2xl p-6 sm:p-8 border">
+                  <p className="text-white/90 leading-relaxed text-lg">
                     {enhancedProductData.fullDescription}
                   </p>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="bg-[#2D1B3D]/10 rounded-2xl p-8 shadow-lg">
-                    <h4 className="text-xl font-semibold mb-6 text-[#2D1B3D]">Book Details</h4>
-                    <div className="space-y-4 text-[#2D1B3D]">
-                      <div className="flex justify-between items-center py-2 border-b border-[#2D1B3D]/20">
+                  <div className="bg-[#2D1B3D]/70 backdrop-blur-md border-[#2D1B3D]/30 shadow-xl rounded-2xl p-8 border">
+                    <h4 className="text-xl font-semibold mb-6 text-white/90">Book Details</h4>
+                    <div className="space-y-4 text-white/90">
+                      <div className="flex justify-between items-center py-2 border-b border-white/20">
                         <span className="font-medium">Language:</span>
                         <span>{enhancedProductData.language}</span>
                       </div>
-                      <div className="flex justify-between items-center py-2 border-b border-[#2D1B3D]/20">
+                      <div className="flex justify-between items-center py-2 border-b border-white/20">
                         <span className="font-medium">Format:</span>
                         <span>{enhancedProductData.format}</span>
                       </div>
-                      <div className="flex justify-between items-center py-2 border-b border-[#2D1B3D]/20">
+                      <div className="flex justify-between items-center py-2 border-b border-white/20">
                         <span className="font-medium">File Size:</span>
                         <span>{enhancedProductData.fileSize}</span>
                       </div>
-                      <div className="flex justify-between items-center py-2 border-b border-[#2D1B3D]/20">
+                      <div className="flex justify-between items-center py-2 border-b border-white/20">
                         <span className="font-medium">Published:</span>
                         <span>{enhancedProductData.publishDate}</span>
                       </div>
@@ -604,20 +839,20 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
                       </div>
                     </div>
                   </div>
-                  <div className="bg-[#2D1B3D]/10 rounded-2xl p-8 shadow-lg">
-                    <h4 className="text-xl font-semibold mb-6 text-[#2D1B3D]">Community</h4>
-                    <div className="space-y-4 text-[#2D1B3D]">
-                      <div className="flex flex-col items-center py-2 border-b border-[#2D1B3D]/20">
+                  <div className="bg-[#2D1B3D]/70 backdrop-blur-md border-[#2D1B3D]/30 shadow-xl rounded-2xl p-8 border">
+                    <h4 className="text-xl font-semibold mb-6 text-white/90">Community</h4>
+                    <div className="space-y-4 text-white/90">
+                      <div className="flex flex-col items-center py-2 border-b border-white/20">
                         <span className="font-medium text-center">Want to connect with other readers, get exclusive deals, and join book discussions?</span>
-                        <a href="https://t.me/yourtelegram" target="_blank" rel="noopener noreferrer" className="underline text-blue-700 font-bold mt-2">Join our Telegram & Discord community!</a>
+                        <a href="https://t.me/yourtelegram" target="_blank" rel="noopener noreferrer" className="underline text-[#FFD700] font-bold mt-2">Join our Telegram & Discord community!</a>
                       </div>
-                      <div className="flex justify-between items-center py-2 border-b border-[#2D1B3D]/20">
+                      <div className="flex justify-between items-center py-2 border-b border-white/20">
                         <span className="font-medium">Category:</span>
                         <span>{enhancedProductData.category}</span>
                       </div>
-                      <div className="flex justify-between items-center py-2 border-b border-[#2D1B3D]/20">
+                      <div className="flex justify-between items-center py-2 border-b border-white/20">
                         <span className="font-medium">Rating:</span>
-                        <span>{enhancedProductData.rating}/5 ({enhancedProductData.reviews} reviews)</span>
+                        <span>{enhancedProductData.rating}/5 ({reviews.length} reviews)</span>
                       </div>
                     </div>
                   </div>
@@ -625,20 +860,36 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
               </div>
             )}
 
-            {activeTab === 'learning' && (
+            {activeTab === 'what-you-learn' && (
               <div className="space-y-8">
                 <div className="text-center mb-8">
-                  <h3 className="text-3xl font-bold text-[#2D1B3D] mb-4">What You'll Learn</h3>
+                  <h3 className="text-3xl font-bold text-[#2D1B3D] mb-4">What You Will Learn</h3>
                   <div className="w-24 h-1 bg-[#2D1B3D]/60 mx-auto"></div>
                 </div>
                 <div className="space-y-6">
-                  {enhancedProductData.whatYoullLearn.map((item, index) => (
-                    <div key={index} className="group bg-[#2D1B3D]/10 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+                  {enhancedProductData.learningObjectives?.map((objective, index) => (
+                    <div key={index} className="bg-[#2D1B3D]/70 backdrop-blur-md border-[#2D1B3D]/30 shadow-xl rounded-2xl p-6 border transition-all duration-300">
                       <div className="flex items-start space-x-4">
-                        <div className="p-2 bg-white/20 rounded-lg group-hover:bg-white/30 transition-colors duration-300">
-                          <Zap className="w-6 h-6 text-white" />
+                        <div className="bg-[#9B7BB8] text-[#2D1B3D] w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0">
+                          {index + 1}
                         </div>
-                        <span className="text-[#2D1B3D] text-lg leading-relaxed">{item}</span>
+                        <p className="text-white/90 leading-relaxed">{objective}</p>
+                      </div>
+                    </div>
+                  )) || [
+                    "Master modern web development frameworks and tools",
+                    "Learn responsive design principles and best practices",
+                    "Understand advanced JavaScript concepts and ES6+ features",
+                    "Build scalable and maintainable applications",
+                    "Implement security best practices in web applications",
+                    "Deploy applications to production environments"
+                  ].map((objective, index) => (
+                    <div key={index} className="bg-[#2D1B3D]/70 backdrop-blur-md border-[#2D1B3D]/30 shadow-xl rounded-2xl p-6 border transition-all duration-300">
+                      <div className="flex items-start space-x-4">
+                        <div className="bg-[#9B7BB8] text-[#2D1B3D] w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0">
+                          {index + 1}
+                        </div>
+                        <p className="text-white/90 leading-relaxed">{objective}</p>
                       </div>
                     </div>
                   ))}
@@ -652,15 +903,86 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
                   <h3 className="text-3xl font-bold text-[#2D1B3D] mb-4">Table of Contents</h3>
                   <div className="w-24 h-1 bg-[#2D1B3D]/60 mx-auto"></div>
                 </div>
-                <div className="space-y-4">
-                  {enhancedProductData.tableOfContents.map((chapter, index) => (
-                    <div key={index} className="group bg-[#2D1B3D]/10 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-                      <div className="flex items-start space-x-4">
-                        <div className="bg-gradient-to-r from-white to-gray-100 text-[#2D1B3D] w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shadow-lg group-hover:scale-110 transition-transform duration-300">
-                          {index + 1}
+                <div className="space-y-6">
+                  {enhancedProductData.tableOfContents.map((section, sectionIndex) => (
+                    <div key={sectionIndex} className="group bg-[#2D1B3D]/70 backdrop-blur-md border-[#2D1B3D]/30 shadow-xl rounded-2xl p-6 border transition-all duration-300">
+                      {/* Section Header with Image */}
+                      <div className="flex items-center justify-between cursor-pointer" onClick={() => toggleSection(sectionIndex)}>
+                        <div className="flex items-center space-x-4">
+                          {/* Section Image - book aspect ratio */}
+                          <div className="w-16 h-24 rounded-lg overflow-hidden bg-gradient-to-br from-white to-gray-100 shadow-lg flex items-center justify-center">
+                            {!imageErrors[`section-${sectionIndex}`] && section.image ? (
+                              <img
+                                src={section.image}
+                                alt={section.title}
+                                className="w-full h-full object-cover"
+                                style={{ aspectRatio: '3/4' }}
+                                onError={() => setImageErrors(prev => ({ ...prev, [`section-${sectionIndex}`]: true }))}
+                              />
+                            ) : (
+                              <div className="w-full h-full bg-gradient-to-br from-[#9B7BB8] to-[#8A6AA7] flex items-center justify-center text-white font-bold text-2xl">
+                                {section.title.charAt(0)}
+                              </div>
+                            )}
+                          </div>
+                          <span className="text-white/90 text-lg font-semibold">{section.title}</span>
                         </div>
-                        <span className="text-[#2D1B3D] text-lg leading-relaxed flex-1">{chapter}</span>
+                        <ChevronDown className={`w-5 h-5 transition-transform duration-300 text-white/70 ${expandedSections[sectionIndex] ? 'rotate-180' : ''}`} />
                       </div>
+                      {/* Expanded Chapters */}
+                      {expandedSections[sectionIndex] && (
+                        <div className="pl-20 mt-6 space-y-4">
+                          {section.chapters.map((chapter, chapterIndex) => (
+                            <div key={chapterIndex} className="group bg-[#2D1B3D]/50 backdrop-blur-md border-[#2D1B3D]/20 shadow-lg rounded-2xl p-4 border transition-all duration-300">
+                              <div className="flex items-center space-x-4">
+                                {/* Chapter Thumbnail - book aspect ratio */}
+                                <div className="w-10 h-14 rounded-lg overflow-hidden bg-gradient-to-br from-white to-gray-100 shadow-md flex-shrink-0 flex items-center justify-center">
+                                  {!imageErrors[`chapter-${sectionIndex}-${chapterIndex}`] && chapter.thumbnail ? (
+                                    <img
+                                      src={chapter.thumbnail}
+                                      alt={chapter.title}
+                                      className="w-full h-full object-cover"
+                                      style={{ aspectRatio: '3/4' }}
+                                      onError={() => setImageErrors(prev => ({ ...prev, [`chapter-${sectionIndex}-${chapterIndex}`]: true }))}
+                                    />
+                                  ) : (
+                                    <div className="w-full h-full bg-gradient-to-br from-[#9B7BB8] to-[#8A6AA7] flex items-center justify-center text-white font-bold text-lg">
+                                      {chapter.title.charAt(0)}
+                                    </div>
+                                  )}
+                                </div>
+                                {/* Chapter Info */}
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="text-white/90 text-lg font-semibold leading-relaxed">{chapter.title}</h4>
+                                  <div className="flex items-center space-x-2 mt-1">
+                                    <span className="text-white/60 text-sm">PDF available</span>
+                                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                  </div>
+                                </div>
+                                {/* Download/View Button */}
+                                {chapter.pdf ? (
+                                  <button
+                                    onClick={() => handleChapterView(chapter)}
+                                    className="bg-[#9B7BB8] hover:bg-[#8A6AA7] text-[#2D1B3D] px-3 py-2 rounded-lg text-sm font-semibold transition-all duration-300 shadow-lg flex items-center space-x-1"
+                                  >
+                                    <Eye className="w-4 h-4" />
+                                    <span>View</span>
+                                  </button>
+                                ) : (
+                                  <button
+                                    className="bg-gray-400 text-white px-3 py-2 rounded-lg text-sm font-semibold cursor-not-allowed flex items-center space-x-1"
+                                    disabled
+                                    title="PDF not available"
+                                  >
+                                    <Eye className="w-4 h-4" />
+                                    <span>View</span>
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -668,9 +990,220 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
             )}
           </div>
         </div>
+
+        {/* Reviews Section - Same Scrolling Behavior as Home Page */}
+        <div ref={reviewsSectionRef} className="bg-[#9B7BB8] rounded-3xl p-8 lg:p-12 shadow-2xl mt-20">
+          {/* Header */}
+          <div className="text-center mb-8 sm:mb-16">
+            <h3 className="text-2xl sm:text-4xl lg:text-5xl font-bold mb-4 sm:mb-6 text-[#2D1B3D] px-4">
+              What Our Readers Say
+            </h3>
+            <p className="text-sm sm:text-xl text-[#2D1B3D]/80 max-w-2xl mx-auto mb-6 sm:mb-8 font-medium px-4">
+              Join thousands of satisfied readers who have transformed their reading experience
+            </p>
+            
+            {/* Add Review Button */}
+            <button
+              onClick={() => setShowReviewForm(true)}
+              className="inline-flex items-center space-x-2 bg-[#2D1B3D] text-white px-4 sm:px-6 py-2 sm:py-3 rounded-full hover:bg-[#3D2A54] transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 font-semibold text-sm sm:text-base"
+            >
+              <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span>Add Your Review</span>
+            </button>
+          </div>
+
+          {/* Continuous Scrolling Reviews Container - Same as Home Page */}
+          <div className="relative overflow-hidden" style={{ height: '280px', paddingTop: '20px', paddingBottom: '20px' }}>
+            <div 
+              className="flex gap-4 sm:gap-8 w-max"
+              style={{
+                animation: isPaused ? 'none' : 'scroll 80s linear infinite',
+                transform: 'translateX(0)'
+              }}
+              onMouseEnter={() => setIsPaused(true)}
+              onMouseLeave={() => setIsPaused(false)}
+            >
+              {duplicatedReviews.map((review, index) => (
+                <div 
+                  key={`${review.id}-${index}`}
+                  className="bg-[#2D1B3D]/70 backdrop-blur-md border-[#2D1B3D]/30 shadow-xl rounded-2xl p-4 sm:p-8 transition-all duration-300 relative group border w-64 sm:w-80 flex-shrink-0"
+                >
+                  {/* Quote Icon */}
+                  <div className="absolute top-3 right-3 sm:top-4 sm:right-4 opacity-30 group-hover:opacity-50 text-white/80 transition-opacity duration-300">
+                    <Quote className="w-6 h-6 sm:w-8 sm:h-8" />
+                  </div>
+                  
+                  {/* Rating */}
+                  <div className="flex justify-center mb-4 sm:mb-6">
+                    <div className="flex">
+                      {[...Array(5)].map((_, i) => (
+                        <Star 
+                          key={i} 
+                          className={`w-4 h-4 sm:w-6 sm:h-6 ${i < review.rating ? 'text-yellow-400 fill-current' : 'text-white/40'}`} 
+                        />
+                      ))}
+                    </div>
+                  </div>
+                  
+                  {/* Review Text */}
+                  <p className="italic leading-relaxed text-sm sm:text-base text-white/90 text-center">
+                    "{review.text}"
+                  </p>
+
+                  <div className="flex justify-center mt-3">
+                    <span className="text-xs sm:text-sm text-[#FFD700] font-semibold opacity-80 rounded-full px-2 py-0.5 bg-[#2D1B3D]/30" style={{fontFamily: 'cursive'}}>
+                      {review.name}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Review Form Modal */}
+        {showReviewForm && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl p-6 sm:p-8 max-w-md w-full mx-4 shadow-2xl relative max-h-[calc(100%-2rem)] overflow-y-auto">
+              <button
+                onClick={() => setShowReviewForm(false)}
+                className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 transition-colors"
+              >
+                <X className="w-5 h-5 sm:w-6 sm:h-6" />
+              </button>
+              
+              <h3 className="text-xl sm:text-2xl font-bold text-[#2D1B3D] mb-4 sm:mb-6 pr-8">Share Your Experience</h3>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-[#2D1B3D] mb-2">Your Name</label>
+                  <input
+                    type="text"
+                    value={newReview.name}
+                    onChange={e => setNewReview({ ...newReview, name: e.target.value })}
+                    className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#9B7BB8] focus:border-transparent transition-all text-sm sm:text-base mb-2"
+                    placeholder="Enter your name..."
+                    maxLength={32}
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-[#2D1B3D] mb-2">Rating</label>
+                  <div className="flex space-x-1">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setNewReview({...newReview, rating: star})}
+                        className="text-2xl transition-colors"
+                      >
+                        <Star 
+                          className={`w-5 h-5 sm:w-6 sm:h-6 ${star <= newReview.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
+                        />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-[#2D1B3D] mb-2">Your Review</label>
+                  <textarea
+                    value={newReview.text}
+                    onChange={(e) => setNewReview({...newReview, text: e.target.value})}
+                    rows={4}
+                    className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#9B7BB8] focus:border-transparent transition-all resize-none text-sm sm:text-base"
+                    placeholder="Share your experience with our platform..."
+                  />
+                </div>
+                
+                <button
+                  onClick={handleSubmitReview}
+                  className="w-full bg-[#2D1B3D] text-white py-2 sm:py-3 rounded-lg hover:bg-[#3D2A54] transition-all duration-300 font-medium flex items-center justify-center space-x-2 text-sm sm:text-base"
+                >
+                  <Send className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <span>Submit Review</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Chapter Details Modal */}
+        {showChapterModal && selectedChapter && (
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl p-6 sm:p-8 max-w-md w-full mx-4 shadow-2xl relative max-h-[calc(100%-2rem)] overflow-y-auto">
+              <button
+                onClick={closeChapterModal}
+                className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 transition-colors"
+              >
+                <X className="w-5 h-5 sm:w-6 sm:h-6" />
+              </button>
+              
+              <h3 className="text-xl sm:text-2xl font-bold text-[#2D1B3D] mb-4 sm:mb-6 pr-8">Chapter Details</h3>
+              
+              <div className="space-y-4">
+                <div className="flex items-center space-x-4">
+                  <div className="w-24 h-32 rounded-lg overflow-hidden bg-gradient-to-br from-white to-gray-100 shadow-md flex-shrink-0 flex items-center justify-center">
+                    {!imageErrors[`chapter-${selectedChapter.pdf}`] && selectedChapter.thumbnail ? (
+                      <img
+                        src={selectedChapter.thumbnail}
+                        alt={selectedChapter.title}
+                        className="w-full h-full object-cover"
+                        style={{ aspectRatio: '3/4' }}
+                        onError={() => setImageErrors(prev => ({ ...prev, [`chapter-${selectedChapter.pdf}`]: true }))}
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-[#9B7BB8] to-[#8A6AA7] flex items-center justify-center text-white font-bold text-lg">
+                        {selectedChapter.title.charAt(0)}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-[#2D1B3D] text-lg font-semibold leading-relaxed">{selectedChapter.title}</h4>
+                    <p className="text-[#2D1B3D]/60 text-sm">PDF available</p>
+                  </div>
+                </div>
+                
+                <div className="flex justify-end space-x-2">
+                  <button
+                    onClick={() => {
+                      window.open(selectedChapter.pdf, '_blank');
+                      closeChapterModal();
+                    }}
+                    className="bg-[#9B7BB8] hover:bg-[#8A6AA7] text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300 shadow-lg"
+                  >
+                    Download PDF
+                  </button>
+                  <button
+                    onClick={closeChapterModal}
+                    className="bg-gray-400 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300 shadow-lg"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
       {/* Mobile Responsive Styles for 400px */}
       <style jsx>{`
+        @keyframes scroll {
+          0% {
+            transform: translateX(0);
+          }
+          100% {
+            transform: translateX(-50%);
+          }
+        }
+        
+        @media (max-width: 640px) {
+          .group:hover {
+            transform: none !important;
+            z-index: initial !important;
+          }
+        }
+        
         @media (max-width: 400px) {
           .pt-32 {
             padding-top: 1.5rem;
@@ -764,10 +1297,4 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
 };
 
 export default ProductSection;
-
-
-
-
-
-
 
