@@ -59,6 +59,7 @@ function App() {
       <FeaturedBooks
         onAddToCart={handleAddToCart}
         onAddToWishlist={handleAddToWishlist}
+        onRemoveFromWishlist={handleRemoveFromWishlist}
         cart={cart}
         wishlist={wishlist}
       />
@@ -72,6 +73,7 @@ function App() {
     <LibraryPage
       onAddToCart={handleAddToCart}
       onAddToWishlist={handleAddToWishlist}
+      onRemoveFromWishlist={handleRemoveFromWishlist}
       cart={cart}
       wishlist={wishlist}
     />

@@ -17,7 +17,8 @@ const LoginPage = () => {
     otp: ['', '', '', '', '', ''], // 6-digit OTP
     jwtToken: '',
     fullName: '',
-    countryCode: ''
+    countryCode: '+91',
+    customCountryCode: ''
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
@@ -63,9 +64,21 @@ const LoginPage = () => {
     return emailRegex.test(email);
   };
 
-  const validateMobile = (mobile) => {
-    const mobileRegex = /^[6-9]\d{9}$/;
-    return mobileRegex.test(mobile);
+  const validateMobile = (mobile, countryCode) => {
+    const code = (countryCode || '').trim();
+    const digitsOnly = (mobile || '').replace(/\D/g, '');
+    if (!digitsOnly) return false;
+    // Basic patterns by country; fallback to E.164 length between 6-15
+    const patterns = {
+      '+91': /^[6-9]\d{9}$/, // India: 10 digits starting 6-9
+      '+1': /^\d{10}$/,      // US/Canada: 10 digits
+      '+44': /^\d{9,10}$/,   // UK simplified
+      '+61': /^\d{9}$/,      // Australia simplified
+      '+971': /^\d{9}$/      // UAE simplified
+    };
+    const pattern = patterns[code];
+    if (pattern) return pattern.test(digitsOnly);
+    return /^\d{6,15}$/.test(digitsOnly);
   };
 
   // Add country code validation function
@@ -197,16 +210,17 @@ const LoginPage = () => {
     if (!formData.fullName) {
       newErrors.fullName = 'Full name is required';
     }
-    if (!formData.countryCode) {
-      newErrors.countryCode = 'Country code is required';
-    }
-    if (!validateCountryCode(formData.countryCode)) {
-      newErrors.countryCode = 'Invalid country code';
-    }
-    if (!formData.mobile) {
-      newErrors.mobile = 'Mobile number is required';
-    } else if (!validateMobile(formData.mobile)) {
-      newErrors.mobile = 'Please enter a valid 10-digit mobile number';
+    // Phone number is optional; if provided, validate both code and number
+    const effectiveCode = formData.countryCode === 'other' ? formData.customCountryCode : formData.countryCode;
+    if (formData.mobile || effectiveCode) {
+      if (!effectiveCode || !validateCountryCode(effectiveCode)) {
+        newErrors.countryCode = 'Valid country code is required (e.g., +91)';
+      }
+      if (!formData.mobile) {
+        newErrors.mobile = 'Mobile number is required';
+      } else if (!validateMobile(formData.mobile, effectiveCode)) {
+        newErrors.mobile = 'Invalid mobile number for selected country code';
+      }
     }
     if (!formData.email) {
       newErrors.email = 'Email is required';
@@ -233,8 +247,8 @@ const LoginPage = () => {
       try {
         const response = await api.post('/auth/signUp', {
           fullName: formData.fullName,
-          countryCode: formData.countryCode,
-          mobile: formData.mobile,
+          countryCode: formData.mobile ? (formData.countryCode === 'other' ? formData.customCountryCode : formData.countryCode) : undefined,
+          mobile: formData.mobile || undefined,
           email: formData.email,
           password: formData.password
         });
@@ -261,10 +275,11 @@ const LoginPage = () => {
         newErrors.email = 'Please enter a valid email address';
       }
     } else {
+      const code = formData.countryCode === 'other' ? formData.customCountryCode : formData.countryCode;
       if (!formData.mobile) {
         newErrors.mobile = 'Mobile number is required';
-      } else if (!validateMobile(formData.mobile)) {
-        newErrors.mobile = 'Please enter a valid 10-digit mobile number';
+      } else if (!validateMobile(formData.mobile, code)) {
+        newErrors.mobile = 'Invalid mobile number for selected country code';
       }
     }
     if (!formData.password) {
@@ -276,8 +291,13 @@ const LoginPage = () => {
     if (reduxUser) {
       if (loginMethod === 'email' && reduxUser.email === formData.email && reduxUser.password === formData.password) {
         credentialsMatch = true;
-      } else if (loginMethod === 'mobile' && reduxUser.mobile === formData.mobile && reduxUser.password === formData.password) {
-        credentialsMatch = true;
+      } else if (loginMethod === 'mobile') {
+        const code = formData.countryCode === 'other' ? formData.customCountryCode : formData.countryCode;
+        const fullReduxMobile = `${reduxUser.countryCode || ''}${reduxUser.mobile || ''}`;
+        const fullEntered = `${code || ''}${formData.mobile || ''}`;
+        if (fullReduxMobile && fullReduxMobile === fullEntered && reduxUser.password === formData.password) {
+          credentialsMatch = true;
+        }
       }
     }
     if (!credentialsMatch && Object.keys(newErrors).length === 0) {
@@ -289,6 +309,7 @@ const LoginPage = () => {
         const response = await api.post('/auth/login', {
           email: loginMethod === 'email' ? formData.email : undefined,
           mobile: loginMethod === 'mobile' ? formData.mobile : undefined,
+          countryCode: loginMethod === 'mobile' ? (formData.countryCode === 'other' ? formData.customCountryCode : formData.countryCode) : undefined,
           password: formData.password
         });
         const userData = response.data.user;
@@ -497,57 +518,60 @@ const LoginPage = () => {
                   )}
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-white/80 mb-2">COUNTRY CODE</label>
-                  <input
-                    type="text"
-                    value={formData.countryCode || ''}
-                    onChange={e => handleInputChange('countryCode', e.target.value)}
-                    className="w-full bg-transparent border-b-2 border-white/30 text-white pl-2 pr-4 py-3 focus:outline-none focus:border-white focus:shadow-lg focus:shadow-white/20 transition-all duration-300 placeholder-white/40 text-sm"
-                    placeholder="e.g. +91"
-                  />
-                  {errors.countryCode && (
-                    <p className="text-red-400 text-xs mt-1 flex items-center space-x-1">
-                      <X className="w-3 h-3" />
-                      <span>{errors.countryCode}</span>
-                    </p>
-                  )}
-                </div>
-                {validateCountryCode(formData.countryCode) && (
-                  <div>
-                    <label className="block text-xs font-medium text-white/80 mb-2">MOBILE NUMBER</label>
+                  <label className="block text-xs font-medium text-white/80 mb-2">PHONE NUMBER</label>
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={formData.countryCode}
+                      onChange={e => handleInputChange('countryCode', e.target.value)}
+                      className="w-32 bg-transparent border-b-2 border-white/30 text-white py-3 focus:outline-none focus:border-white focus:shadow-lg focus:shadow-white/20 transition-all duration-300 text-sm"
+                    >
+                      <option className="bg-[#2D1B3D]" value="+91">+91 (IN)</option>
+                      <option className="bg-[#2D1B3D]" value="+1">+1 (US)</option>
+                      <option className="bg-[#2D1B3D]" value="+44">+44 (UK)</option>
+                      <option className="bg-[#2D1B3D]" value="+61">+61 (AU)</option>
+                      <option className="bg-[#2D1B3D]" value="+971">+971 (UAE)</option>
+                      <option className="bg-[#2D1B3D]" value="other">Other</option>
+                    </select>
+                    {formData.countryCode === 'other' && (
+                      <input
+                        type="text"
+                        value={formData.customCountryCode}
+                        onChange={e => handleInputChange('customCountryCode', e.target.value)}
+                        className="w-24 bg-transparent border-b-2 border-white/30 text-white pl-2 pr-2 py-3 focus:outline-none focus:border-white focus:shadow-lg focus:shadow-white/20 transition-all duration-300 text-sm"
+                        placeholder="+XX"
+                      />
+                    )}
                     <input
                       type="tel"
                       value={formData.mobile || ''}
                       onChange={e => handleInputChange('mobile', e.target.value)}
-                      className="w-full bg-transparent border-b-2 border-white/30 text-white pl-2 pr-4 py-3 focus:outline-none focus:border-white focus:shadow-lg focus:shadow-white/20 transition-all duration-300 placeholder-white/40 text-sm"
+                      className="flex-1 bg-transparent border-b-2 border-white/30 text-white pl-2 pr-4 py-3 focus:outline-none focus:border-white focus:shadow-lg focus:shadow-white/20 transition-all duration-300 placeholder-white/40 text-sm"
                       placeholder="Enter your mobile number"
                     />
-                    {errors.mobile && (
-                      <p className="text-red-400 text-xs mt-1 flex items-center space-x-1">
-                        <X className="w-3 h-3" />
-                        <span>{errors.mobile}</span>
-                      </p>
-                    )}
                   </div>
-                )}
-                {validateCountryCode(formData.countryCode) && formData.mobile && (
-                  <div>
-                    <label className="block text-xs font-medium text-white/80 mb-2">EMAIL</label>
-                    <input
-                      type="email"
-                      value={formData.email || ''}
-                      onChange={e => handleInputChange('email', e.target.value)}
-                      className="w-full bg-transparent border-b-2 border-white/30 text-white pl-2 pr-4 py-3 focus:outline-none focus:border-white focus:shadow-lg focus:shadow-white/20 transition-all duration-300 placeholder-white/40 text-sm"
-                      placeholder="Enter your email address"
-                    />
-                    {errors.email && (
-                      <p className="text-red-400 text-xs mt-1 flex items-center space-x-1">
-                        <X className="w-3 h-3" />
-                        <span>{errors.email}</span>
-                      </p>
-                    )}
-                  </div>
-                )}
+                  {(errors.countryCode || errors.mobile) && (
+                    <p className="text-red-400 text-xs mt-1 flex items-center space-x-1">
+                      <X className="w-3 h-3" />
+                      <span>{errors.countryCode || errors.mobile}</span>
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-white/80 mb-2">EMAIL</label>
+                  <input
+                    type="email"
+                    value={formData.email || ''}
+                    onChange={e => handleInputChange('email', e.target.value)}
+                    className="w-full bg-transparent border-b-2 border-white/30 text-white pl-2 pr-4 py-3 focus:outline-none focus:border-white focus:shadow-lg focus:shadow-white/20 transition-all duration-300 placeholder-white/40 text-sm"
+                    placeholder="Enter your email address"
+                  />
+                  {errors.email && (
+                    <p className="text-red-400 text-xs mt-1 flex items-center space-x-1">
+                      <X className="w-3 h-3" />
+                      <span>{errors.email}</span>
+                    </p>
+                  )}
+                </div>
 
                 {/* Password Input */}
                 <div>
@@ -639,33 +663,71 @@ const LoginPage = () => {
             {/* Step 3: Login Form */}
             {currentStep === 'login' && (
               <div className="space-y-4">
-                {/* Email/Mobile Input */}
-                <div>
-                  <label className="block text-xs font-medium text-white/80 mb-2 uppercase tracking-wider">
-                    {loginMethod === 'email' ? 'Email' : 'Mobile'}
-                  </label>
+            {/* Login: Email or Mobile based on method (chosen on previous screen) */}
+            <div>
+              {loginMethod === 'email' ? (
+                <>
+                  <label className="block text-xs font-medium text-white/80 mb-2 uppercase tracking-wider">Email</label>
                   <div className="relative">
                     <div className="absolute top-0 left-0 flex items-center">
-                      {loginMethod === 'email' ? 
-                        <Mail className="w-4 h-4 text-white/60" /> : 
-                        <Phone className="w-4 h-4 text-white/60" />
-                      }
+                      <Mail className="w-4 h-4 text-white/60" />
                     </div>
                     <input
-                      type={loginMethod === 'email' ? 'email' : 'tel'}
-                      value={loginMethod === 'email' ? formData.email : formData.mobile}
-                      onChange={(e) => handleInputChange(loginMethod, e.target.value)}
-                      placeholder=""
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => handleInputChange('email', e.target.value)}
                       className="w-full bg-transparent border-b-2 border-white/30 text-white pl-6 pr-4 py-3 focus:outline-none focus:border-white focus:shadow-lg focus:shadow-white/20 transition-all duration-300 placeholder-white/40 text-sm"
                     />
                   </div>
-                  {errors[loginMethod] && (
+                  {errors.email && (
                     <p className="text-red-400 text-xs mt-1 flex items-center space-x-1">
                       <X className="w-3 h-3" />
-                      <span>{errors[loginMethod]}</span>
+                      <span>{errors.email}</span>
                     </p>
                   )}
-                </div>
+                </>
+              ) : (
+                <>
+                  <label className="block text-xs font-medium text-white/80 mb-2 uppercase tracking-wider">Mobile</label>
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={formData.countryCode}
+                      onChange={e => handleInputChange('countryCode', e.target.value)}
+                      className="w-32 bg-transparent border-b-2 border-white/30 text-white py-3 focus:outline-none focus:border-white focus:shadow-lg focus:shadow-white/20 transition-all duration-300 text-sm"
+                    >
+                      <option className="bg-[#2D1B3D]" value="+91">+91 (IN)</option>
+                      <option className="bg-[#2D1B3D]" value="+1">+1 (US)</option>
+                      <option className="bg-[#2D1B3D]" value="+44">+44 (UK)</option>
+                      <option className="bg-[#2D1B3D]" value="+61">+61 (AU)</option>
+                      <option className="bg-[#2D1B3D]" value="+971">+971 (UAE)</option>
+                      <option className="bg-[#2D1B3D]" value="other">Other</option>
+                    </select>
+                    {formData.countryCode === 'other' && (
+                      <input
+                        type="text"
+                        value={formData.customCountryCode}
+                        onChange={e => handleInputChange('customCountryCode', e.target.value)}
+                        className="w-24 bg-transparent border-b-2 border-white/30 text-white pl-2 pr-2 py-3 focus:outline-none focus:border-white focus:shadow-lg focus:shadow-white/20 transition-all duration-300 text-sm"
+                        placeholder="+XX"
+                      />
+                    )}
+                    <input
+                      type="tel"
+                      value={formData.mobile}
+                      onChange={(e) => handleInputChange('mobile', e.target.value)}
+                      className="flex-1 bg-transparent border-b-2 border-white/30 text-white pl-2 pr-4 py-3 focus:outline-none focus:border-white focus:shadow-lg focus:shadow-white/20 transition-all duration-300 placeholder-white/40 text-sm"
+                      placeholder="Enter your mobile number"
+                    />
+                  </div>
+                  {(errors.countryCode || errors.mobile) && (
+                    <p className="text-red-400 text-xs mt-1 flex items-center space-x-1">
+                      <X className="w-3 h-3" />
+                      <span>{errors.countryCode || errors.mobile}</span>
+                    </p>
+                  )}
+                </>
+              )}
+            </div>
 
                 {/* Password Input */}
                 <div>
