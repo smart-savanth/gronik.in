@@ -232,13 +232,13 @@ const LibraryPage = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCart, 
   const [animatingWishlist, setAnimatingWishlist] = useState({});
 
   // Use centralized books data
-  const allBooks = centralizedBooksData;
+  const books = centralizedBooksData;
 
   // Get unique categories
-  const categories = ['All', ...new Set(allBooks.map(book => book.category))];
+  const categories = ['All', ...new Set(books.map(book => book.category))];
 
   // Filter books based on category and search query
-  const filteredBooks = allBooks.filter(book => {
+  const filteredBooks = books.filter(book => {
     const matchesCategory = selectedCategory === 'All' || book.category === selectedCategory;
     const matchesSearch = !searchQuery ||
       book.title.toLowerCase().includes(searchQuery) ||
@@ -465,7 +465,7 @@ const LibraryPage = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCart, 
                       {book.inStock ? (
                         <button
                           onClick={e => handleAddToCart(e, book)}
-                          disabled={isInCart(book) || animatingCart[book.id]}
+                          disabled={animatingCart[book.id]}
                           className={`cart-button-animated ${cartButtonClicked[book.id] ? 'clicked' : ''} flex-1 py-3 px-4 rounded-xl font-semibold text-base flex items-center justify-center gap-2 transition-all duration-300 hover:scale-105 shadow-xl hover:shadow-2xl ${
                             isInCart(book)
                               ? 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white'

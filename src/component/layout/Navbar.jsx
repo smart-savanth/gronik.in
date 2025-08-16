@@ -95,22 +95,26 @@ const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
       {/* Mobile Navbar */}
       {isMobile && (
         <nav className="fixed top-0 left-0 right-0 z-50 bg-gronik-primary/95 backdrop-blur-md shadow-lg border-b border-gronik-secondary/20">
-          <div className="flex items-center justify-between h-16 px-4">
-            <Link to="/" className="flex items-center">
-              <div className="w-32 h-14">
-                <img
-                  src="/images/logo.png"
-                  alt="Gronik Logo"
-                  className="w-full h-full object-contain"
-                />
-              </div>
-            </Link>
-            <button
-              className="p-2 text-gronik-light hover:text-gronik-accent"
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-            >
-              {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-            </button>
+          <div className="flex items-center justify-between h-16">
+            <div className="ml-8">
+              <Link to="/" className="flex items-center">
+                <div className="w-28 h-10 sm:w-32 sm:h-12">
+                  <img
+                    src="/images/logo.png"
+                    alt="Gronik Logo"
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+              </Link>
+            </div>
+            <div className="mr-8">
+              <button
+                className="p-2 text-gronik-light hover:text-gronik-accent transition-colors duration-200"
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+              >
+                {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              </button>
+            </div>
           </div>
           {isMenuOpen && (
             <div className="bg-gronik-primary/98 backdrop-blur-md border-t border-gronik-secondary/20 shadow-xl">
@@ -186,15 +190,24 @@ const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
                       <User className="w-5 h-5 text-gronik-light" />
                     </Link>
                   </div>
-                  <button
-                    onClick={() => {
-                      navigate('/login');
-                      setIsMenuOpen(false);
-                    }}
-                    className="bg-gradient-to-r from-gronik-accent to-gronik-secondary text-white px-4 py-2 rounded-lg font-medium"
-                  >
-                    Login
-                  </button>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <button
+                      onClick={() => {
+                        navigate('/login');
+                        setIsMenuOpen(false);
+                      }}
+                      className="bg-gradient-to-r from-gronik-accent to-gronik-secondary text-white px-4 py-2 rounded-lg font-medium text-sm"
+                    >
+                      Login
+                    </button>
+                    <Link
+                      to="/admin"
+                      onClick={() => setIsMenuOpen(false)}
+                      className="bg-gradient-to-r from-gronik-accent to-gronik-secondary text-white px-4 py-2 rounded-lg font-medium text-sm text-center"
+                    >
+                      Admin
+                    </Link>
+                  </div>
                 </div>
               </div>
             </div>

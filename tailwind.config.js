@@ -7,10 +7,10 @@ module.exports = {
     extend: {
       colors: {
         'gronik': {
-          'primary': '#2F203E',    // Dark purple background
-          'secondary': '#7A6099',  // Medium purple
-          'accent': '#A78BFA',     // Light purple/lavender
-          'light': '#E5E7EB',      // Light gray text
+          'primary': '#2D1B3D',    // Dark purple background
+          'secondary': '#3D2A54',  // Medium purple
+          'accent': '#9B7BB8',     // Light purple/lavender
+          'light': '#FFFFFF',      // White text
           'text': '#3A2D42',       // Dark text
           'bg': '#1F1B24',         // Very dark background
           'shadow': '#2A1F35',     // Shadow color

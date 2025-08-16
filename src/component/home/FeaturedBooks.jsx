@@ -165,8 +165,12 @@ const FeaturedBooksSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveF
                     <div className="flex flex-row gap-2 w-full mb-4">
                       {book.inStock ? (
                         <button
-                          onClick={() => handleAddToCart(book)}
-                          disabled={isInCart(book) || animatingCart[book.id]}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            handleAddToCart(book);
+                          }}
+                          disabled={animatingCart[book.id]}
                           className={`cart-button-animated ${cartButtonClicked[book.id] ? 'clicked' : ''} flex-1 py-3 px-4 rounded-xl font-semibold text-base flex items-center justify-center gap-2 transition-all duration-300 hover:scale-105 shadow-xl hover:shadow-2xl ${
                             isInCart(book)
                               ? 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white'

@@ -2,6 +2,13 @@
 @import 'tailwindcss/components';
 @import 'tailwindcss/utilities';
 
+:root {
+  --gronik-primary: #2D1B3D;
+  --gronik-secondary: #3D2A54;
+  --gronik-accent: #9B7BB8;
+  --gronik-light: #FFFFFF;
+}
+
 body {
   background: linear-gradient(135deg, #9B7BB8 0%, #8A6AA7 100%);
   min-height: 100vh;
