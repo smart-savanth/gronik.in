@@ -58,7 +58,9 @@ function App() {
       />
       <FeaturedBooks
         onAddToCart={handleAddToCart}
+        onRemoveFromCart={handleRemoveFromCart}
         onAddToWishlist={handleAddToWishlist}
+        onRemoveFromWishlist={handleRemoveFromWishlist}
         cart={cart}
         wishlist={wishlist}
       />
@@ -71,7 +73,9 @@ function App() {
   const LibraryPageWrapper = () => (
     <LibraryPage
       onAddToCart={handleAddToCart}
+      onRemoveFromCart={handleRemoveFromCart}
       onAddToWishlist={handleAddToWishlist}
+      onRemoveFromWishlist={handleRemoveFromWishlist}
       cart={cart}
       wishlist={wishlist}
     />

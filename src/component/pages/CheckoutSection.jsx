@@ -240,13 +240,14 @@ const CheckoutSection = ({ cart = [] }) => {
             {/* UPI Fields */}
             {payment === 'upi' && (
               <div className="mb-8">
-                <div className="flex gap-2 mb-4">
+                {/* Providers - responsive, non-overlapping */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
                   {['googlepay', 'phonepe', 'paytm', 'other'].map(provider => (
                     <button
                       key={provider}
                       onClick={() => setUpiProvider(provider)}
-                      className={`px-4 py-2 rounded-lg font-semibold border-2 transition-all duration-200 
-                        ${upiProvider === provider ? 'border-[#9B7BB8] bg-[#9B7BB8]/10 text-white' : 'border-gray-200 bg-[#2D1B3D]/80 text-white/60 hover:border-[#9B7BB8]'}
+                      className={`w-full px-3 py-2 rounded-lg font-semibold border-2 transition-all duration-200 text-xs sm:text-sm truncate 
+                        ${upiProvider === provider ? 'border-[#9B7BB8] bg-[#9B7BB8]/10 text-white' : 'border-gray-200 bg-[#2D1B3D]/80 text-white/70 hover:border-[#9B7BB8]'}
                       `}
                     >
                       {provider === 'googlepay' && 'Google Pay'}
@@ -257,27 +258,27 @@ const CheckoutSection = ({ cart = [] }) => {
                   ))}
                 </div>
                 <div className="mb-2">
-                  <label className="block text-[#2D1B3D] font-semibold mb-1">UPI ID</label>
+                  <label className="block text-white font-semibold mb-1">UPI ID</label>
                   <input
                     type="text"
-                    className={`px-4 py-2 rounded-lg w-full border ${paymentErrors.upiId ? 'border-red-400' : 'border-[#9B7BB8]/40'} focus:outline-none focus:ring-2 focus:ring-[#9B7BB8]`}
+                    className={`px-4 py-2 rounded-lg w-full border text-white placeholder-white/60 bg-transparent ${paymentErrors.upiId ? 'border-red-400' : 'border-[#9B7BB8]/40'} focus:outline-none focus:ring-2 focus:ring-[#9B7BB8]`}
                     value={upiId}
                     onChange={e => setUpiId(e.target.value)}
                     placeholder="yourname@okaxis"
                   />
                   {paymentErrors.upiId && <span className="text-xs text-red-500">{paymentErrors.upiId}</span>}
                 </div>
-                <div className="text-xs text-[#2D1B3D]/60 mb-2">We'll send a payment request to your UPI app after order confirmation.</div>
+                <div className="text-xs text-white/70 mb-2">We'll send a payment request to your UPI app after order confirmation.</div>
               </div>
             )}
             {/* Card Fields */}
             {payment === 'card' && (
               <div className="mb-8 grid grid-cols-1 gap-4">
                 <div>
-                  <label className="block text-[#2D1B3D] font-semibold mb-1">Card Number</label>
+                  <label className="block text-white font-semibold mb-1">Card Number</label>
                   <input
                     type="text"
-                    className={`px-4 py-2 rounded-lg w-full border text-[#2D1B3D] placeholder-white/60 ${paymentErrors.number ? 'border-red-400' : 'border-[#9B7BB8]/40'} focus:outline-none focus:ring-2 focus:ring-[#9B7BB8]`}
+                    className={`px-4 py-2 rounded-lg w-full border bg-white text-[#2D1B3D] placeholder-gray-400 ${paymentErrors.number ? 'border-red-400' : 'border-[#9B7BB8]/40'} focus:outline-none focus:ring-2 focus:ring-[#9B7BB8]`}
                     value={cardDetails.number}
                     onChange={e => setCardDetails(d => ({ ...d, number: e.target.value }))}
                     placeholder="1234 5678 9012 3456"
@@ -286,10 +287,10 @@ const CheckoutSection = ({ cart = [] }) => {
                   {paymentErrors.number && <span className="text-xs text-red-500">{paymentErrors.number}</span>}
                 </div>
                 <div>
-                  <label className="block text-[#2D1B3D] font-semibold mb-1">Name on Card</label>
+                  <label className="block text-white font-semibold mb-1">Name on Card</label>
                   <input
                     type="text"
-                    className={`px-4 py-2 rounded-lg w-full border text-[#2D1B3D] placeholder-white/60 ${paymentErrors.name ? 'border-red-400' : 'border-[#9B7BB8]/40'} focus:outline-none focus:ring-2 focus:ring-[#9B7BB8]`}
+                    className={`px-4 py-2 rounded-lg w-full border bg-white text-[#2D1B3D] placeholder-gray-400 ${paymentErrors.name ? 'border-red-400' : 'border-[#9B7BB8]/40'} focus:outline-none focus:ring-2 focus:ring-[#9B7BB8]`}
                     value={cardDetails.name}
                     onChange={e => setCardDetails(d => ({ ...d, name: e.target.value }))}
                     placeholder="Full Name"
@@ -298,10 +299,10 @@ const CheckoutSection = ({ cart = [] }) => {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[#2D1B3D] font-semibold mb-1">Expiry Date</label>
+                    <label className="block text-white font-semibold mb-1">Expiry Date</label>
                     <input
                       type="text"
-                      className={`px-4 py-2 rounded-lg w-full border text-[#2D1B3D] placeholder-white/60 ${paymentErrors.expiry ? 'border-red-400' : 'border-[#9B7BB8]/40'} focus:outline-none focus:ring-2 focus:ring-[#9B7BB8]`}
+                      className={`px-4 py-2 rounded-lg w-full border bg-white text-[#2D1B3D] placeholder-gray-400 ${paymentErrors.expiry ? 'border-red-400' : 'border-[#9B7BB8]/40'} focus:outline-none focus:ring-2 focus:ring-[#9B7BB8]`}
                       value={cardDetails.expiry}
                       onChange={e => setCardDetails(d => ({ ...d, expiry: e.target.value }))}
                       placeholder="MM/YY"
@@ -310,10 +311,10 @@ const CheckoutSection = ({ cart = [] }) => {
                     {paymentErrors.expiry && <span className="text-xs text-red-500">{paymentErrors.expiry}</span>}
                   </div>
                   <div>
-                    <label className="block text-[#2D1B3D] font-semibold mb-1">CVV</label>
+                    <label className="block text-white font-semibold mb-1">CVV</label>
                     <input
                       type="password"
-                      className={`px-4 py-2 rounded-lg w-full border text-[#2D1B3D] placeholder-white/60 ${paymentErrors.cvv ? 'border-red-400' : 'border-[#9B7BB8]/40'} focus:outline-none focus:ring-2 focus:ring-[#9B7BB8]`}
+                      className={`px-4 py-2 rounded-lg w-full border bg-white text-[#2D1B3D] placeholder-gray-400 ${paymentErrors.cvv ? 'border-red-400' : 'border-[#9B7BB8]/40'} focus:outline-none focus:ring-2 focus:ring-[#9B7BB8]`}
                       value={cardDetails.cvv}
                       onChange={e => setCardDetails(d => ({ ...d, cvv: e.target.value }))}
                       placeholder="123"

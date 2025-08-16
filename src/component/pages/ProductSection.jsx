@@ -273,33 +273,27 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
   const handleAddToCart = () => {
     if (!enhancedProductData.inStock) return;
     
-    // Only add to cart if not already in cart
+    // Toggle cart functionality - add if not in cart, remove if in cart
     if (!isInCart) {
       setCartButtonClicked(true);
       setTimeout(() => setCartButtonClicked(false), 1500);
       onAddToCart && onAddToCart(enhancedProductData);
-    }
-    // If already in cart, show message or redirect to cart
-    else {
-      // Show a brief message that item is already in cart
+    } else {
+      // Remove from cart if already in cart
       setCartButtonClicked(true);
       setTimeout(() => setCartButtonClicked(false), 1000);
+      onRemoveFromCart && onRemoveFromCart(enhancedProductData.id);
     }
   };
 
   const handleAddToWishlist = () => {
     if (!enhancedProductData.inStock) return;
-    
-    // Only add to wishlist if not already in wishlist
-    if (!isInWishlist) {
-      setWishlistButtonClicked(true);
-      setTimeout(() => setWishlistButtonClicked(false), 2000);
+    setWishlistButtonClicked(true);
+    setTimeout(() => setWishlistButtonClicked(false), 300);
+    if (isInWishlist) {
+      onRemoveFromWishlist && onRemoveFromWishlist(enhancedProductData.id);
+    } else {
       onAddToWishlist && onAddToWishlist(enhancedProductData);
-    }
-    // If already in wishlist, show message
-    else {
-      setWishlistButtonClicked(true);
-      setTimeout(() => setWishlistButtonClicked(false), 1000);
     }
   };
 
@@ -437,52 +431,11 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
           100% { opacity: 1; }
         }
         
-        .wishlist-button-animated {
-          position: relative;
-          overflow: hidden;
-        }
-        
-        .wishlist-button-animated .heart-icon {
-          position: absolute;
-          z-index: 2;
-          top: -20%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          opacity: 0;
-        }
-        
-        .wishlist-button-animated.clicked .heart-icon {
-          animation: heartDrop 2s ease-in-out forwards;
-        }
-        
-        @keyframes heartDrop {
-          0% {
-            top: -20%;
-            opacity: 0;
-            transform: translate(-50%, -50%) scale(0.5);
-          }
-          20% {
-            opacity: 1;
-            transform: translate(-50%, -50%) scale(1);
-          }
-          40% {
-            top: 50%;
-            transform: translate(-50%, -50%) scale(1.2);
-          }
-          60% {
-            top: 50%;
-            transform: translate(-50%, -50%) scale(1) rotate(10deg);
-          }
-          80% {
-            top: 50%;
-            transform: translate(-50%, -50%) scale(1) rotate(-10deg);
-          }
-          100% {
-            top: 50%;
-            opacity: 1;
-            transform: translate(-50%, -50%) scale(1) rotate(0deg);
-          }
-        }
+        .wishlist-button-animated { position: relative; }
+        .wishlist-button-animated .heart-static { transition: transform 0.2s ease; }
+        .wishlist-button-animated.clicked { animation: pop 0.3s ease-out; }
+        .wishlist-button-animated.clicked .heart-static { transform: scale(1.2); }
+        @keyframes pop { 0% { transform: scale(1); } 50% { transform: scale(1.08); } 100% { transform: scale(1); } }
         
         @media (max-width: 400px) {
           .pt-32 {
@@ -744,7 +697,7 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
                   ) : (
                     <ShoppingCart className="w-5 h-5 mr-2 inline" />
                   )}
-                  {isInCart ? 'In Cart!' : !enhancedProductData.inStock ? 'Out of Stock' : 'Add to Cart'}
+                  {isInCart ? 'Remove from Cart' : !enhancedProductData.inStock ? 'Out of Stock' : 'Add to Cart'}
                 </span>
                 
                 {/* Added Text for Animation */}
@@ -757,20 +710,16 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
               <button
                 onClick={handleAddToWishlist}
                 disabled={!enhancedProductData.inStock}
-                className={`wishlist-button-animated ${wishlistButtonClicked ? 'clicked' : ''} p-3 rounded-xl transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl ${
-                  isInWishlist 
-                    ? 'bg-gradient-to-r from-red-500 to-red-600 text-white' 
-                    : !enhancedProductData.inStock
-                      ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
-                    : 'bg-[#9B7BB8] text-[#2D1B3D] hover:bg-[#8A6AA7]'
+                className={`wishlist-button-animated ${wishlistButtonClicked ? 'clicked' : ''} p-3 rounded-xl transition-all duration-200 hover:scale-105 shadow-lg hover:shadow-xl ${
+                  !enhancedProductData.inStock
+                    ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
+                    : isInWishlist
+                      ? 'bg-gradient-to-r from-red-500 to-red-600 text-white'
+                      : 'bg-[#9B7BB8] text-[#2D1B3D] hover:bg-[#8A6AA7]'
                 }`}
                 style={{ minWidth: 0 }}
               >
-                {/* Animation Heart */}
-                <Heart className="heart-icon w-5 h-5" />
-                
-                {/* Original Heart */}
-                <Heart className={`w-5 h-5 ${isInWishlist ? 'fill-current' : ''}`} />
+                <Heart className={`heart-static w-5 h-5 ${isInWishlist ? 'fill-current' : ''}`} />
               </button>
             </div>
           </div>
@@ -910,7 +859,7 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
                       <div className="flex items-center justify-between cursor-pointer" onClick={() => toggleSection(sectionIndex)}>
                         <div className="flex items-center space-x-4">
                           {/* Section Image - book aspect ratio */}
-                          <div className="w-16 h-24 rounded-lg overflow-hidden bg-gradient-to-br from-white to-gray-100 shadow-lg flex items-center justify-center">
+                          <div className="w-12 h-18 sm:w-16 sm:h-24 rounded-lg overflow-hidden bg-gradient-to-br from-white to-gray-100 shadow-lg flex items-center justify-center">
                             {!imageErrors[`section-${sectionIndex}`] && section.image ? (
                               <img
                                 src={section.image}
@@ -931,10 +880,10 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
                       </div>
                       {/* Expanded Chapters */}
                       {expandedSections[sectionIndex] && (
-                        <div className="pl-20 mt-6 space-y-4">
+                        <div className="pl-4 sm:pl-20 mt-6 space-y-4">
                           {section.chapters.map((chapter, chapterIndex) => (
                             <div key={chapterIndex} className="group bg-[#2D1B3D]/50 backdrop-blur-md border-[#2D1B3D]/20 shadow-lg rounded-2xl p-4 border transition-all duration-300">
-                              <div className="flex items-center space-x-4">
+                              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
                                 {/* Chapter Thumbnail - book aspect ratio */}
                                 <div className="w-10 h-14 rounded-lg overflow-hidden bg-gradient-to-br from-white to-gray-100 shadow-md flex-shrink-0 flex items-center justify-center">
                                   {!imageErrors[`chapter-${sectionIndex}-${chapterIndex}`] && chapter.thumbnail ? (
@@ -952,8 +901,10 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
                                   )}
                                 </div>
                                 {/* Chapter Info */}
-                                <div className="flex-1 min-w-0">
-                                  <h4 className="text-white/90 text-lg font-semibold leading-relaxed">{chapter.title}</h4>
+                                <div className="flex-1 min-w-0 w-full">
+                                  <h4 className="text-white/90 text-base sm:text-lg font-semibold leading-snug break-words">
+                                    {chapter.title}
+                                  </h4>
                                   <div className="flex items-center space-x-2 mt-1">
                                     <span className="text-white/60 text-sm">PDF available</span>
                                     <div className="w-2 h-2 bg-green-500 rounded-full"></div>
@@ -963,14 +914,14 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
                                 {chapter.pdf ? (
                                   <button
                                     onClick={() => handleChapterView(chapter)}
-                                    className="bg-[#9B7BB8] hover:bg-[#8A6AA7] text-[#2D1B3D] px-3 py-2 rounded-lg text-sm font-semibold transition-all duration-300 shadow-lg flex items-center space-x-1"
+                                    className="bg-[#9B7BB8] hover:bg-[#8A6AA7] text-[#2D1B3D] px-3 py-2 rounded-lg text-sm font-semibold transition-all duration-300 shadow-lg flex items-center justify-center space-x-1 w-full sm:w-auto sm:self-auto"
                                   >
                                     <Eye className="w-4 h-4" />
                                     <span>View</span>
                                   </button>
                                 ) : (
                                   <button
-                                    className="bg-gray-400 text-white px-3 py-2 rounded-lg text-sm font-semibold cursor-not-allowed flex items-center space-x-1"
+                                    className="bg-gray-400 text-white px-3 py-2 rounded-lg text-sm font-semibold cursor-not-allowed flex items-center justify-center space-x-1 w-full sm:w-auto sm:self-auto"
                                     disabled
                                     title="PDF not available"
                                   >

@@ -232,13 +232,13 @@ const LibraryPage = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCart, 
   const [animatingWishlist, setAnimatingWishlist] = useState({});
 
   // Use centralized books data
-  const allBooks = centralizedBooksData;
+  const books = centralizedBooksData;
 
   // Get unique categories
-  const categories = ['All', ...new Set(allBooks.map(book => book.category))];
+  const categories = ['All', ...new Set(books.map(book => book.category))];
 
   // Filter books based on category and search query
-  const filteredBooks = allBooks.filter(book => {
+  const filteredBooks = books.filter(book => {
     const matchesCategory = selectedCategory === 'All' || book.category === selectedCategory;
     const matchesSearch = !searchQuery ||
       book.title.toLowerCase().includes(searchQuery) ||
@@ -262,6 +262,10 @@ const LibraryPage = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCart, 
   const handleLoadMore = () => {
     if (currentPage < totalPages) {
       setCurrentPage(prev => prev + 1);
+      // Scroll to top of library section after pagination
+      setTimeout(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }, 100);
     }
   };
 
@@ -271,26 +275,43 @@ const LibraryPage = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCart, 
 
   const handleAddToCart = (e, book) => {
     e.stopPropagation();
-    if (!book.inStock || isInCart(book) || animatingCart[book.id]) return;
-    setAnimatingCart(prev => ({ ...prev, [book.id]: true }));
-    setCartButtonClicked(prev => ({ ...prev, [book.id]: true }));
-    setTimeout(() => {
-      onAddToCart && onAddToCart(book);
-      setAnimatingCart(prev => ({ ...prev, [book.id]: false }));
-      setCartButtonClicked(prev => ({ ...prev, [book.id]: false }));
-    }, 1200);
+    if (!book.inStock || animatingCart[book.id]) return;
+    
+    // Toggle cart functionality - add if not in cart, remove if in cart
+    if (!isInCart(book)) {
+      setAnimatingCart(prev => ({ ...prev, [book.id]: true }));
+      setCartButtonClicked(prev => ({ ...prev, [book.id]: true }));
+      setTimeout(() => {
+        onAddToCart && onAddToCart(book);
+        setAnimatingCart(prev => ({ ...prev, [book.id]: false }));
+        setCartButtonClicked(prev => ({ ...prev, [book.id]: false }));
+      }, 1200);
+    } else {
+      // Remove from cart if already in cart
+      setAnimatingCart(prev => ({ ...prev, [book.id]: true }));
+      setCartButtonClicked(prev => ({ ...prev, [book.id]: true }));
+      setTimeout(() => {
+        onRemoveFromCart && onRemoveFromCart(book.id);
+        setAnimatingCart(prev => ({ ...prev, [book.id]: false }));
+        setCartButtonClicked(prev => ({ ...prev, [book.id]: false }));
+      }, 1200);
+    }
   };
 
-  const handleAddToWishlist = (e, book) => {
+  const handleToggleWishlist = (e, book) => {
     e.stopPropagation();
-    if (isInWishlist(book) || animatingWishlist[book.id]) return;
+    if (animatingWishlist[book.id]) return;
     setAnimatingWishlist(prev => ({ ...prev, [book.id]: true }));
     setWishlistButtonClicked(prev => ({ ...prev, [book.id]: true }));
     setTimeout(() => {
-      onAddToWishlist && onAddToWishlist(book);
+      if (isInWishlist(book)) {
+        onRemoveFromWishlist && onRemoveFromWishlist(book.id);
+      } else {
+        onAddToWishlist && onAddToWishlist(book);
+      }
       setAnimatingWishlist(prev => ({ ...prev, [book.id]: false }));
       setWishlistButtonClicked(prev => ({ ...prev, [book.id]: false }));
-    }, 1500);
+    }, 250);
   };
 
   const handleCardClick = (book) => {
@@ -441,57 +462,58 @@ const LibraryPage = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCart, 
 
                     {/* Action Buttons */}
                     <div className="flex flex-row gap-2 w-full mb-4">
-                      <button
-                        onClick={e => handleAddToCart(e, book)}
-                        disabled={!book.inStock || isInCart(book) || animatingCart[book.id]}
-                        className={`cart-button-animated ${cartButtonClicked[book.id] ? 'clicked' : ''} flex-1 py-3 px-4 rounded-xl font-semibold text-base flex items-center justify-center gap-2 transition-all duration-300 hover:scale-105 shadow-xl hover:shadow-2xl ${
-                          !book.inStock
-                            ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
-                            : isInCart(book)
+                      {book.inStock ? (
+                        <button
+                          onClick={e => handleAddToCart(e, book)}
+                          disabled={animatingCart[book.id]}
+                          className={`cart-button-animated ${cartButtonClicked[book.id] ? 'clicked' : ''} flex-1 py-3 px-4 rounded-xl font-semibold text-base flex items-center justify-center gap-2 transition-all duration-300 hover:scale-105 shadow-xl hover:shadow-2xl ${
+                            isInCart(book)
                               ? 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white'
                               : 'bg-gradient-to-r from-white to-gray-100 hover:from-gray-100 hover:to-white text-[#2D1B3D] shadow-xl'
-                        }`}
-                      >
-                        <ShoppingCart className="cart-icon w-5 h-5" />
-                        <div className="box-icon w-3 h-3 bg-current rounded-sm"></div>
-                        <span className="cart-text">
-                          {animatingCart[book.id] ? (
-                            <>
-                              <span className="hidden sm:inline">Add to </span>Cart
-                            </>
-                          ) : isInCart(book) ? (
-                            <>
-                              <span className="hidden sm:inline">In </span>Cart!
-                            </>
-                          ) : !book.inStock ? (
-                            'Out of Stock'
-                          ) : (
-                            <>
-                              <span className="hidden sm:inline">Add to </span>Cart
-                            </>
-                          )}
-                        </span>
-                        <span className="added-text">
-                          <Check className="w-5 h-5 mr-2 inline" />
-                          Added!
-                        </span>
-                      </button>
+                          }`}
+                        >
+                          <ShoppingCart className="cart-icon w-5 h-5" />
+                          <div className="box-icon w-3 h-3 bg-current rounded-sm"></div>
+                          <span className="cart-text">
+                            {animatingCart[book.id] ? (
+                              <>
+                                <span className="hidden sm:inline">Add to </span>Cart
+                              </>
+                            ) : isInCart(book) ? (
+                              <>
+                                <span className="hidden sm:inline">Remove from </span>Cart
+                              </>
+                            ) : (
+                              <>
+                                <span className="hidden sm:inline">Add to </span>Cart
+                              </>
+                            )}
+                          </span>
+                          <span className="added-text">
+                            <Check className="w-5 h-5 mr-2 inline" />
+                            Added!
+                          </span>
+                        </button>
+                      ) : (
+                        <div className="flex-1 py-3 px-4 rounded-xl text-base font-semibold bg-gray-400/70 text-white/90 text-center cursor-not-allowed select-none">
+                          Out of Stock
+                        </div>
+                      )}
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           e.preventDefault();
-                          handleAddToWishlist(e, book);
+                          handleToggleWishlist(e, book);
                         }}
-                        disabled={isInWishlist(book) || animatingWishlist[book.id]}
-                        className={`wishlist-button-animated ${wishlistButtonClicked[book.id] ? 'clicked' : ''} p-3 rounded-xl transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl ${
+                        disabled={animatingWishlist[book.id]}
+                        className={`wishlist-button-animated ${wishlistButtonClicked[book.id] ? 'clicked' : ''} p-3 rounded-xl transition-all duration-200 hover:scale-105 shadow-lg hover:shadow-xl ${
                           isInWishlist(book)
                             ? 'bg-gradient-to-r from-red-500 to-red-600 text-white'
                             : 'bg-[#9B7BB8] text-[#2D1B3D] hover:bg-[#8A6AA7]'
                         }`}
                         style={{ minWidth: 0 }}
                       >
-                        <Heart className="heart-icon w-5 h-5" />
-                        <Heart className={`w-5 h-5 ${isInWishlist(book) ? 'fill-current' : ''}`} />
+                        <Heart className={`heart-static w-5 h-5 ${isInWishlist(book) ? 'fill-current' : ''}`} />
                       </button>
                     </div>
                   </div>
@@ -505,7 +527,12 @@ const LibraryPage = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCart, 
         {totalPages > 1 && (
           <div className="flex justify-center items-center space-x-4 mb-8">
             <button
-              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              onClick={() => {
+                setCurrentPage(prev => Math.max(1, prev - 1));
+                setTimeout(() => {
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }, 100);
+              }}
               disabled={currentPage === 1}
               className="bg-[#2D1B3D]/90 backdrop-blur-sm text-white px-4 py-2 rounded-lg border border-[#2D1B3D]/30 hover:bg-[#2D1B3D] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -516,7 +543,12 @@ const LibraryPage = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCart, 
               {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
                 <button
                   key={page}
-                  onClick={() => setCurrentPage(page)}
+                  onClick={() => {
+                    setCurrentPage(page);
+                    setTimeout(() => {
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }, 100);
+                  }}
                   className={`w-8 h-8 rounded-lg transition-all duration-300 ${
                     currentPage === page
                       ? 'bg-[#9B7BB8] text-white'
@@ -529,7 +561,12 @@ const LibraryPage = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCart, 
             </div>
             
             <button
-              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+              onClick={() => {
+                setCurrentPage(prev => Math.min(totalPages, prev + 1));
+                setTimeout(() => {
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }, 100);
+              }}
               disabled={currentPage === totalPages}
               className="bg-[#2D1B3D]/90 backdrop-blur-sm text-white px-4 py-2 rounded-lg border border-[#2D1B3D]/30 hover:bg-[#2D1B3D] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -632,35 +669,11 @@ const LibraryPage = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCart, 
           0%, 80% { opacity: 0; }
           100% { opacity: 1; }
         }
-        .wishlist-button-animated {
-          position: relative;
-          overflow: hidden;
-        }
-        .wishlist-button-animated .heart-icon {
-          position: absolute;
-          z-index: 2;
-          top: -20%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          opacity: 0;
-        }
-        .wishlist-button-animated.clicked .heart-icon {
-          animation: heartDrop 2s ease-in-out forwards;
-        }
-        @keyframes heartDrop {
-          0% {
-            top: -20%;
-            opacity: 1;
-          }
-          60% {
-            top: 50%;
-            opacity: 1;
-          }
-          100% {
-            top: 120%;
-            opacity: 0;
-          }
-        }
+        .wishlist-button-animated { position: relative; }
+        .wishlist-button-animated .heart-static { transition: transform 0.2s ease; }
+        .wishlist-button-animated.clicked { animation: pop 0.3s ease-out; }
+        .wishlist-button-animated.clicked .heart-static { transform: scale(1.2); }
+        @keyframes pop { 0% { transform: scale(1); } 50% { transform: scale(1.08); } 100% { transform: scale(1); } }
       `}</style>
     </div>
   );
