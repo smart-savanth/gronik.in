@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Search, ShoppingCart, User, Menu, X, BookOpen, Heart } from 'lucide-react';
 // Import centralizedBooksData for search
 import { centralizedBooksData } from '../pages/LibrarySection';
+import { useSelector } from 'react-redux';
 
 const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -13,6 +14,7 @@ const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
 
   const navigate = useNavigate();
   const location = useLocation();
+   const user = useSelector((state) => state.userAuth.user);
 
   useEffect(() => {
     const checkMobile = () => {
