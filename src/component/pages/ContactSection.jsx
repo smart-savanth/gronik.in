@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Mail, Phone, MapPin, Send, MessageCircle, Clock, CheckCircle, AlertCircle, BookOpen, Users, Award, Globe } from 'lucide-react';
-
+import { saveContact } from '../../utils/contactService';
 const ContactPage = () => {
   const [formData, setFormData] = useState({
     name: '',
@@ -11,7 +11,7 @@ const ContactPage = () => {
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState(null);
-
+    
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -20,21 +20,33 @@ const ContactPage = () => {
     }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    
-    // Simulate form submission
-    setTimeout(() => {
-      setSubmitStatus('success');
-      setIsSubmitting(false);
-      setFormData({ name: '', email: '', subject: '', message: '' });
-      
-      setTimeout(() => {
-        setSubmitStatus(null);
-      }, 3000);
-    }, 2000);
-  };
+
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  setIsSubmitting(true);
+
+  try {
+    await saveContact({
+      name: formData.name,
+      email: formData.email,
+      subject: formData.subject,
+      message: formData.message,
+    });
+
+    setSubmitStatus("success");
+    setFormData({ name: "", email: "", subject: "", message: "" });
+
+    // hide success after 3s
+    setTimeout(() => setSubmitStatus(null), 3000);
+  } catch (err) {
+    setSubmitStatus(
+      err.response?.data?.message || "Failed to send message. Please try again."
+    );
+  } finally {
+    setIsSubmitting(false);
+  }
+};
+
 
   const contactInfo = [
     {
@@ -209,6 +221,7 @@ const ContactPage = () => {
                 <button
                   type="submit"
                   disabled={isSubmitting}
+                  onClick={handleSubmit}
                   className="w-full bg-gradient-to-r from-gronik-accent to-gronik-secondary hover:from-gronik-secondary hover:to-gronik-accent text-white font-bold py-3 md:py-4 px-6 md:px-8 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-2xl hover:shadow-gronik-accent/25 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center space-x-3 text-sm md:text-base"
                 >
                   {isSubmitting ? (
