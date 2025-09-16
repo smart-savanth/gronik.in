@@ -1,34 +1,95 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef ,useEffect} from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Mail, Phone, Edit, Save, X, BookOpen, ShoppingCart, LogOut, Heart, Settings, Camera, Trash2 } from 'lucide-react';
 import { useSelector, useDispatch } from 'react-redux';
 import { setUser } from '../../slices/userAuthSlice';
-
+import { getUserById,updateUser ,updateUserStatus} from '../../utils/userServices';
 const DEFAULT_AVATAR = '';
 
 const ProfileSection = () => {
   const navigate = useNavigate();
   // Simulate login method: 'email' or 'mobile'
   const [loginMethod] = useState('email'); // Change to 'mobile' to test mobile login
-  const user = useSelector(state => state.userAuth.user);
+  const { user, token } = useSelector((state) => state.userAuth);
   const dispatch = useDispatch();
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState(user || {});
   const [imagePreview, setImagePreview] = useState(user?.profileImage || '');
   const fileInputRef = useRef(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [userDetails, setUserDetails] = useState(null);
 
-  const handleEdit = () => {
+ const handleEdit = async () => {
+  try {
+    if (!user?.guid) {
+      console.error("No user GUID found");
+      return;
+    }
+
+    const response = await getUserById(user.guid);
+    const fetchedUser = response.data.data;
+
+    setEditData({
+      guid: fetchedUser.guid,
+      full_name: fetchedUser.full_name,
+      role_name: fetchedUser.role_name,
+    });
+
+    setImagePreview(fetchedUser.profileImage || "");
+
     setIsEditing(true);
-    setEditData(user || {});
-    setImagePreview(user?.profileImage || '');
-  };
+  } catch (error) {
+    console.error("Error fetching user details:", error);
+  }
+};
 
-  const handleSave = () => {
-    const updatedUser = { ...editData, profileImage: imagePreview };
+  
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        if (user?.guid) {
+          const response = await getUserById(user.guid);
+          setUserDetails(response.data.data); 
+        } 
+      } catch (error) {
+        console.error("Error fetching user details:", error);
+      }
+    };
+
+    fetchUser();
+  }, [user]);
+const handleSave = async () => {
+  try {
+    if (!editData?.guid) {
+      console.error("No user GUID found");
+      return;
+    }
+
+    const payload = {
+      guid: editData.guid,
+      role_name: editData.role_name,
+      full_name: editData.full_name,
+    };
+
+    // Call API
+    await updateUser(editData.guid, payload);
+
+    // Optionally refetch user data from backend to get updated record
+    const refreshed = await getUserById(editData.guid);
+    const updatedUser = refreshed.data.data;
+
+    // Update Redux store so rest of app sees latest info
     dispatch(setUser(updatedUser));
+
+    // Update local state (for immediate UI feedback)
+    setUserDetails(updatedUser);
     setIsEditing(false);
-  };
+
+  } catch (error) {
+    console.error("Error updating user:", error);
+  }
+};
+
 
   const handleCancel = () => {
     setEditData(user || {});
@@ -63,12 +124,26 @@ const ProfileSection = () => {
   const handleDeleteAccount = () => {
     setShowDeleteConfirm(true);
   };
-  const confirmDeleteAccount = () => {
+  const confirmDeleteAccount = async () => {
+  try {
     setShowDeleteConfirm(false);
-    alert('Account deleted! (dummy handler)');
-    // Here you would call your backend to delete the account
-    navigate('/login');
-  };
+
+    if (!user?.guid) {
+      console.error("No user GUID found!");
+      return;
+    }
+
+    // ✅ Hit API to delete/block account
+    await updateUserStatus(user.guid);
+
+    // Optionally clear redux/localstorage
+    dispatch(setUser(null));;
+
+    navigate("/login");
+  } catch (error) {
+    console.error("Error deleting account:", error);
+  }
+};
   const cancelDeleteAccount = () => {
     setShowDeleteConfirm(false);
   };
@@ -142,12 +217,12 @@ const ProfileSection = () => {
                   {isEditing ? (
                     <input
                       type="text"
-                      value={editData.fullName}
-                      onChange={e => handleInputChange('fullName', e.target.value)}
+                      value={editData.full_name}
+                      onChange={e => handleInputChange('full_name', e.target.value)}
                       className="w-full bg-[#9B7BB8]/20 text-white p-2 rounded-lg border border-[#9B7BB8]/30 focus:outline-none focus:ring-2 focus:ring-[#9B7BB8] transition-all duration-200 text-sm placeholder-white/50"
                     />
                   ) : (
-                    <p className="text-white font-medium text-sm truncate">{user?.fullName}</p>
+                    <p className="text-white font-medium text-sm truncate">{userDetails?.full_name}</p>
                   )}
                 </div>
               </div>
@@ -159,48 +234,30 @@ const ProfileSection = () => {
                 <div className="w-10 h-10 rounded-full bg-[#9B7BB8]/30 flex items-center justify-center">
                   <Mail className="w-5 h-5 text-[#9B7BB8]" />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs text-white/60 uppercase tracking-wide font-medium mb-1">Email Address</p>
-                  {isEditing ? (
-                    <input
-                      type="email"
-                      value={editData.email}
-                      onChange={e => handleInputChange('email', e.target.value)}
-                      className="w-full bg-[#9B7BB8]/20 text-white p-2 rounded-lg border border-[#9B7BB8]/30 focus:outline-none focus:ring-2 focus:ring-[#9B7BB8] transition-all duration-200 text-sm placeholder-white/50"
-                    />
-                  ) : (
-                    <p className="text-white font-medium text-sm truncate">{user?.email}</p>
-                  )}
-                </div>
+                            <div className="flex-1 min-w-0">
+                <p className="text-xs text-white/60 uppercase tracking-wide font-medium mb-1">
+                  Email Address
+                </p>
+                <p className="text-white font-medium text-sm truncate">
+                  {userDetails?.email}
+                </p>
+              </div>
+
               </div>
               {/* Mobile Field */}
               <div className="flex items-center space-x-3 p-3 bg-[#9B7BB8]/20 rounded-2xl">
                 <div className="w-10 h-10 rounded-full bg-[#9B7BB8]/30 flex items-center justify-center">
                   <Phone className="w-5 h-5 text-[#9B7BB8]" />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs text-white/60 uppercase tracking-wide font-medium mb-1">Mobile Number</p>
-                  {isEditing ? (
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={editData.countryCode || ''}
-                        onChange={e => handleInputChange('countryCode', e.target.value)}
-                        className="w-20 bg-[#9B7BB8]/20 text-white p-2 rounded-lg border border-[#9B7BB8]/30 focus:outline-none focus:ring-2 focus:ring-[#9B7BB8] transition-all duration-200 text-sm placeholder-white/50"
-                        placeholder="+91"
-                      />
-                      <input
-                        type="tel"
-                        value={editData.mobile || ''}
-                        onChange={e => handleInputChange('mobile', e.target.value)}
-                        className="flex-1 bg-[#9B7BB8]/20 text-white p-2 rounded-lg border border-[#9B7BB8]/30 focus:outline-none focus:ring-2 focus:ring-[#9B7BB8] transition-all duration-200 text-sm placeholder-white/50"
-                        placeholder="Mobile number"
-                      />
-                    </div>
-                  ) : (
-                    <p className="text-white font-medium text-sm truncate">{user?.countryCode} {user?.mobile}</p>
-                  )}
-                </div>
+                          <div className="flex-1 min-w-0">
+                <p className="text-xs text-white/60 uppercase tracking-wide font-medium mb-1">
+                  Mobile Number
+                </p>
+                <p className="text-white font-medium text-sm truncate">
+                  {userDetails?.countryCode} {userDetails?.mobile}
+                </p>
+              </div>
+
               </div>
             </div>
           </div>
