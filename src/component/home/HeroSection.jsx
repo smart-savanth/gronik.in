@@ -70,7 +70,7 @@ const HeroSection = ({ cart = [], wishlist = [], onAddToCart, onAddToWishlist, o
     <div
       className="min-h-screen relative overflow-hidden bg-gradient-to-br from-[#9B7BB8] via-[#A67FC4] to-[#B894D1]"
       style={{
-        backgroundImage: `url('/images/hero.jpeg')`,
+        backgroundImage: `linear-gradient(rgba(155, 123, 184, 0.4), rgba(166, 127, 196, 0.4)), url('/images/hero.jpg')`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',
