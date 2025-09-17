@@ -4,4 +4,4 @@ import api from "./api";
 export const saveReview = (data) => api.post("/review/saveReview", data);
 
 // Get all reviews with pagination
-export const getAllReviews = (params) => api.get("/review/getAllReviews", params);
+export const getAllReviews = (params) => api.post("/review/getAllReviews", params);

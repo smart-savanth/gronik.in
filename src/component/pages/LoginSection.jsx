@@ -207,15 +207,12 @@ const LoginPage = () => {
 const handleSignup = async () => {
   const newErrors = {};
 
-  // ✅ Your existing validation logic stays the same
   if (!formData.fullName) newErrors.fullName = 'Full name is required';
-  // ... (country code, mobile, email, password checks)
 
   setErrors(newErrors);
 
   if (Object.keys(newErrors).length === 0) {
     try {
-      // 1️⃣ Call Signup API
       await api.post('/auth/signUp', {
         full_name: formData.fullName,
         country_code: formData.mobile
@@ -229,20 +226,16 @@ const handleSignup = async () => {
         role_name: "USER",
       });
 
-      // 2️⃣ Immediately call Login API using the same email + password
       const loginResponse = await api.post('/auth/login', {
         email: formData.email,
         password: formData.password,
       });
 
-      // 3️⃣ Extract data from login response
       const userData = loginResponse.data.data.user;
       const token = loginResponse.data.data.access_token;
 
-      // 4️⃣ Save in Redux (or Context)
       dispatch(login({ token, user: userData }));
 
-      // 5️⃣ Show success & redirect
       setShowAuthSuccess(true);
       setTimeout(() => {
         navigate('/profile');
@@ -261,7 +254,7 @@ const handleSignup = async () => {
 const handleLogin = async () => {
   const newErrors = {};
 
-  // Frontend validation
+
   if (loginMethod === 'email') {
     if (!formData.email) {
       newErrors.email = 'Email is required';
@@ -283,7 +276,7 @@ const handleLogin = async () => {
 
   setErrors(newErrors);
 
-  // If no validation errors, call API
+
   if (Object.keys(newErrors).length === 0) {
     try {
       const response = await api.post('/auth/login', {
@@ -298,11 +291,8 @@ const handleLogin = async () => {
         password: formData.password,
       });
 
-      // ✅ Correct way to access response
-      const userData = response.data.data.user;   // not response.data.user
-      const token = response.data.data.access_token; // not response.data.token
-
-      // Save in Redux + localStorage
+      const userData = response.data.data.user; 
+      const token = response.data.data.access_token; 
       dispatch(login({ token, user: userData }));
 
       setShowAuthSuccess(true);

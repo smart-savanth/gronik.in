@@ -14,11 +14,8 @@ const ReviewsSection = () => {
   });
 
   const scrollContainerRef = useRef(null);
-
-  // ✅ Get user from redux (if logged in)
   const user = useSelector((state) => state.userAuth.user);
 
-  // ✅ Fetch reviews on mount
   useEffect(() => {
     const fetchReviews = async () => {
       try {
@@ -34,12 +31,10 @@ const ReviewsSection = () => {
     fetchReviews();
   }, []);
 
-  // Duplicate reviews for seamless infinite scroll
-  const duplicatedReviews = [...reviews, ...reviews];
-
-  // ✅ Submit Review
+ 
   const handleSubmitReview = async () => {
-    if (newReview.text && newReview.name) {
+    
+    if (newReview.text ) {
       try {
         const payload = {
           type: "site",
@@ -48,7 +43,6 @@ const ReviewsSection = () => {
           rating: newReview.rating,
           review: newReview.text
         };
-
         const response = await saveReview(payload);
 
         if (response.data.success) {
@@ -103,7 +97,7 @@ const ReviewsSection = () => {
             onMouseEnter={() => setIsPaused(true)}
             onMouseLeave={() => setIsPaused(false)}
           >
-            {duplicatedReviews.map((review, index) => (
+            {reviews.map((review, index) => (
               <div 
                 key={`${review.id}-${index}`}
                 className="bg-[#2D1B3D]/70 backdrop-blur-md border-[#2D1B3D]/30 shadow-xl rounded-2xl p-4 sm:p-8 transition-all duration-300 relative group border w-64 sm:w-80 flex-shrink-0"
@@ -155,7 +149,7 @@ const ReviewsSection = () => {
             <h3 className="text-xl sm:text-2xl font-bold text-[#2D1B3D] mb-4 sm:mb-6 pr-8">Share Your Experience</h3>
             
             <div className="space-y-4">
-              <div>
+              {/* <div>
                 <label className="block text-sm font-medium text-[#2D1B3D] mb-2">Your Name</label>
                 <input
                   type="text"
@@ -165,7 +159,7 @@ const ReviewsSection = () => {
                   placeholder="Enter your name..."
                   maxLength={32}
                 />
-              </div>
+              </div> */}
               
               <div>
                 <label className="block text-sm font-medium text-[#2D1B3D] mb-2">Rating</label>
