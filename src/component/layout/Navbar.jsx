@@ -15,6 +15,7 @@ const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
   const navigate = useNavigate();
   const location = useLocation();
    const user = useSelector((state) => state.userAuth.user);
+   console.log(user, "user");
 
   useEffect(() => {
     const checkMobile = () => {
@@ -296,24 +297,31 @@ const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
                     </span>
                   )}
                 </Link>
-                <Link
-                  to="/profile"
-                  className="p-2 hover:bg-gronik-secondary/20 rounded-lg transition-colors duration-200 group"
-                >
-                  <User className="w-5 h-5 text-gronik-light group-hover:text-gronik-accent transition-colors duration-200" />
-                </Link>
+                          <Link
+                to={user ? "/profile" : "/login"}  
+                className="p-2 hover:bg-gronik-secondary/20 rounded-lg transition-colors duration-200 group"
+              >
+                <User className="w-5 h-5 text-gronik-light group-hover:text-gronik-accent transition-colors duration-200" />
+              </Link>
+                            {!user && (
                 <button
                   onClick={() => navigate('/login')}
                   className="bg-gradient-to-r from-gronik-accent to-gronik-secondary hover:from-gronik-secondary hover:to-gronik-accent text-white px-6 py-2 rounded-lg transition-all duration-200 transform hover:scale-105 font-medium shadow-lg"
                 >
                   Login
                 </button>
-                <Link
+              )}
+
+                {
+                  user && (
+                    <Link
                   to="/admin"
                   className="bg-gradient-to-r from-gronik-accent to-gronik-secondary hover:from-gronik-secondary hover:to-gronik-accent text-white px-6 py-2 rounded-lg transition-all duration-200 transform hover:scale-105 font-medium shadow-lg"
                 >
                   Admin
                 </Link>
+                  )
+                }
               </div>
             </div>
           </div>

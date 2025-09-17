@@ -2,7 +2,7 @@ import React, { useState, useRef ,useEffect} from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Mail, Phone, Edit, Save, X, BookOpen, ShoppingCart, LogOut, Heart, Settings, Camera, Trash2 } from 'lucide-react';
 import { useSelector, useDispatch } from 'react-redux';
-import { setUser } from '../../slices/userAuthSlice';
+import { setUser,logout } from '../../slices/userAuthSlice';
 import { getUserById,updateUser ,updateUserStatus} from '../../utils/userServices';
 const DEFAULT_AVATAR = '';
 
@@ -116,11 +116,13 @@ const handleSave = async () => {
     if (fileInputRef.current) fileInputRef.current.click();
   };
 
-  const handleLogout = () => {
-    // Dummy logout: clear user, redirect to login
-    alert('Logged out!');
+const handleLogout = () => {
+  if (window.confirm('Are you sure you want to logout?')) {
+    dispatch(logout());  
     navigate('/login');
-  };
+  }
+};
+
   const handleDeleteAccount = () => {
     setShowDeleteConfirm(true);
   };
