@@ -163,134 +163,112 @@ const LoginPage = () => {
     await sendOTP(loginMethod === 'email' ? formData.email : formData.mobile);
   };
 
-  // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-  // SIGNUP: validate and submit ONLY the chosen identifier (email OR mobile)
-  // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-  const handleSignup = async () => {
-    const newErrors = {};
+  // Handle signup
+const handleSignup = async () => {
+  const newErrors = {};
 
-    if (!formData.fullName) {
-      newErrors.fullName = 'Full name is required';
-    }
+  if (!formData.fullName) newErrors.fullName = 'Full name is required';
 
-    if (loginMethod === 'mobile') {
-      const effectiveCode = formData.countryCode === 'other' ? formData.customCountryCode : formData.countryCode;
-      if (!effectiveCode || !validateCountryCode(effectiveCode)) {
-        newErrors.countryCode = 'Valid country code is required (e.g., +91)';
-      }
-      if (!formData.mobile) {
-        newErrors.mobile = 'Mobile number is required';
-      } else if (!validateMobile(formData.mobile, effectiveCode)) {
-        newErrors.mobile = 'Invalid mobile number for selected country code';
-      }
-    } else {
-      if (!formData.email) {
-        newErrors.email = 'Email is required';
-      } else if (!validateEmail(formData.email)) {
-        newErrors.email = 'Please enter a valid email address';
-      }
-    }
+  setErrors(newErrors);
 
-    const passwordValidation = validatePassword(formData.password);
-    if (!formData.password) {
-      newErrors.password = 'Password is required';
-    } else if (!passwordValidation.isValid) {
-      newErrors.password = 'Password does not meet requirements';
-    }
+  if (Object.keys(newErrors).length === 0) {
+    try {
+      await api.post('/auth/signUp', {
+        full_name: formData.fullName,
+        country_code: formData.mobile
+          ? (formData.countryCode === 'other'
+              ? formData.customCountryCode
+              : formData.countryCode)
+          : undefined,
+        mobile: formData.mobile || undefined,
+        email: formData.email,
+        password: formData.password,
+        role_name: "USER",
+      });
 
-    if (!formData.confirmPassword) {
-      newErrors.confirmPassword = 'Please confirm your password';
-    } else if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
-    }
+      const loginResponse = await api.post('/auth/login', {
+        email: formData.email,
+        password: formData.password,
+      });
 
-    setErrors(newErrors);
+      const userData = loginResponse.data.data.user;
+      const token = loginResponse.data.data.access_token;
 
-    if (Object.keys(newErrors).length === 0) {
-      try {
-        const payload = {
-          fullName: formData.fullName,
-          password: formData.password
-        };
-        if (loginMethod === 'email') {
-          payload.email = formData.email;
-        } else {
-          payload.countryCode = formData.countryCode === 'other' ? formData.customCountryCode : formData.countryCode;
-          payload.mobile = formData.mobile;
-        }
+      dispatch(login({ token, user: userData }));
 
-        const response = await api.post('/auth/signUp', payload);
-        const userData = response.data.user;
-        const token = response.data.token;
-        dispatch(login({ token, user: userData }));
-        setShowAuthSuccess(true);
-        setTimeout(() => {
-          navigate('/');
-        }, 500);
-      } catch (error) {
-        setErrors({ api: error.response?.data?.message || 'Registration failed. Please try again.' });
-      }
-    }
-  };
-  // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+      setShowAuthSuccess(true);
+      setTimeout(() => {
+        navigate('/profile');
+      }, 500);
 
-  const handleLogin = async () => {
-    const newErrors = {};
-    if (loginMethod === 'email') {
-      if (!formData.email) {
-        newErrors.email = 'Email is required';
-      } else if (!validateEmail(formData.email)) {
-        newErrors.email = 'Please enter a valid email address';
-      }
-    } else {
-      const code = formData.countryCode === 'other' ? formData.customCountryCode : formData.countryCode;
-      if (!formData.mobile) {
-        newErrors.mobile = 'Mobile number is required';
-      } else if (!validateMobile(formData.mobile, code)) {
-        newErrors.mobile = 'Invalid mobile number for selected country code';
-      }
+    } catch (error) {
+      setErrors({
+        api: error.response?.data?.message || 'Registration or login failed. Please try again.',
+      });
     }
-    if (!formData.password) {
-      newErrors.password = 'Password is required';
+  }
+};
+
+
+  // Handle login
+const handleLogin = async () => {
+  const newErrors = {};
+
+
+  if (loginMethod === 'email') {
+    if (!formData.email) {
+      newErrors.email = 'Email is required';
+    } else if (!validateEmail(formData.email)) {
+      newErrors.email = 'Please enter a valid email address';
     }
-    const reduxUser = user;
-    let credentialsMatch = false;
-    if (reduxUser) {
-      if (loginMethod === 'email' && reduxUser.email === formData.email && reduxUser.password === formData.password) {
-        credentialsMatch = true;
-      } else if (loginMethod === 'mobile') {
-        const code = formData.countryCode === 'other' ? formData.customCountryCode : formData.countryCode;
-        const fullReduxMobile = `${reduxUser.countryCode || ''}${reduxUser.mobile || ''}`;
-        const fullEntered = `${code || ''}${formData.mobile || ''}`;
-        if (fullReduxMobile && fullReduxMobile === fullEntered && reduxUser.password === formData.password) {
-          credentialsMatch = true;
-        }
-      }
+  } else {
+    const code = formData.countryCode === 'other' ? formData.customCountryCode : formData.countryCode;
+    if (!formData.mobile) {
+      newErrors.mobile = 'Mobile number is required';
+    } else if (!validateMobile(formData.mobile, code)) {
+      newErrors.mobile = 'Invalid mobile number for selected country code';
     }
-    if (!credentialsMatch && Object.keys(newErrors).length === 0) {
-      newErrors.password = 'Invalid credentials. Please check your email/mobile and password.';
+  }
+
+  if (!formData.password) {
+    newErrors.password = 'Password is required';
+  }
+
+  setErrors(newErrors);
+
+
+  if (Object.keys(newErrors).length === 0) {
+    try {
+      const response = await api.post('/auth/login', {
+        email: loginMethod === 'email' ? formData.email : undefined,
+        mobile: loginMethod === 'mobile' ? formData.mobile : undefined,
+        country_code:
+          loginMethod === 'mobile'
+            ? formData.countryCode === 'other'
+              ? formData.customCountryCode
+              : formData.countryCode
+            : undefined,
+        password: formData.password,
+      });
+
+      const userData = response.data.data.user; 
+      const token = response.data.data.access_token; 
+      dispatch(login({ token, user: userData }));
+
+      setShowAuthSuccess(true);
+
+      setTimeout(() => {
+        navigate('/profile');
+      }, 500);
+    } catch (error) {
+      setErrors({
+        api: error.response?.data?.message || 'Login failed. Please try again.',
+      });
     }
-    setErrors(newErrors);
-    if (Object.keys(newErrors).length === 0 && credentialsMatch) {
-      try {
-        const response = await api.post('/auth/login', {
-          email: loginMethod === 'email' ? formData.email : undefined,
-          mobile: loginMethod === 'mobile' ? formData.mobile : undefined,
-          countryCode: loginMethod === 'mobile' ? (formData.countryCode === 'other' ? formData.customCountryCode : formData.countryCode) : undefined,
-          password: formData.password
-        });
-        const userData = response.data.user;
-        const token = response.data.token;
-        dispatch(login({ token, user: userData }));
-        setShowAuthSuccess(true);
-        setTimeout(() => {
-          navigate('/profile');
-        }, 500);
-      } catch (error) {
-        setErrors({ api: error.response?.data?.message || 'Login failed. Please try again.' });
-      }
-    }
-  };
+  }
+};
+
+
 
   const handleForgotSubmit = () => {
     const newErrors = {};

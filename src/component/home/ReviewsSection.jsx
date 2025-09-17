@@ -1,46 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { User, Star, Quote, Plus, X, Send, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Star, Quote, Plus, X, Send } from 'lucide-react';
+import { getAllReviews, saveReview } from '../../utils/reviewservice';
+import { useSelector } from 'react-redux';
 
 const ReviewsSection = () => {
-  const [reviews, setReviews] = useState([
-    { 
-      id: 1,
-      rating: 5, 
-      text: "Books are easy to get and the quality is amazing! The reading experience is seamless and the collection is vast.",
-      name: "Aarav Sharma"
-    },
-    { 
-      id: 2,
-      rating: 5, 
-      text: "Great collection and smooth reading experience. Love the variety and user interface. Perfect for daily reading.",
-      name: "Priya Patel"
-    },
-    { 
-      id: 3,
-      rating: 4, 
-      text: "Love the variety of books available here. Perfect for my daily reading routine and the quality is top-notch.",
-      name: "Rahul Verma"
-    },
-    { 
-      id: 4,
-      rating: 5, 
-      text: "Outstanding platform with incredible book selection. The reading experience is smooth and enjoyable.",
-      name: "Sneha Reddy"
-    },
-    { 
-      id: 5,
-      rating: 4, 
-      text: "Fantastic digital library with great features. Love how easy it is to find and read books on any device.",
-      name: "Vikram Singh"
-    },
-    { 
-      id: 6,
-      rating: 5, 
-      text: "Best e-book platform I've used! Great selection, amazing quality, and the interface is beautifully designed.",
-      name: "Ananya Iyer"
-    }
-  ]);
-
+  const [reviews, setReviews] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [newReview, setNewReview] = useState({
@@ -50,19 +14,45 @@ const ReviewsSection = () => {
   });
 
   const scrollContainerRef = useRef(null);
+  const user = useSelector((state) => state.userAuth.user);
 
-  // Duplicate reviews for seamless infinite scroll
-  const duplicatedReviews = [...reviews, ...reviews];
+  useEffect(() => {
+    const fetchReviews = async () => {
+      try {
+        const response = await getAllReviews({ page: 1, pageSize: 10 });
+        if (response.data.success) {
+          setReviews(response.data.data);
+        }
+      } catch (error) {
+        console.error("Error fetching reviews:", error);
+      }
+    };
 
-  const handleSubmitReview = () => {
-    if (newReview.text && newReview.name) {
-      const review = {
-        id: reviews.length + 1,
-        ...newReview
-      };
-      setReviews([review, ...reviews]);
-      setNewReview({ rating: 5, text: '', name: '' });
-      setShowForm(false);
+    fetchReviews();
+  }, []);
+
+ 
+  const handleSubmitReview = async () => {
+    
+    if (newReview.text ) {
+      try {
+        const payload = {
+          type: "site",
+          product: null,
+          user_id: user?.guid,
+          rating: newReview.rating,
+          review: newReview.text
+        };
+        const response = await saveReview(payload);
+
+        if (response.data.success) {
+          setReviews([response.data.data, ...reviews]);
+          setNewReview({ rating: 5, text: '', name: '' });
+          setShowForm(false);
+        }
+      } catch (error) {
+        console.error("Error saving review:", error);
+      }
     }
   };
 
@@ -107,7 +97,7 @@ const ReviewsSection = () => {
             onMouseEnter={() => setIsPaused(true)}
             onMouseLeave={() => setIsPaused(false)}
           >
-            {duplicatedReviews.map((review, index) => (
+            {reviews.map((review, index) => (
               <div 
                 key={`${review.id}-${index}`}
                 className="bg-[#2D1B3D]/70 backdrop-blur-md border-[#2D1B3D]/30 shadow-xl rounded-2xl p-4 sm:p-8 transition-all duration-300 relative group border w-64 sm:w-80 flex-shrink-0"
@@ -131,12 +121,12 @@ const ReviewsSection = () => {
                 
                 {/* Review Text */}
                 <p className="italic leading-relaxed text-sm sm:text-base text-white/90 text-center">
-                  "{review.text}"
+                  "{review.review || review.text}"
                 </p>
 
                 <div className="flex justify-center mt-3">
                   <span className="text-xs sm:text-sm text-[#FFD700] font-semibold opacity-80 rounded-full px-2 py-0.5 bg-[#2D1B3D]/30" style={{fontFamily: 'cursive'}}>
-                    {review.name}
+                    {review.name || review.user_name || "Anonymous"}
                   </span>
                 </div>
               </div>
@@ -159,7 +149,7 @@ const ReviewsSection = () => {
             <h3 className="text-xl sm:text-2xl font-bold text-[#2D1B3D] mb-4 sm:mb-6 pr-8">Share Your Experience</h3>
             
             <div className="space-y-4">
-              <div>
+              {/* <div>
                 <label className="block text-sm font-medium text-[#2D1B3D] mb-2">Your Name</label>
                 <input
                   type="text"
@@ -169,7 +159,7 @@ const ReviewsSection = () => {
                   placeholder="Enter your name..."
                   maxLength={32}
                 />
-              </div>
+              </div> */}
               
               <div>
                 <label className="block text-sm font-medium text-[#2D1B3D] mb-2">Rating</label>
@@ -209,7 +199,7 @@ const ReviewsSection = () => {
               </button>
             </div>
           </div>
-        </div>
+        </div> 
       )}
 
       <style jsx>{`
