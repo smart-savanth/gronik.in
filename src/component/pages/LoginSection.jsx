@@ -238,7 +238,7 @@ const handleSignup = async () => {
 
       setShowAuthSuccess(true);
       setTimeout(() => {
-        navigate('/profile');
+        navigate('/');
       }, 500);
 
     } catch (error) {
@@ -298,7 +298,7 @@ const handleLogin = async () => {
       setShowAuthSuccess(true);
 
       setTimeout(() => {
-        navigate('/profile');
+        navigate('/');
       }, 500);
     } catch (error) {
       setErrors({
