@@ -15,7 +15,6 @@ const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
   const navigate = useNavigate();
   const location = useLocation();
    const user = useSelector((state) => state.userAuth.user);
-   console.log(user, "user");
 
   useEffect(() => {
     const checkMobile = () => {

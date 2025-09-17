@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Star, Quote, Plus, X, Send } from 'lucide-react';
 import { getAllReviews, saveReview } from '../../utils/reviewservice';
 import { useSelector } from 'react-redux';
-
+import { useNavigate } from 'react-router-dom';
 const ReviewsSection = () => {
   const [reviews, setReviews] = useState([]);
   const [showForm, setShowForm] = useState(false);
@@ -15,7 +15,7 @@ const ReviewsSection = () => {
 
   const scrollContainerRef = useRef(null);
   const user = useSelector((state) => state.userAuth.user);
-
+  const navigate = useNavigate();
   useEffect(() => {
     const fetchReviews = async () => {
       try {
@@ -33,6 +33,10 @@ const ReviewsSection = () => {
 
  
   const handleSubmitReview = async () => {
+    if (!user) {
+    navigate("/login");
+    return;
+  }
     
     if (newReview.text ) {
       try {
