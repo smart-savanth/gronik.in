@@ -1,8 +1,22 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
 import { User, Star, Quote, Plus, X, Send, ChevronLeft, ChevronRight } from 'lucide-react';
 
+// Redux actions (add these to your reviews slice)
+const addReview = (review) => ({
+  type: 'reviews/addReview',
+  payload: review
+});
+
+const setReviews = (reviews) => ({
+  type: 'reviews/setReviews',
+  payload: reviews
+});
+
 const ReviewsSection = () => {
-  const [reviews, setReviews] = useState([
+  // Redux state
+  const dispatch = useDispatch();
+  const reviews = useSelector(state => state.reviews?.items || [
     { 
       id: 1,
       rating: 5, 
@@ -50,47 +64,87 @@ const ReviewsSection = () => {
   });
 
   const scrollContainerRef = useRef(null);
+  const currentTransformRef = useRef(0); // Store position in ref to persist across renders
 
   // Duplicate reviews for seamless infinite scroll
-  const duplicatedReviews = [...reviews, ...reviews];
+  const duplicatedReviews = [...reviews, ...reviews, ...reviews];
+
+  // Smooth animation control
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    let intervalId;
+    const speed = 1; // pixels per interval
+
+    if (!isPaused) {
+      intervalId = setInterval(() => {
+        currentTransformRef.current -= speed;
+        
+        // Reset position when we've scrolled through one full set
+        const resetPoint = -(container.scrollWidth / 3);
+        if (currentTransformRef.current <= resetPoint) {
+          currentTransformRef.current = 0;
+        }
+        
+        container.style.transform = `translateX(${currentTransformRef.current}px)`;
+      }, 16); // ~60fps
+    }
+
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
+  }, [isPaused]);
+
+  const handleMouseEnter = () => {
+    setIsPaused(true);
+  };
+
+  const handleMouseLeave = () => {
+    setIsPaused(false);
+  };
 
   const handleSubmitReview = () => {
-    if (newReview.text && newReview.name) {
+    if (newReview.text) {
       const review = {
-        id: reviews.length + 1,
-        ...newReview
+        id: Date.now(), // Better ID generation
+        ...newReview,
+        name: "Anonymous", // Set default name since we removed the field
+        timestamp: new Date().toISOString()
       };
-      setReviews([review, ...reviews]);
+      dispatch(addReview(review));
       setNewReview({ rating: 5, text: '', name: '' });
       setShowForm(false);
     }
   };
 
   return (
-    <section className="py-12 sm:py-20 relative overflow-hidden bg-[#9B7BB8]">
+    <section className="py-8 sm:py-12 md:py-16 lg:py-20 relative overflow-hidden bg-[#9B7BB8]">
       {/* Background Pattern */}
       <div className="absolute inset-0 opacity-10">
-        <div className="absolute top-10 left-10 w-20 h-20 sm:w-32 sm:h-32 bg-[#2D1B3D] rounded-full blur-3xl"></div>
-        <div className="absolute bottom-20 right-20 w-24 h-24 sm:w-40 sm:h-40 bg-[#3D2A54] rounded-full blur-3xl"></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-32 h-32 sm:w-60 sm:h-60 bg-[#2D1B3D] rounded-full blur-3xl"></div>
+        <div className="absolute top-6 left-6 sm:top-10 sm:left-10 w-16 h-16 sm:w-20 sm:h-20 md:w-32 md:h-32 bg-[#2D1B3D] rounded-full blur-2xl sm:blur-3xl"></div>
+        <div className="absolute bottom-12 right-12 sm:bottom-20 sm:right-20 w-20 h-20 sm:w-24 sm:h-24 md:w-40 md:h-40 bg-[#3D2A54] rounded-full blur-2xl sm:blur-3xl"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-24 h-24 sm:w-32 sm:h-32 md:w-60 md:h-60 bg-[#2D1B3D] rounded-full blur-2xl sm:blur-3xl"></div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 relative z-10">
         {/* Header */}
-        <div className="text-center mb-8 sm:mb-16">
-          <h2 className="text-2xl sm:text-4xl lg:text-5xl font-bold mb-4 sm:mb-6 text-[#2D1B3D] px-4">
+        <div className="text-center mb-6 sm:mb-8 md:mb-12 lg:mb-16">
+          <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold mb-2 sm:mb-3 md:mb-4 text-[#2D1B3D] px-2 sm:px-4">
             What Our Readers Say
           </h2>
-          <p className="text-sm sm:text-xl text-[#2D1B3D]/80 max-w-2xl mx-auto mb-6 sm:mb-8 font-medium px-4">
+          <p className="text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl text-[#2D1B3D]/80 max-w-xl lg:max-w-2xl xl:max-w-3xl mx-auto mb-3 sm:mb-4 md:mb-6 font-medium px-2 sm:px-4 leading-relaxed">
             Join thousands of satisfied readers who have transformed their reading experience
           </p>
           
           {/* Add Review Button */}
           <button
             onClick={() => setShowForm(true)}
-            className="inline-flex items-center space-x-2 bg-[#2D1B3D] text-white px-4 sm:px-6 py-2 sm:py-3 rounded-full hover:bg-[#3D2A54] transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 font-semibold text-sm sm:text-base"
+            className="inline-flex items-center space-x-2 bg-[#2D1B3D] text-white px-3 sm:px-4 md:px-5 lg:px-6 py-2 sm:py-2.5 md:py-3 lg:py-3.5 rounded-full hover:bg-[#3D2A54] transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95 font-semibold text-xs sm:text-sm md:text-base lg:text-lg"
           >
-            <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
+            <Plus className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 lg:w-5 lg:h-5" />
             <span>Add Your Review</span>
           </button>
         </div>
@@ -99,13 +153,13 @@ const ReviewsSection = () => {
         <div className="relative overflow-hidden" style={{ height: '280px', paddingTop: '20px', paddingBottom: '20px' }}>
           <div 
             ref={scrollContainerRef}
-            className="flex gap-4 sm:gap-8 w-max"
+            className="flex gap-4 sm:gap-8 w-max transition-all duration-500 ease-out"
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
             style={{
-              animation: isPaused ? 'none' : 'scroll 80s linear infinite',
-              transform: 'translateX(0)'
+              transform: 'translateX(0px)',
+              willChange: 'transform'
             }}
-            onMouseEnter={() => setIsPaused(true)}
-            onMouseLeave={() => setIsPaused(false)}
           >
             {duplicatedReviews.map((review, index) => (
               <div 
@@ -147,42 +201,36 @@ const ReviewsSection = () => {
 
       {/* Review Form Modal */}
       {showForm && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 sm:p-8 max-w-md w-full mx-4 shadow-2xl relative max-h-[calc(100%-2rem)] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-3 sm:p-4">
+          <div className="bg-white rounded-2xl shadow-2xl relative max-h-[calc(100%-1rem)] sm:max-h-[calc(100%-2rem)] overflow-y-auto w-full max-w-sm sm:max-w-md lg:max-w-lg mx-2 sm:mx-4
+            p-4 sm:p-6 lg:p-8">
             <button
               onClick={() => setShowForm(false)}
-              className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 transition-colors"
+              className="absolute top-3 right-3 sm:top-4 sm:right-4 text-gray-500 hover:text-gray-700 transition-colors duration-200 p-1"
             >
-              <X className="w-5 h-5 sm:w-6 sm:h-6" />
+              <X className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6" />
             </button>
             
-            <h3 className="text-xl sm:text-2xl font-bold text-[#2D1B3D] mb-4 sm:mb-6 pr-8">Share Your Experience</h3>
+            <h3 className="font-bold text-[#2D1B3D] mb-4 sm:mb-6 pr-8
+              text-lg sm:text-xl lg:text-2xl">
+              Share Your Experience
+            </h3>
             
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-[#2D1B3D] mb-2">Your Name</label>
-                <input
-                  type="text"
-                  value={newReview.name}
-                  onChange={e => setNewReview({ ...newReview, name: e.target.value })}
-                  className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#9B7BB8] focus:border-transparent transition-all text-sm sm:text-base mb-2"
-                  placeholder="Enter your name..."
-                  maxLength={32}
-                />
-              </div>
-              
+            <div className="space-y-3 sm:space-y-4">
               <div>
                 <label className="block text-sm font-medium text-[#2D1B3D] mb-2">Rating</label>
-                <div className="flex space-x-1">
+                <div className="flex space-x-1 sm:space-x-2">
                   {[1, 2, 3, 4, 5].map((star) => (
                     <button
                       key={star}
                       type="button"
                       onClick={() => setNewReview({...newReview, rating: star})}
-                      className="text-2xl transition-colors"
+                      className="transition-all duration-200 hover:scale-110 active:scale-95"
                     >
                       <Star 
-                        className={`w-5 h-5 sm:w-6 sm:h-6 ${star <= newReview.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
+                        className={`transition-colors duration-200
+                          w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8
+                          ${star <= newReview.rating ? 'text-yellow-400 fill-current' : 'text-gray-300 hover:text-yellow-200'}`}
                       />
                     </button>
                   ))}
@@ -195,14 +243,25 @@ const ReviewsSection = () => {
                   value={newReview.text}
                   onChange={(e) => setNewReview({...newReview, text: e.target.value})}
                   rows={4}
-                  className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#9B7BB8] focus:border-transparent transition-all resize-none text-sm sm:text-base"
+                  className="w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#9B7BB8] focus:border-transparent transition-all duration-300 resize-none
+                    px-3 py-2 text-sm
+                    sm:px-4 sm:py-3 sm:text-base
+                    lg:px-4 lg:py-3 lg:text-base"
                   placeholder="Share your experience with our platform..."
+                  maxLength={200}
                 />
+                <div className="text-right text-xs text-gray-500 mt-1">
+                  {newReview.text.length}/200
+                </div>
               </div>
               
               <button
                 onClick={handleSubmitReview}
-                className="w-full bg-[#2D1B3D] text-white py-2 sm:py-3 rounded-lg hover:bg-[#3D2A54] transition-all duration-300 font-medium flex items-center justify-center space-x-2 text-sm sm:text-base"
+                disabled={!newReview.text.trim()}
+                className="w-full bg-[#2D1B3D] text-white rounded-lg hover:bg-[#3D2A54] transition-all duration-300 font-medium flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 active:scale-95
+                  py-2 text-sm
+                  sm:py-3 sm:text-base
+                  lg:py-4 lg:text-lg"
               >
                 <Send className="w-4 h-4 sm:w-5 sm:h-5" />
                 <span>Submit Review</span>
@@ -213,20 +272,69 @@ const ReviewsSection = () => {
       )}
 
       <style jsx>{`
-        @keyframes scroll {
-          0% {
-            transform: translateX(0);
-          }
-          100% {
-            transform: translateX(-50%);
+        .line-clamp-3 {
+          display: -webkit-box;
+          -webkit-line-clamp: 3;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+        
+        .line-clamp-4 {
+          display: -webkit-box;
+          -webkit-line-clamp: 4;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+        
+        .line-clamp-5 {
+          display: -webkit-box;
+          -webkit-line-clamp: 5;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+        
+        /* Smooth scrolling for all devices */
+        @media (max-width: 640px) {
+          .group:hover {
+            transform: scale(1.02) translateY(-4px) !important;
           }
         }
         
-        @media (max-width: 640px) {
+        @media (min-width: 641px) and (max-width: 1024px) {
           .group:hover {
-            transform: none !important;
-            z-index: initial !important;
+            transform: scale(1.03) translateY(-6px) !important;
           }
+        }
+        
+        @media (min-width: 1025px) {
+          .group:hover {
+            transform: scale(1.05) translateY(-8px) !important;
+          }
+        }
+        
+        /* Performance optimizations */
+        .group {
+          will-change: transform;
+          backface-visibility: hidden;
+          transform-style: preserve-3d;
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+          width: 4px;
+        }
+        
+        ::-webkit-scrollbar-track {
+          background: rgba(45, 27, 61, 0.1);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+          background: rgba(45, 27, 61, 0.3);
+          border-radius: 2px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+          background: rgba(45, 27, 61, 0.5);
         }
       `}</style>
     </section>

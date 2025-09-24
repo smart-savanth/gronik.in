@@ -4,6 +4,18 @@ import { useNavigate } from 'react-router-dom';
 
 const Footer = () => {
   const navigate = useNavigate();
+  
+  // Fixed Home navigation
+  const handleHomeClick = () => {
+    if (window.location.pathname !== '/') {
+      navigate('/');
+    } else {
+      // If already on home page, scroll to top
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  // Fixed About navigation
   const handleAboutClick = () => {
     if (window.location.pathname !== '/') {
       navigate('/');
@@ -11,15 +23,22 @@ const Footer = () => {
         const aboutSection = document.getElementById('about-section');
         if (aboutSection) {
           aboutSection.scrollIntoView({ behavior: 'smooth' });
+        } else {
+          // Fallback: scroll to a reasonable position where about section might be
+          window.scrollTo({ top: window.innerHeight * 2, behavior: 'smooth' });
         }
-      }, 100);
+      }, 300); // Increased timeout for page load
     } else {
       const aboutSection = document.getElementById('about-section');
       if (aboutSection) {
         aboutSection.scrollIntoView({ behavior: 'smooth' });
+      } else {
+        // Fallback: scroll to a reasonable position where about section might be
+        window.scrollTo({ top: window.innerHeight * 2, behavior: 'smooth' });
       }
     }
   };
+
   return (
     <footer className="bg-[#2D1B3D] backdrop-blur-md border-t border-gronik-secondary/20 py-12 sm:py-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -51,22 +70,42 @@ const Footer = () => {
             <div>
               <h4 className="font-bold text-gronik-light mb-4 sm:mb-6 text-base sm:text-lg">Quick Links</h4>
               <ul className="space-y-2 sm:space-y-3">
-                <li><button onClick={() => navigate('/')} className="text-gronik-light/70 hover:text-gronik-accent transition-colors duration-200 flex items-center space-x-2 group text-sm sm:text-base bg-transparent border-0 outline-none cursor-pointer w-full text-left">
-                  <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-gronik-accent rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200"></span>
-                  <span>Home</span>
-                </button></li>
-                <li><button onClick={() => navigate('/library')} className="text-gronik-light/70 hover:text-gronik-accent transition-colors duration-200 flex items-center space-x-2 group text-sm sm:text-base bg-transparent border-0 outline-none cursor-pointer w-full text-left">
-                  <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-gronik-accent rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200"></span>
-                  <span>Library</span>
-                </button></li>
-                <li><button onClick={handleAboutClick} className="text-gronik-light/70 hover:text-gronik-accent transition-colors duration-200 flex items-center space-x-2 group text-sm sm:text-base bg-transparent border-0 outline-none cursor-pointer w-full text-left">
-                  <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-gronik-accent rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200"></span>
-                  <span>About</span>
-                </button></li>
-                <li><button onClick={() => navigate('/contact')} className="text-gronik-light/70 hover:text-gronik-accent transition-colors duration-200 flex items-center space-x-2 group text-sm sm:text-base bg-transparent border-0 outline-none cursor-pointer w-full text-left">
-                  <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-gronik-accent rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200"></span>
-                  <span>Contact</span>
-                </button></li>
+                <li>
+                  <button 
+                    onClick={handleHomeClick} 
+                    className="text-gronik-light/70 hover:text-gronik-accent transition-colors duration-200 flex items-center space-x-2 group text-sm sm:text-base bg-transparent border-0 outline-none cursor-pointer w-full text-left"
+                  >
+                    <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-gronik-accent rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200"></span>
+                    <span>Home</span>
+                  </button>
+                </li>
+                <li>
+                  <button 
+                    onClick={() => navigate('/library')} 
+                    className="text-gronik-light/70 hover:text-gronik-accent transition-colors duration-200 flex items-center space-x-2 group text-sm sm:text-base bg-transparent border-0 outline-none cursor-pointer w-full text-left"
+                  >
+                    <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-gronik-accent rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200"></span>
+                    <span>Library</span>
+                  </button>
+                </li>
+                <li>
+                  <button 
+                    onClick={handleAboutClick} 
+                    className="text-gronik-light/70 hover:text-gronik-accent transition-colors duration-200 flex items-center space-x-2 group text-sm sm:text-base bg-transparent border-0 outline-none cursor-pointer w-full text-left"
+                  >
+                    <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-gronik-accent rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200"></span>
+                    <span>About</span>
+                  </button>
+                </li>
+                <li>
+                  <button 
+                    onClick={() => navigate('/contact')} 
+                    className="text-gronik-light/70 hover:text-gronik-accent transition-colors duration-200 flex items-center space-x-2 group text-sm sm:text-base bg-transparent border-0 outline-none cursor-pointer w-full text-left"
+                  >
+                    <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-gronik-accent rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200"></span>
+                    <span>Contact</span>
+                  </button>
+                </li>
               </ul>
             </div>
             
@@ -107,33 +146,38 @@ const Footer = () => {
           </div>
         </div>
       </div>
+
+      <style jsx>{`
+        .footer-social-btn {
+          background: rgba(155, 123, 184, 0.12);
+          color: #e0d7f7;
+          border: 1.5px solid rgba(155, 123, 184, 0.3);
+          border-radius: 0.5rem;
+          padding: 0.5rem 1.25rem;
+          font-size: 1rem;
+          font-weight: 500;
+          transition: color 0.18s;
+          display: inline-block;
+          margin-right: 0.5rem;
+        }
+        .footer-social-btn:last-child { 
+          margin-right: 0; 
+        }
+        .footer-social-btn.youtube-btn:hover, 
+        .footer-social-btn.youtube-btn:focus {
+          color: #ff4d4f;
+        }
+        .footer-social-btn.instagram-btn:hover, 
+        .footer-social-btn.instagram-btn:focus {
+          color: #e1306c;
+        }
+        .footer-social-btn.twitter-btn:hover, 
+        .footer-social-btn.twitter-btn:focus {
+          color: #1da1f2;
+        }
+      `}</style>
     </footer>
   );
 };
 
 export default Footer;
-
-<style jsx>{`
-.footer-social-btn {
-  background: rgba(155, 123, 184, 0.12);
-  color: #e0d7f7;
-  border: 1.5px solid rgba(155, 123, 184, 0.3);
-  border-radius: 0.5rem;
-  padding: 0.5rem 1.25rem;
-  font-size: 1rem;
-  font-weight: 500;
-  transition: color 0.18s;
-  display: inline-block;
-  margin-right: 0.5rem;
-}
-.footer-social-btn:last-child { margin-right: 0; }
-.footer-social-btn.youtube-btn:hover, .footer-social-btn.youtube-btn:focus {
-  color: #ff4d4f;
-}
-.footer-social-btn.instagram-btn:hover, .footer-social-btn.instagram-btn:focus {
-  color: #e1306c;
-}
-.footer-social-btn.twitter-btn:hover, .footer-social-btn.twitter-btn:focus {
-  color: #1da1f2;
-}
-`}</style>

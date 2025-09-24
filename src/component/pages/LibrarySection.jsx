@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ShoppingCart, Heart, Star, Filter, ChevronDown, Check } from 'lucide-react';
+import { ShoppingCart, Heart, Star, Filter, ChevronDown, Check, ExternalLink, BookOpen } from 'lucide-react';
 
 /** =========================
  *  Centralized Books Data
@@ -103,25 +103,6 @@ export const centralizedBooksData = [
   },
   {
     id: 6,
-    title: "Out of Stock Book - Test",
-    author: "Test Author",
-    category: "Self Development",
-    price: 120,
-    originalPrice: 150,
-    rating: 4.3,
-    reviews: 89,
-    image: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=300&h=400&fit=crop",
-    description: "This book is out of stock for testing purposes.",
-    badge: "OUT OF STOCK",
-    discount: "20% OFF",
-    featured: false,
-    hero: false,
-    inStock: false,
-    tags: ["Test", "Out of Stock", "Sample"],
-    fileSize: "1.5 MB"
-  },
-  {
-    id: 7,
     title: "Getting Things Done",
     author: "David Allen",
     category: "Productivity",
@@ -135,12 +116,12 @@ export const centralizedBooksData = [
     discount: "15% OFF",
     featured: false,
     hero: false,
-    inStock: false,
+    inStock: true,
     tags: ["Productivity", "Time Management", "Organization", "Stress-Free"],
     fileSize: "1.0 MB"
   },
   {
-    id: 8,
+    id: 7,
     title: "Deep Work",
     author: "Cal Newport",
     category: "Productivity",
@@ -159,7 +140,7 @@ export const centralizedBooksData = [
     fileSize: "1.1 MB"
   },
   {
-    id: 9,
+    id: 8,
     title: "The Subtle Art of Not Giving a F*ck",
     author: "Mark Manson",
     category: "Self Development",
@@ -178,7 +159,7 @@ export const centralizedBooksData = [
     fileSize: "0.8 MB"
   },
   {
-    id: 10,
+    id: 9,
     title: "Sapiens",
     author: "Yuval Noah Harari",
     category: "History",
@@ -192,12 +173,12 @@ export const centralizedBooksData = [
     discount: "21% OFF",
     featured: false,
     hero: false,
-    inStock: false,
+    inStock: true,
     tags: ["History", "Anthropology", "Human Evolution", "Civilization"],
     fileSize: "2.5 MB"
   },
   {
-    id: 11,
+    id: 10,
     title: "The Power of Now",
     author: "Eckhart Tolle",
     category: "Spirituality",
@@ -218,7 +199,7 @@ export const centralizedBooksData = [
 ];
 
 /** =========================
- *  Library Page
+ *  Library Page Component
  *  ========================= */
 const LibraryPage = ({
   cart = [],
@@ -229,6 +210,7 @@ const LibraryPage = ({
   onRemoveFromWishlist,
 }) => {
   const location = useLocation();
+  const navigate = useNavigate();
   const searchParams = new URLSearchParams(location.search);
   const searchQuery = searchParams.get('search')?.toLowerCase() || '';
 
@@ -241,7 +223,6 @@ const LibraryPage = ({
   const [hoveredBook, setHoveredBook] = useState(null);
   const [animatingCart, setAnimatingCart] = useState({});
   const [animatingWishlist, setAnimatingWishlist] = useState({});
-  const navigate = useNavigate();
 
   const books = centralizedBooksData;
   const categories = ['All', ...new Set(books.map(b => b.category))];
@@ -272,16 +253,25 @@ const LibraryPage = ({
   const isInCart = book => cart.some(item => item.id === book.id);
   const isInWishlist = book => wishlist.some(item => item.id === book.id);
 
-  const handleAddToCart = (e, book) => {
+  // Go to Cart instead of removing
+  const handleCartAction = (e, book) => {
     e.stopPropagation();
-    if (!book.inStock || animatingCart[book.id]) return;
+    if (animatingCart[book.id]) return;
 
-    const adding = !isInCart(book);
+    const inCart = isInCart(book);
+    
+    if (inCart) {
+      // Navigate to cart instead of removing item
+      navigate('/cart');
+      return;
+    }
+
+    // Add to cart with animation
     setAnimatingCart(prev => ({ ...prev, [book.id]: true }));
     setCartButtonClicked(prev => ({ ...prev, [book.id]: true }));
+    
     setTimeout(() => {
-      if (adding) onAddToCart && onAddToCart(book);
-      else onRemoveFromCart && onRemoveFromCart(book.id);
+      onAddToCart && onAddToCart(book);
       setAnimatingCart(prev => ({ ...prev, [book.id]: false }));
       setCartButtonClicked(prev => ({ ...prev, [book.id]: false }));
     }, 1200);
@@ -362,7 +352,7 @@ const LibraryPage = ({
                 onClick={() => handleCardClick(book)}
                 style={{ animationDelay: `${index * 100}ms` }}
               >
-                <div className="relative bg-[#1A0F2E]/80 backdrop-blur-md rounded-xl lg:rounded-3xl border border-white/10 hover:border-yellow-300 transition-all duration-300 shadow-2xl hover:shadow-yellow-200 w-full p-3 sm:p-4 lg:p-6 flex flex-col card-hover-gold">
+                <div className={`relative bg-[#1A0F2E]/80 backdrop-blur-md rounded-xl lg:rounded-3xl border border-white/10 transition-all duration-500 transform hover:scale-105 hover:-translate-y-2 shadow-2xl w-full p-3 sm:p-4 lg:p-6 flex flex-col card-hover-gold ${hoveredBook === book.id ? 'gold-glow' : ''}`}>
                   {/* Category Badge */}
                   <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 z-20">
                     <div className="bg-gradient-to-r from-[#2D1B3D] to-[#3D2A54] text-white px-4 py-2 rounded-full text-xs font-bold shadow-lg border border-white/20 whitespace-nowrap">
@@ -374,11 +364,6 @@ const LibraryPage = ({
                   <div className="mb-2 sm:mb-3 lg:mb-4 flex justify-center mt-1 sm:mt-2 lg:mt-4">
                     <div className="relative w-20 h-28 sm:w-24 sm:h-32 lg:w-48 lg:h-64 rounded-lg lg:rounded-xl overflow-hidden shadow-2xl">
                       <img src={book.image} alt={book.title} className="w-full h-full object-cover" />
-                      {!book.inStock && (
-                        <div className="absolute top-2 left-2 bg-red-600 text-white px-2 py-1 rounded-full text-[10px] sm:text-xs font-bold">
-                          SOLD OUT
-                        </div>
-                      )}
                     </div>
                   </div>
 
@@ -412,55 +397,48 @@ const LibraryPage = ({
 
                     {/* Actions */}
                     <div className="flex flex-row gap-2 w-full mb-4">
-                      {book.inStock ? (
-                        <button
-                          onClick={e => handleAddToCart(e, book)}
-                          disabled={animatingCart[book.id]}
-                          className={`cart-button-animated ${cartButtonClicked[book.id] ? 'clicked' : ''} flex-1 py-3 px-4 rounded-xl font-semibold text-base flex items-center justify-center gap-2 transition-all duration-300 hover:scale-105 shadow-xl hover:shadow-2xl ${
-                            isInCart(book)
-                              ? 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white'
-                              : 'bg-gradient-to-r from-white to-gray-100 hover:from-gray-100 hover:to-white text-[#2D1B3D] shadow-xl'
-                          }`}
-                        >
-                          <ShoppingCart className="cart-icon w-5 h-5" />
-                          <div className="box-icon w-3 h-3 bg-current rounded-sm"></div>
+                      <button
+                        onClick={e => handleCartAction(e, book)}
+                        disabled={animatingCart[book.id]}
+                        className={`cart-button-animated ${cartButtonClicked[book.id] ? 'clicked' : ''} flex-1 py-3 px-4 rounded-xl font-semibold text-base flex items-center justify-center gap-2 transition-all duration-300 hover:scale-105 shadow-xl hover:shadow-2xl ${
+                          isInCart(book)
+                            ? 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white'
+                            : 'bg-gradient-to-r from-white to-gray-100 hover:from-gray-100 hover:to-white text-[#2D1B3D] shadow-xl'
+                        }`}
+                      >
+                        {isInCart(book) ? (
+                          <ExternalLink className="w-5 h-5" />
+                        ) : (
+                          <>
+                            <ShoppingCart className="cart-icon w-5 h-5" />
+                            <div className="box-icon w-3 h-3 bg-current rounded-sm"></div>
+                          </>
+                        )}
 
-                          {/* ✅ MOBILE/DESKTOP LABELS */}
-                          <span className="cart-text" aria-live="polite" aria-atomic="true">
-                            {animatingCart[book.id] ? (
-                              <>
-                                <span className="sm:hidden">Adding…</span>
-                                <span className="hidden sm:inline">Adding to Cart…</span>
-                              </>
-                            ) : isInCart(book) ? (
-                              <>
-                                <span className="sm:hidden">In&nbsp;Cart</span>
-                                <span className="hidden sm:inline">Remove from Cart</span>
-                              </>
-                            ) : (
-                              <>
-                                <span className="sm:hidden">Cart</span>
-                                <span className="hidden sm:inline">Add to Cart</span>
-                              </>
-                            )}
-                          </span>
+                        <span className="cart-text" aria-live="polite" aria-atomic="true">
+                          {animatingCart[book.id] ? (
+                            <>
+                              <span className="sm:hidden">Adding…</span>
+                              <span className="hidden sm:inline">Adding to Cart…</span>
+                            </>
+                          ) : isInCart(book) ? (
+                            <>
+                              <span className="sm:hidden">Go&nbsp;Cart</span>
+                              <span className="hidden sm:inline">Go to Cart</span>
+                            </>
+                          ) : (
+                            <>
+                              <span className="sm:hidden">Cart</span>
+                              <span className="hidden sm:inline">Add to Cart</span>
+                            </>
+                          )}
+                        </span>
 
-                          <span className="added-text">
-                            <Check className="w-5 h-5 mr-2 inline" />
-                            Added!
-                          </span>
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={(e) => e.stopPropagation()}
-                          disabled
-                          aria-disabled="true"
-                          className="flex-1 py-3 px-4 rounded-xl text-base font-semibold bg-red-600 text-white text-center cursor-not-allowed select-none shadow-xl"
-                        >
-                          Out of Stock
-                        </button>
-                      )}
+                        <span className="added-text">
+                          <Check className="w-5 h-5 mr-2 inline" />
+                          Added!
+                        </span>
+                      </button>
 
                       <button
                         onClick={(e) => handleToggleWishlist(e, book)}
@@ -538,10 +516,25 @@ const LibraryPage = ({
           </div>
         )}
 
-        {/* No Results */}
+        {/* Enhanced No Results with Animated Sticker */}
         {filteredBooks.length === 0 && (
           <div className="text-center py-12">
             <div className="bg-[#2D1B3D]/90 backdrop-blur-md rounded-2xl p-8 border border-[#3D2A54]/50 max-w-md mx-auto shadow-xl">
+              {/* Animated Sticker */}
+              <div className="flex justify-center mb-6">
+                <div className="relative">
+                  {/* Animated Book Icon */}
+                  <div className="book-not-found-icon w-20 h-20 bg-gradient-to-r from-[#9B7BB8] via-[#A67FC4] to-[#B894D1] rounded-full flex items-center justify-center shadow-2xl">
+                    <BookOpen className="w-10 h-10 text-white book-shake" />
+                  </div>
+                  {/* Floating Particles */}
+                  <div className="particle particle-1 absolute w-2 h-2 bg-[#9B7BB8] rounded-full"></div>
+                  <div className="particle particle-2 absolute w-1.5 h-1.5 bg-[#A67FC4] rounded-full"></div>
+                  <div className="particle particle-3 absolute w-2.5 h-2.5 bg-[#B894D1] rounded-full"></div>
+                  <div className="particle particle-4 absolute w-1 h-1 bg-[#9B7BB8] rounded-full"></div>
+                </div>
+              </div>
+              
               <h3 className="text-2xl font-bold text-white mb-4">No Book Found</h3>
               <p className="text-white/80 mb-6">Try selecting a different category or adjusting your search.</p>
               <button
@@ -555,8 +548,89 @@ const LibraryPage = ({
         )}
       </div>
 
-      {/* Animations */}
+      {/* Enhanced Animations + Gold Glow Effect */}
       <style jsx>{`
+        /* Book Not Found Animations */
+        .book-not-found-icon {
+          animation: pulseGlow 2s ease-in-out infinite alternate;
+        }
+        
+        .book-shake {
+          animation: gentleShake 3s ease-in-out infinite;
+        }
+        
+        .particle {
+          animation: floatAround 4s ease-in-out infinite;
+        }
+        
+        .particle-1 {
+          top: -5px;
+          left: -8px;
+          animation-delay: 0s;
+        }
+        
+        .particle-2 {
+          top: 10px;
+          right: -10px;
+          animation-delay: 1s;
+        }
+        
+        .particle-3 {
+          bottom: -5px;
+          left: 15px;
+          animation-delay: 2s;
+        }
+        
+        .particle-4 {
+          bottom: 20px;
+          right: 5px;
+          animation-delay: 3s;
+        }
+        
+        @keyframes pulseGlow {
+          0% {
+            box-shadow: 0 0 20px #9B7BB8, 0 0 30px #A67FC4, 0 0 40px #B894D1;
+            transform: scale(1);
+          }
+          100% {
+            box-shadow: 0 0 30px #9B7BB8, 0 0 50px #A67FC4, 0 0 70px #B894D1;
+            transform: scale(1.05);
+          }
+        }
+        
+        @keyframes gentleShake {
+          0%, 100% { transform: rotate(0deg); }
+          25% { transform: rotate(-3deg); }
+          75% { transform: rotate(3deg); }
+        }
+        
+        @keyframes floatAround {
+          0%, 100% {
+            transform: translateY(0px) translateX(0px);
+            opacity: 0.7;
+          }
+          25% {
+            transform: translateY(-10px) translateX(5px);
+            opacity: 1;
+          }
+          50% {
+            transform: translateY(-5px) translateX(-5px);
+            opacity: 0.8;
+          }
+          75% {
+            transform: translateY(-15px) translateX(3px);
+            opacity: 0.9;
+          }
+        }
+
+        .card-hover-gold:hover, .card-hover-gold.gold-glow {
+          box-shadow: 0 0 0 2px #ffe9b3, 0 4px 24px 0 #ffe9b3cc, 0 1.5px 8px 0 #fff7c1;
+        }
+        @media (hover: none) and (pointer: coarse) {
+          .card-hover-gold:active {
+            box-shadow: 0 0 0 2px #ffe9b3, 0 4px 24px 0 #ffe9b3cc, 0 1.5px 8px 0 #fff7c1;
+          }
+        }
         .cart-button-animated { position: relative; overflow: hidden; }
         .cart-button-animated .cart-icon { position: absolute; z-index: 2; top: 50%; left: -10%; transform: translate(-50%, -50%); opacity: 0; }
         .cart-button-animated .box-icon { position: absolute; z-index: 3; top: -20%; left: 52%; transform: translate(-50%, -50%); opacity: 0; }

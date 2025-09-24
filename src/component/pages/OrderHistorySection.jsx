@@ -135,48 +135,37 @@ const OrderHistorySection = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#9B7BB8] to-[#8A6AA7] px-3 py-6 mt-20">
-      <div className="max-w-6xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="bg-[#2D1B3D]/95 backdrop-blur-sm rounded-3xl shadow-2xl overflow-hidden">
-          {/* Desktop (sm+) original layout */}
-          <div className="hidden sm:block p-6">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center space-x-4">
-                <button 
-                  onClick={() => navigate('/profile')}
-                  className="flex items-center text-white/80 hover:text-white transition-colors duration-200"
-                >
-                  <ArrowLeft className="w-5 h-5 mr-2" />
-                  <span className="hidden sm:inline">Back to Profile</span>
-                </button>
-                <div className="flex items-center">
-                  <Package className="w-8 h-8 text-[#9B7BB8] mr-3" />
-                  <h1 className="text-2xl font-bold text-white">Order History</h1>
-                </div>
-              </div>
-              <div className="text-right">
-                <p className="text-white/60 text-sm">Total Orders</p>
-                <p className="text-white font-bold text-xl">{orders.length}</p>
-              </div>
+    <div className="min-h-screen bg-gradient-to-br from-[#9B7BB8] to-[#8A6AA7] px-3 py-8 mt-24">
+      <div className="max-w-7xl mx-auto space-y-8">
+        {/* Header - No Background, Dark Text */}
+        <div className="flex items-center justify-between mb-8">
+          {/* Desktop Header */}
+          <div className="hidden sm:flex items-center space-x-6">
+            <button 
+              onClick={() => navigate('/profile')}
+              className="flex items-center text-[#2D1B3D] hover:text-[#1A0F26] transition-colors duration-200 font-semibold"
+            >
+              <ArrowLeft className="w-5 h-5 mr-2" />
+              <span>Back to Profile</span>
+            </button>
+            <div className="flex items-center">
+              <Package className="w-6 h-6 text-[#2D1B3D] mr-3" />
+              <h1 className="text-2xl font-bold text-[#2D1B3D]">Order History</h1>
             </div>
           </div>
-          {/* Mobile (below sm) improved layout */}
-          <div className="block sm:hidden px-3 py-3 flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <button 
-                onClick={() => navigate('/profile')}
-                className="flex items-center text-white/80 hover:text-white transition-colors duration-200"
-              >
-                <ArrowLeft className="w-4 h-4 mr-1" />
-                <span className="hidden sm:inline text-xs">Back</span>
-              </button>
-              <Package className="w-6 h-6 text-[#9B7BB8]" />
-              <h1 className="text-lg font-bold text-white">Order History</h1>
-            </div>
-            <div className="flex flex-col items-end justify-center">
-              <span className="text-white/60 text-xs">Total Orders</span>
-              <span className="text-white font-bold text-base">{orders.length}</span>
+
+          {/* Mobile Header */}
+          <div className="sm:hidden flex items-center space-x-4 w-full">
+            <button 
+              onClick={() => navigate('/profile')}
+              className="flex items-center text-[#2D1B3D] hover:text-[#1A0F26] transition-colors duration-200 font-semibold"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              <span className="text-sm">Back</span>
+            </button>
+            <div className="flex items-center flex-1">
+              <Package className="w-5 h-5 text-[#2D1B3D] mr-3" />
+              <h1 className="text-lg font-bold text-[#2D1B3D]">Order History</h1>
             </div>
           </div>
         </div>
@@ -191,12 +180,12 @@ const OrderHistorySection = () => {
                 style={{ position: 'relative' }}
               >
                 {/* Order Header */}
-                {/* Desktop (sm+) original layout */}
+                {/* Desktop (sm+) layout */}
                 <div className="hidden sm:flex flex-col sm:flex-row sm:items-center justify-between mb-4 space-y-3 sm:space-y-0">
                   <div className="flex items-center space-x-4">
                     <div className="flex items-center space-x-2">
                       <Package className="w-5 h-5 text-[#9B7BB8]" />
-                      <span className="text-white font-medium group-hover:text-[#ffe9b3] transition-colors duration-200">{order.id}</span>
+                      <span className="text-white font-medium transition-colors duration-200">{order.id}</span>
                     </div>
                     <div className={`flex items-center space-x-1 px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}> 
                       {getStatusIcon(order.status)}
@@ -220,11 +209,11 @@ const OrderHistorySection = () => {
                     </button>
                   </div>
                 </div>
-                {/* Mobile (below sm) improved layout */}
+                {/* Mobile (below sm) layout */}
                 <div className="flex sm:hidden flex-col justify-between mb-3 space-y-2">
                   <div className="flex items-center space-x-2">
                     <Package className="w-5 h-5 text-[#9B7BB8]" />
-                    <span className="text-white font-medium group-hover:text-[#ffe9b3] transition-colors duration-200 text-xs">{order.id}</span>
+                    <span className="text-white font-medium transition-colors duration-200 text-xs">{order.id}</span>
                     <div className={`flex items-center space-x-1 px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}> 
                       {getStatusIcon(order.status)}
                       <span>{order.status}</span>
@@ -243,43 +232,47 @@ const OrderHistorySection = () => {
                   </div>
                 </div>
 
-                {/* Order Items Preview */}
-                {/* Desktop (sm+) original layout */}
-                <div className="hidden sm:grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {order.items.slice(0, 3).map(item => (
-                    <div key={item.id} className="flex items-center space-x-3 p-3 bg-[#9B7BB8]/10 rounded-2xl">
-                      <div className="w-12 h-16 rounded-lg overflow-hidden flex-shrink-0">
-                        <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
+                {/* Order Items Preview - Vertical Layout */}
+                {/* Desktop (sm+) layout */}
+                <div className="hidden sm:block">
+                  <div className="space-y-3">
+                    {order.items.map(item => (
+                      <div key={item.id} className="flex items-center space-x-3 p-3 bg-gradient-to-r from-[#9B7BB8]/15 to-[#8A6AA7]/15 rounded-2xl border border-[#9B7BB8]/20 hover:bg-gradient-to-r hover:from-[#9B7BB8]/20 hover:to-[#8A6AA7]/20 transition-all duration-300">
+                        <div className="w-12 h-16 rounded-lg overflow-hidden flex-shrink-0 shadow-md">
+                          <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-white font-medium text-sm">{item.title}</h4>
+                          <p className="text-white/60 text-xs">by {item.author}</p>
+                          <p className="text-[#9B7BB8] font-medium text-sm">${item.price}</p>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-white/60 text-xs bg-[#9B7BB8]/20 px-2 py-1 rounded-full">{item.format}</span>
+                        </div>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-white font-medium text-sm truncate">{item.title}</h4>
-                        <p className="text-white/60 text-xs">by {item.author}</p>
-                        <p className="text-[#9B7BB8] font-medium text-sm">${item.price}</p>
-                      </div>
-                    </div>
-                  ))}
-                  {order.items.length > 3 && (
-                    <div className="flex items-center justify-center p-3 bg-[#9B7BB8]/10 rounded-2xl">
-                      <span className="text-white/60 text-sm">+{order.items.length - 3} more items</span>
-                    </div>
-                  )}
+                    ))}
+                  </div>
                 </div>
-                {/* Mobile (below sm) improved layout */}
-                <div className="flex sm:hidden flex-row space-x-2 overflow-x-auto pb-1">
-                  {order.items.slice(0, 3).map(item => (
-                    <div key={item.id} className="flex flex-col items-center min-w-[70px] bg-[#9B7BB8]/10 rounded-xl p-2">
-                      <div className="w-12 h-16 rounded-lg overflow-hidden flex-shrink-0 mb-1">
-                        <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
+
+                {/* Mobile (below sm) layout */}
+                <div className="sm:hidden">
+                  <div className="space-y-2">
+                    {order.items.map(item => (
+                      <div key={item.id} className="flex items-center space-x-3 p-2 bg-gradient-to-r from-[#9B7BB8]/15 to-[#8A6AA7]/15 rounded-xl border border-[#9B7BB8]/20">
+                        <div className="w-10 h-14 rounded-lg overflow-hidden flex-shrink-0 shadow-md">
+                          <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-white font-medium text-xs">{item.title}</h4>
+                          <p className="text-white/60 text-xs">by {item.author}</p>
+                          <p className="text-[#9B7BB8] font-medium text-xs">${item.price}</p>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-white/60 text-xs bg-[#9B7BB8]/20 px-2 py-1 rounded-full">{item.format}</span>
+                        </div>
                       </div>
-                      <h4 className="text-white font-medium text-xs truncate w-14 text-center">{item.title}</h4>
-                      <span className="text-[#9B7BB8] font-medium text-xs">${item.price}</span>
-                    </div>
-                  ))}
-                  {order.items.length > 3 && (
-                    <div className="flex items-center justify-center min-w-[70px] bg-[#9B7BB8]/10 rounded-xl p-2">
-                      <span className="text-white/60 text-xs">+{order.items.length - 3} more</span>
-                    </div>
-                  )}
+                    ))}
+                  </div>
                 </div>
               </div>
             ))}
@@ -398,4 +391,4 @@ const OrderHistorySection = () => {
   );
 };
 
-export default OrderHistorySection; 
+export default OrderHistorySection;

@@ -59,6 +59,8 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
 
   const enhancedProductData = {
     ...productData,
+    // Since this is a digital platform, all books are in stock
+    inStock: true,
     totalSales: productData.totalSales || Math.floor(Math.random() * 20000) + 5000,
     pages: productData.pages || Math.floor(Math.random() * 400) + 200,
     readingTime: productData.readingTime || "6-8 hours",
@@ -143,19 +145,18 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
   const isInWishlist = wishlist.some(item => item.id === enhancedProductData.id);
 
   const handleAddToCart = () => {
-    if (!enhancedProductData.inStock) return;
+    // Since this is a digital platform, no stock check needed
     if (!isInCart) {
       setCartButtonClicked(true);
       setTimeout(() => setCartButtonClicked(false), 1500);
       onAddToCart && onAddToCart(enhancedProductData);
     } else {
-      setCartButtonClicked(true);
-      setTimeout(() => setCartButtonClicked(false), 1000);
-      onRemoveFromCart && onRemoveFromCart(enhancedProductData.id);
+      // Navigate to cart instead of removing
+      navigate('/cart');
     }
   };
 
-  // ✅ Wishlist should work even when out of stock
+  // ✅ Wishlist always works for digital products
   const handleAddToWishlist = () => {
     setWishlistButtonClicked(true);
     setTimeout(() => setWishlistButtonClicked(false), 300);
@@ -387,25 +388,21 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
               <p className="text-[#2D1B3D] text-lg leading-relaxed font-medium">{enhancedProductData.description}</p>
             </div>
 
-            {/* Actions */}
+            {/* Actions - No more stock check since it's digital */}
             <div className="flex flex-row gap-2 w-full mb-4">
-              {/* Cart / Out of Stock */}
               <button
                 onClick={handleAddToCart}
-                disabled={!enhancedProductData.inStock}
                 className={`cart-button-animated ${cartButtonClicked ? 'clicked' : ''} flex-1 py-3 px-4 rounded-xl font-semibold text-base flex items-center justify-center gap-2 transition-all duration-300 hover:scale-105 shadow-xl hover:shadow-2xl ${
                   isInCart
-                    ? 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white'
-                    : !enhancedProductData.inStock
-                      ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
-                      : 'bg-gradient-to-r from-white to-gray-100 hover:from-gray-100 hover:to-white text-[#2D1B3D] shadow-xl'
+                    ? 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white'
+                    : 'bg-gradient-to-r from-white to-gray-100 hover:from-gray-100 hover:to-white text-[#2D1B3D] shadow-xl'
                 }`}
               >
                 <ShoppingCart className="cart-icon w-5 h-5" />
                 <div className="box-icon w-3 h-3 bg-current rounded-sm"></div>
                 <span className="cart-text">
                   {isInCart ? <Check className="w-5 h-5 mr-2 inline" /> : <ShoppingCart className="w-5 h-5 mr-2 inline" />}
-                  {isInCart ? 'Remove from Cart' : !enhancedProductData.inStock ? 'Out of Stock' : 'Add to Cart'}
+                  {isInCart ? 'Go to Cart' : 'Add to Cart'}
                 </span>
                 <span className="added-text">
                   <Check className="w-5 h-5 mr-2 inline" />
@@ -413,7 +410,7 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
                 </span>
               </button>
 
-              {/* ✅ Wishlist always enabled (even if out of stock) */}
+              {/* ✅ Wishlist always enabled for digital products */}
               <button
                 onClick={handleAddToWishlist}
                 className={`wishlist-button-animated ${wishlistButtonClicked ? 'clicked' : ''} p-3 rounded-xl transition-all duration-200 hover:scale-105 shadow-lg hover:shadow-xl ${

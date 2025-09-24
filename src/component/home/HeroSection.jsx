@@ -29,11 +29,11 @@ const HeroSection = ({ cart = [], wishlist = [], onAddToCart, onAddToWishlist, o
   const getBookPosition = (index) => {
     const diff = index - activeBook;
     const positions = {
-      '-2': { x: -180, y: 40, scale: 0.6, zIndex: 1, opacity: 0.5, rotation: -20 },
-      '-1': { x: -100, y: 25, scale: 0.75, zIndex: 3, opacity: 0.8, rotation: -10 },
+      '-2': { x: -180, y: 40, scale: 0.6, zIndex: 1, opacity: 0.6, rotation: -20 },
+      '-1': { x: -100, y: 25, scale: 0.75, zIndex: 3, opacity: 1, rotation: -10 },
       '0': { x: 0, y: 0, scale: 1, zIndex: 5, opacity: 1, rotation: 0 },
-      '1': { x: 100, y: 25, scale: 0.75, zIndex: 3, opacity: 0.8, rotation: 10 },
-      '2': { x: 180, y: 40, scale: 0.6, zIndex: 1, opacity: 0.5, rotation: 20 }
+      '1': { x: 100, y: 25, scale: 0.75, zIndex: 3, opacity: 1, rotation: 10 },
+      '2': { x: 180, y: 40, scale: 0.6, zIndex: 1, opacity: 0.6, rotation: 20 }
     };
 
     let normalizedDiff = diff;
@@ -70,7 +70,7 @@ const HeroSection = ({ cart = [], wishlist = [], onAddToCart, onAddToWishlist, o
     <div
       className="min-h-screen relative overflow-hidden bg-gradient-to-br from-[#9B7BB8] via-[#A67FC4] to-[#B894D1]"
       style={{
-        backgroundImage: `linear-gradient(rgba(155, 123, 184, 0.4), rgba(166, 127, 196, 0.4)), url('/images/hero.jpg')`,
+        backgroundImage: `linear-gradient(rgba(155, 123, 184, 0.4), rgba(166, 127, 196, 0.4)), url('/images/hero.webp')`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',
@@ -345,21 +345,6 @@ const HeroSection = ({ cart = [], wishlist = [], onAddToCart, onAddToWishlist, o
                     );
                   })}
                 </div>
-
-                {/* Book Indicators - REMOVED FOR MOBILE */}
-                {/* <div className="absolute bottom-1 sm:bottom-2 left-1/2 -translate-x-1/2 flex space-x-1.5 z-20">
-                  {heroBooks.map((_, index) => (
-                    <button
-                      key={index}
-                      onClick={() => handleBookClick(index)}
-                      className={`h-1.5 sm:h-2 rounded-full transition-all duration-500 hover:scale-125 ${
-                        index === activeBook 
-                          ? 'bg-white w-4 sm:w-5 shadow-lg' 
-                          : 'bg-white/50 hover:bg-white/70 w-1.5 sm:w-2'
-                      }`}
-                    />
-                  ))}
-                </div> */}
               </div>
             </div>
 
@@ -501,7 +486,7 @@ const HeroSection = ({ cart = [], wishlist = [], onAddToCart, onAddToWishlist, o
           box-shadow: 0 35px 60px -12px rgba(0, 0, 0, 0.4), 0 25px 35px -5px rgba(0, 0, 0, 0.25);
         }
 
-        /* DESKTOP BOOK SIZING - KEEPING YOUR EXACT SIZING */
+        /* DESKTOP BOOK SIZING */
         .book-card-container {
           width: 280px;
           height: 420px;
@@ -546,7 +531,7 @@ const HeroSection = ({ cart = [], wishlist = [], onAddToCart, onAddToWishlist, o
           overflow: hidden;
         }
 
-        /* MOBILE BOOK SIZING - INCREASED WIDTH FOR MOBILE */
+        /* MOBILE BOOK SIZING */
         .book-card-container-mobile {
           width: 100px;
           height: 150px;
@@ -591,7 +576,7 @@ const HeroSection = ({ cart = [], wishlist = [], onAddToCart, onAddToWishlist, o
           overflow: hidden;
         }
 
-        /* RESPONSIVE MOBILE ADJUSTMENTS - INCREASED WIDTHS */
+        /* RESPONSIVE MOBILE ADJUSTMENTS */
         @media (max-width: 380px) {
           .book-card-container-mobile {
             width: 90px;
@@ -613,6 +598,93 @@ const HeroSection = ({ cart = [], wishlist = [], onAddToCart, onAddToWishlist, o
             width: 120px;
             height: 180px;
             padding: 8px;
+          }
+        }
+
+        /* ENHANCED RESPONSIVENESS - ALL SCREEN SIZES */
+        @media (min-width: 1024px) and (max-width: 1280px) {
+          .book-card-container {
+            width: 260px;
+            height: 390px;
+            padding: 18px;
+          }
+        }
+        
+        @media (min-width: 1281px) and (max-width: 1536px) {
+          .book-card-container {
+            width: 300px;
+            height: 450px;
+            padding: 22px;
+          }
+        }
+        
+        @media (min-width: 1537px) {
+          .book-card-container {
+            width: 320px;
+            height: 480px;
+            padding: 24px;
+          }
+        }
+
+        /* SMOOTH INTERACTIONS */
+        .book-card-container:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 30px 60px rgba(0,0,0,0.6);
+        }
+        
+        .book-card-container-mobile:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 15px 30px rgba(0,0,0,0.5);
+        }
+
+        /* PERFORMANCE OPTIMIZATIONS */
+        .book-card-container,
+        .book-card-container-mobile {
+          will-change: transform, opacity;
+          backface-visibility: hidden;
+          transform-style: preserve-3d;
+        }
+
+        /* ACCESSIBILITY ENHANCEMENTS */
+        .book-card-container:focus-visible,
+        .book-card-container-mobile:focus-visible {
+          outline: 2px solid #4A3B5C;
+          outline-offset: 4px;
+        }
+
+        /* PRINT STYLES */
+        @media print {
+          .animate-float,
+          .animate-float-slow,
+          .animate-smooth-entry {
+            animation: none;
+          }
+        }
+
+        /* REDUCED MOTION SUPPORT */
+        @media (prefers-reduced-motion: reduce) {
+          .animate-float,
+          .animate-float-slow,
+          .animate-smooth-entry,
+          .transition-all {
+            animation: none;
+            transition: none;
+          }
+        }
+
+        /* HIGH CONTRAST MODE */
+        @media (prefers-contrast: high) {
+          .book-card-container,
+          .book-card-container-mobile {
+            border: 2px solid currentColor;
+          }
+        }
+
+        /* DARK MODE SUPPORT */
+        @media (prefers-color-scheme: dark) {
+          .book-fallback-uniform,
+          .book-fallback-uniform-mobile {
+            background: linear-gradient(135deg, #1A202C 0%, #2D3748 50%, #4A5568 100%);
           }
         }
       `}</style>
