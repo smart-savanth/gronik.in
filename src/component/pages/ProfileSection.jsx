@@ -1,6 +1,6 @@
 import React, { useState, useRef ,useEffect} from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Mail, Phone, Edit, Save, X, BookOpen, ShoppingCart, LogOut, Heart, Settings, Camera, Trash2 } from 'lucide-react';
+import { User, Mail, Phone, Edit, Save, X, BookOpen, ShoppingCart, LogOut, Heart, Settings, Camera, Trash2, Lock } from 'lucide-react';
 import { useSelector, useDispatch } from 'react-redux';
 import { setUser,logout } from '../../slices/userAuthSlice';
 import { getUserById,updateUser ,updateUserStatus} from '../../utils/userServices';
@@ -186,7 +186,6 @@ const handleLogout = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <h1 className="text-2xl font-bold text-white mb-1">{isEditing ? 'Edit Profile' : 'My Profile'}</h1>
-
                   </div>
                   {!isEditing ? (
                     <button 
@@ -213,7 +212,7 @@ const handleLogout = () => {
                     </div>
                   )}
                 </div>
-                {/* Name Field */}
+                {/* Name Field - EDITABLE */}
                 <div className="mt-4">
                   <p className="text-xs text-white/60 uppercase tracking-wide font-medium mb-1">Name</p>
                   {isEditing ? (
@@ -222,6 +221,7 @@ const handleLogout = () => {
                       value={editData.full_name}
                       onChange={e => handleInputChange('full_name', e.target.value)}
                       className="w-full bg-[#9B7BB8]/20 text-white p-2 rounded-lg border border-[#9B7BB8]/30 focus:outline-none focus:ring-2 focus:ring-[#9B7BB8] transition-all duration-200 text-sm placeholder-white/50"
+                      placeholder="Enter your full name"
                     />
                   ) : (
                     <p className="text-white font-medium text-sm truncate">{userDetails?.full_name}</p>
@@ -229,10 +229,11 @@ const handleLogout = () => {
                 </div>
               </div>
             </div>
-            {/* Contact Information */}
+            
+            {/* Contact Information - READ ONLY */}
             <div className="space-y-4 mt-4">
-              {/* Email Field */}
-              <div className="flex items-center space-x-3 p-3 bg-[#9B7BB8]/20 rounded-2xl">
+              {/* Email Field - NON-EDITABLE */}
+              <div className="flex items-center space-x-3 p-3 bg-[#9B7BB8]/20 rounded-2xl relative">
                 <div className="w-10 h-10 rounded-full bg-[#9B7BB8]/30 flex items-center justify-center">
                   <Mail className="w-5 h-5 text-[#9B7BB8]" />
                 </div>
@@ -246,8 +247,9 @@ const handleLogout = () => {
               </div>
 
               </div>
-              {/* Mobile Field */}
-              <div className="flex items-center space-x-3 p-3 bg-[#9B7BB8]/20 rounded-2xl">
+
+              {/* Mobile Field - NON-EDITABLE */}
+              <div className="flex items-center space-x-3 p-3 bg-[#9B7BB8]/20 rounded-2xl relative">
                 <div className="w-10 h-10 rounded-full bg-[#9B7BB8]/30 flex items-center justify-center">
                   <Phone className="w-5 h-5 text-[#9B7BB8]" />
                 </div>
@@ -262,9 +264,27 @@ const handleLogout = () => {
 
               </div>
             </div>
+
+            {/* Edit Mode Info Message */}
+            {isEditing && (
+              <div className="mt-4 p-3 bg-blue-500/20 rounded-xl border border-blue-500/30">
+                <div className="flex items-start space-x-2">
+                  <div className="w-5 h-5 rounded-full bg-blue-500/20 flex items-center justify-center mt-0.5">
+                    <span className="text-xs text-blue-400">ℹ</span>
+                  </div>
+                  <div>
+                    <p className="text-sm text-blue-400 font-medium">Security Note</p>
+                    <p className="text-xs text-blue-300/80 mt-1">
+                      Only your name and profile picture can be updated. Email and mobile number are protected for account security.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
-        {/* Quick Actions Card (untouched) */}
+
+        {/* Quick Actions Card */}
         <div className="bg-[#2D1B3D]/95 backdrop-blur-sm rounded-3xl shadow-2xl overflow-hidden">
           <div className="p-6">
             <h3 className="text-xl font-bold text-white mb-6 flex items-center">
@@ -299,7 +319,10 @@ const handleLogout = () => {
                 </div>
               </button>
             </div>
-            <button className="w-full flex items-center justify-center space-x-3 p-4 rounded-2xl bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 transition-all duration-300 text-white font-semibold mt-6 shadow-lg transform hover:scale-[1.02]" onClick={handleLogout}>
+            <button 
+              className="w-full flex items-center justify-center space-x-3 p-4 rounded-2xl bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 transition-all duration-300 text-white font-semibold mt-6 shadow-lg transform hover:scale-[1.02]" 
+              onClick={handleLogout}
+            >
               <LogOut className="w-5 h-5" />
               <span>Sign Out</span>
             </button>
@@ -312,6 +335,7 @@ const handleLogout = () => {
             </button>
           </div>
         </div>
+
         {/* Delete Confirmation Dialog */}
         {showDeleteConfirm && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
@@ -320,8 +344,18 @@ const handleLogout = () => {
               <h2 className="text-xl font-bold text-[#2D1B3D] mb-2">Delete Account?</h2>
               <p className="text-[#2D1B3D]/80 mb-6">This action cannot be undone. Are you sure you want to delete your account?</p>
               <div className="flex gap-4 justify-center">
-                <button onClick={confirmDeleteAccount} className="px-6 py-2 rounded-lg bg-red-500 text-white font-bold hover:bg-red-600 transition">Yes, Delete</button>
-                <button onClick={cancelDeleteAccount} className="px-6 py-2 rounded-lg bg-gray-200 text-[#2D1B3D] font-bold hover:bg-gray-300 transition">Cancel</button>
+                <button 
+                  onClick={confirmDeleteAccount} 
+                  className="px-6 py-2 rounded-lg bg-red-500 text-white font-bold hover:bg-red-600 transition"
+                >
+                  Yes, Delete
+                </button>
+                <button 
+                  onClick={cancelDeleteAccount} 
+                  className="px-6 py-2 rounded-lg bg-gray-200 text-[#2D1B3D] font-bold hover:bg-gray-300 transition"
+                >
+                  Cancel
+                </button>
               </div>
             </div>
           </div>

@@ -6,7 +6,6 @@ import { useRef } from 'react';
 const MyLibrarySection = () => {
   const navigate = useNavigate();
   const [selectedBook, setSelectedBook] = useState(null);
-  const [sortBy, setSortBy] = useState('recent'); // 'recent' or 'purchase'
   const [reviewModal, setReviewModal] = useState({ open: false, book: null });
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewText, setReviewText] = useState('');
@@ -116,17 +115,19 @@ const MyLibrarySection = () => {
     }
   ]);
 
-  // Sort logic
+  // Sort by purchase date (most recent first)
   const sortedBooks = [...libraryBooks].sort((a, b) => {
-    if (sortBy === 'recent') {
-      return new Date(b.lastRead) - new Date(a.lastRead);
-    } else {
-      return new Date(b.purchaseDate) - new Date(a.purchaseDate);
-    }
+    return new Date(b.purchaseDate) - new Date(a.purchaseDate);
   });
 
   const handleReadBook = (book) => {
-    alert(`Opening ${book.title} in e-reader...`);
+    // Navigate to a reading interface or open book viewer
+    navigate(`/read/${book.id}`, { 
+      state: { 
+        book: book,
+        returnTo: '/my-library' 
+      } 
+    });
   };
 
   const handleBookmarkToggle = (bookId) => {
@@ -147,9 +148,9 @@ const MyLibrarySection = () => {
   };
 
   const getProgressColor = (progress) => {
-    if (progress >= 80) return 'bg-green-500';
-    if (progress >= 50) return 'bg-yellow-500';
-    return 'bg-blue-500';
+    if (progress >= 80) return 'text-green-500';
+    if (progress >= 50) return 'text-yellow-500';
+    return 'text-blue-500';
   };
 
   function openReviewModal(book) {
@@ -173,69 +174,39 @@ const MyLibrarySection = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#9B7BB8] to-[#8A6AA7] px-3 py-6 mt-20">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="bg-[#2D1B3D]/95 backdrop-blur-sm rounded-3xl shadow-2xl overflow-hidden">
-          {/* Desktop (sm+) header matches OrderHistorySection */}
-          <div className="hidden sm:block p-6">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center space-x-4">
-                <button 
-                  onClick={() => navigate('/profile')}
-                  className="flex items-center text-white/80 hover:text-white transition-colors duration-200"
-                >
-                  <ArrowLeft className="w-5 h-5 mr-2" />
-                  <span className="hidden sm:inline">Back to Profile</span>
-                </button>
-                <div className="flex items-center">
-                  <BookOpen className="w-8 h-8 text-[#9B7BB8] mr-3" />
-                  <h1 className="text-2xl font-bold text-white">My Library</h1>
-                </div>
-              </div>
-              <div className="text-right">
-                <p className="text-white/60 text-sm">Total Books</p>
-                <p className="text-white font-bold text-xl">{libraryBooks.length}</p>
-              </div>
+    <div className="min-h-screen bg-gradient-to-br from-[#9B7BB8] to-[#8A6AA7] px-3 py-8 mt-24">
+      <div className="max-w-7xl mx-auto space-y-8">
+        {/* Header - No Background, Dark Text */}
+        <div className="flex items-center justify-between mb-8">
+          {/* Desktop Header */}
+          <div className="hidden sm:flex items-center space-x-6">
+            <button 
+              onClick={() => navigate('/profile')}
+              className="flex items-center text-[#2D1B3D] hover:text-[#1A0F26] transition-colors duration-200 font-semibold"
+            >
+              <ArrowLeft className="w-5 h-5 mr-2" />
+              <span>Back to Profile</span>
+            </button>
+            <div className="flex items-center">
+              <BookOpen className="w-6 h-6 text-[#2D1B3D] mr-3" />
+              <h1 className="text-2xl font-bold text-[#2D1B3D]">Recently Purchased</h1>
             </div>
           </div>
-          {/* Mobile (below sm) improved layout */}
-          <div className="sm:hidden p-3">
-            <div className="flex items-center justify-between w-full">
-              {/* Left: Back arrow, icon, and My Library */}
-              <div className="flex items-center space-x-2">
-                <button 
-                  onClick={() => navigate('/profile')}
-                  className="flex items-center text-white/80 hover:text-white transition-colors duration-200"
-                >
-                  <ArrowLeft className="w-4 h-4 mr-1" />
-                </button>
-                <BookOpen className="w-5 h-5 text-[#9B7BB8]" />
-                <h1 className="text-base font-bold text-white">My Library</h1>
-              </div>
-              {/* Right: Total Books */}
-              <div className="flex flex-col items-end justify-center">
-                <span className="text-white/60 text-xs leading-tight">Total Books</span>
-                <span className="text-white font-bold text-sm leading-tight">{libraryBooks.length}</span>
-              </div>
-            </div>
-          </div>
-        </div>
 
-        {/* Sort Toggle */}
-        <div className="flex justify-end mt-2 mb-4 gap-2">
-          <button
-            className={`px-4 py-2 rounded-full font-semibold text-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#9B7BB8] ${sortBy === 'recent' ? 'bg-[#9B7BB8] text-white' : 'bg-white text-[#9B7BB8]'}`}
-            onClick={() => setSortBy('recent')}
-          >
-            Recently Accessed
-          </button>
-          <button
-            className={`px-4 py-2 rounded-full font-semibold text-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#9B7BB8] ${sortBy === 'purchase' ? 'bg-[#9B7BB8] text-white' : 'bg-white text-[#9B7BB8]'}`}
-            onClick={() => setSortBy('purchase')}
-          >
-            Purchase Date
-          </button>
+          {/* Mobile Header */}
+          <div className="sm:hidden flex items-center space-x-4 w-full">
+            <button 
+              onClick={() => navigate('/profile')}
+              className="flex items-center text-[#2D1B3D] hover:text-[#1A0F26] transition-colors duration-200 font-semibold"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              <span className="text-sm">Back</span>
+            </button>
+            <div className="flex items-center flex-1">
+              <BookOpen className="w-5 h-5 text-[#2D1B3D] mr-3" />
+              <h1 className="text-lg font-bold text-[#2D1B3D]">Recently Purchased</h1>
+            </div>
+          </div>
         </div>
 
         {/* Books List or Empty State */}
@@ -248,10 +219,16 @@ const MyLibrarySection = () => {
                   className={`flex flex-col sm:flex-row items-center px-2 sm:px-6 py-4 sm:py-6 transition-all duration-200 group hover:bg-[#9B7BB8]/10 rounded-2xl sm:rounded-3xl mb-2 sm:mb-4 w-full`}
                   style={{ position: 'relative', minHeight: 'unset' }}
                 >
-                  {/* Mobile: image left, content right, buttons below */}
+                  {/* Mobile Layout */}
                   <div className="flex sm:hidden w-full">
-                    <div className="flex-shrink-0 w-16 h-20 rounded-lg overflow-hidden shadow-md mr-3">
+                    <div className="flex-shrink-0 w-16 h-20 rounded-lg overflow-hidden shadow-md mr-3 relative">
                       <img src={book.image} alt={book.title} className="w-full h-full object-cover" />
+                      {/* Progress Percentage Overlay */}
+                      <div className="absolute top-1 right-1 bg-black/70 text-white text-xs px-1 py-0.5 rounded">
+                        <span className={`font-bold ${getProgressColor(book.progress)}`}>
+                          {book.progress}%
+                        </span>
+                      </div>
                     </div>
                     <div className="flex-1 min-w-0 flex flex-col justify-between">
                       <div>
@@ -266,41 +243,36 @@ const MyLibrarySection = () => {
                         <div className="text-white/50 text-xs mb-1">Last Accessed: {book.lastRead}</div>
                       </div>
                       <div className="flex gap-2 mt-2 justify-center">
-                        {book.readUrl && (
-                          <button
-                            onClick={() => handleReadBook(book)}
-                            className="flex items-center gap-1 px-4 py-2 rounded-lg bg-[#9B7BB8] text-white font-semibold hover:bg-[#8A6AA7] transition text-xs shadow-md focus:outline-none focus:ring-2 focus:ring-[#9B7BB8]"
-                          >
-                            <Play className="w-4 h-4" /> View
-                          </button>
-                        )}
-                        {book.purchaseDate && (
-                          <button
-                            onClick={() => openReviewModal(book)}
-                            className="flex items-center gap-1 px-4 py-2 rounded-lg border border-[#9B7BB8] text-[#9B7BB8] bg-white font-semibold hover:bg-[#9B7BB8] hover:text-white transition text-xs shadow-md focus:outline-none focus:ring-2 focus:ring-[#9B7BB8]"
-                          >
-                            <Star className="w-4 h-4" /> Add Review
-                          </button>
-                        )}
+                        <button
+                          onClick={() => handleReadBook(book)}
+                          className="flex items-center gap-1 px-4 py-2 rounded-lg bg-[#9B7BB8] text-white font-semibold hover:bg-[#8A6AA7] transition text-xs shadow-md focus:outline-none focus:ring-2 focus:ring-[#9B7BB8]"
+                        >
+                          <Play className="w-4 h-4" /> View
+                        </button>
+                        <button
+                          onClick={() => openReviewModal(book)}
+                          className="flex items-center gap-1 px-4 py-2 rounded-lg border border-[#9B7BB8] text-[#9B7BB8] bg-white font-semibold hover:bg-[#9B7BB8] hover:text-white transition text-xs shadow-md focus:outline-none focus:ring-2 focus:ring-[#9B7BB8]"
+                        >
+                          <Star className="w-4 h-4" /> Add Review
+                        </button>
                       </div>
                     </div>
                   </div>
-                  {/* Desktop/tablet: existing layout */}
+
+                  {/* Desktop/Tablet Layout */}
                   <div className="hidden sm:flex-1 sm:flex sm:flex-row sm:items-center sm:justify-between w-full ml-0">
-                    <div className="flex-shrink-0 w-20 h-28 rounded-lg overflow-hidden shadow-md mr-3">
-                      <div className="relative w-full h-full">
-                        <img src={book.image} alt={book.title} className="w-full h-full object-cover" />
-                        <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/20">
-                          <div 
-                            className={`h-full ${getProgressColor(book.progress)}`}
-                            style={{ width: `${book.progress}%` }}
-                          ></div>
-                        </div>
+                    <div className="flex-shrink-0 w-20 h-28 rounded-lg overflow-hidden shadow-md mr-3 relative">
+                      <img src={book.image} alt={book.title} className="w-full h-full object-cover" />
+                      {/* Progress Percentage Overlay */}
+                      <div className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
+                        <span className={`font-bold ${getProgressColor(book.progress)}`}>
+                          {book.progress}%
+                        </span>
                       </div>
                     </div>
                     <div className="flex-1 min-w-0 ml-0 w-full flex flex-col sm:flex-row sm:items-center sm:justify-between">
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-white font-bold text-lg mb-1 group-hover:text-[#ffe9b3] transition-colors duration-200">{book.title}</h3>
+                        <h3 className="text-white font-bold text-lg mb-1 transition-colors duration-200">{book.title}</h3>
                         <p className="text-white/60 text-sm">by {book.author}</p>
                         <div className="flex items-center space-x-4 mt-2 flex-wrap">
                           <span className="text-white/60 text-sm">{book.format}</span>
@@ -311,22 +283,18 @@ const MyLibrarySection = () => {
                         </div>
                       </div>
                       <div className="flex flex-row gap-2 mt-4 sm:mt-0 sm:ml-8 sm:justify-center sm:items-center w-full sm:w-auto justify-center">
-                        {book.readUrl && (
-                          <button
-                            onClick={() => handleReadBook(book)}
-                            className="flex items-center gap-1 px-5 py-2 rounded-lg bg-[#9B7BB8] text-white font-semibold hover:bg-[#8A6AA7] transition text-sm shadow-md focus:outline-none focus:ring-2 focus:ring-[#9B7BB8]"
-                          >
-                            <Play className="w-4 h-4" /> View
-                          </button>
-                        )}
-                        {book.purchaseDate && (
-                          <button
-                            onClick={() => openReviewModal(book)}
-                            className="flex items-center gap-1 px-5 py-2 rounded-lg border border-[#9B7BB8] text-[#9B7BB8] bg-white font-semibold hover:bg-[#9B7BB8] hover:text-white transition text-sm shadow-md focus:outline-none focus:ring-2 focus:ring-[#9B7BB8]"
-                          >
-                            <Star className="w-5 h-5" /> Add Review
-                          </button>
-                        )}
+                        <button
+                          onClick={() => handleReadBook(book)}
+                          className="flex items-center gap-1 px-5 py-2 rounded-lg bg-[#9B7BB8] text-white font-semibold hover:bg-[#8A6AA7] transition text-sm shadow-md focus:outline-none focus:ring-2 focus:ring-[#9B7BB8]"
+                        >
+                          <Play className="w-4 h-4" /> View
+                        </button>
+                        <button
+                          onClick={() => openReviewModal(book)}
+                          className="flex items-center gap-1 px-5 py-2 rounded-lg border border-[#9B7BB8] text-[#9B7BB8] bg-white font-semibold hover:bg-[#9B7BB8] hover:text-white transition text-sm shadow-md focus:outline-none focus:ring-2 focus:ring-[#9B7BB8]"
+                        >
+                          <Star className="w-5 h-5" /> Add Review
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -338,7 +306,7 @@ const MyLibrarySection = () => {
           <div className="flex flex-col items-center justify-center py-24">
             <BookOpen className="w-16 h-16 text-[#9B7BB8] mb-6" />
             <h2 className="text-2xl font-bold text-white mb-2">No Books Yet</h2>
-            <p className="text-white/70 mb-6">You haven’t purchased any books yet. Explore our library and start reading!</p>
+            <p className="text-white/70 mb-6">You haven't purchased any books yet. Explore our library and start reading!</p>
             <button
               onClick={() => navigate('/library')}
               className="px-8 py-3 rounded-xl bg-[#9B7BB8] text-white font-bold hover:bg-[#8A6AA7] transition"
@@ -372,11 +340,11 @@ const MyLibrarySection = () => {
                     <div className="w-full rounded-2xl overflow-hidden shadow-lg">
                       <img src={selectedBook.image} alt={selectedBook.title} className="w-full h-auto" />
                     </div>
-                    <div className="absolute bottom-0 left-0 right-0 h-2 bg-white/20">
-                      <div 
-                        className={`h-full ${getProgressColor(selectedBook.progress)} transition-all duration-300`}
-                        style={{ width: `${selectedBook.progress}%` }}
-                      ></div>
+                    {/* Progress Percentage */}
+                    <div className="absolute top-4 right-4 bg-black/70 text-white text-sm px-3 py-2 rounded-lg">
+                      <span className={`font-bold ${getProgressColor(selectedBook.progress)}`}>
+                        {selectedBook.progress}% Complete
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -405,7 +373,7 @@ const MyLibrarySection = () => {
                     </div>
                     <div className="bg-[#9B7BB8]/10 rounded-2xl p-4">
                       <p className="text-white/60 text-sm mb-1">Progress</p>
-                      <p className="text-white font-medium">{selectedBook.progress}%</p>
+                      <p className={`font-medium ${getProgressColor(selectedBook.progress)}`}>{selectedBook.progress}%</p>
                     </div>
                   </div>
 
@@ -493,4 +461,4 @@ const MyLibrarySection = () => {
   );
 };
 
-export default MyLibrarySection; 
+export default MyLibrarySection;

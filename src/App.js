@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import './index.css';
 import Navbar from './component/layout/Navbar';
+import Notification from './component/layout/Notification'; // Add this import
 import HeroSection from './component/home/HeroSection';
 import AboutSection from './component/home/AboutSection';
 import FeaturedBooks from './component/home/FeaturedBooks';
@@ -32,18 +33,43 @@ import AccessDenied from './component/pages/AccessDenied';
 import { useSelector, useDispatch } from 'react-redux';
 import { addToCart, removeFromCart, updateCartItemQuantity } from './slices/cartSlice';
 import { addToWishlist, removeFromWishlist } from './slices/wishlistSlice';
+import { useNotification } from './hooks/useNotification'; // Add this import
 
 function App() {
   const cart = useSelector(state => state.cart.items);
   const wishlist = useSelector(state => state.wishlist.items);
   const dispatch = useDispatch();
+  const notification = useNotification(); // Add this hook
 
-  // HANDLERS
-  const handleAddToCart = (book) => dispatch(addToCart(book));
-  const handleRemoveFromCart = (id) => dispatch(removeFromCart(id));
-  const handleUpdateCartItemQuantity = (id, newQuantity) => dispatch(updateCartItemQuantity({ id, newQuantity }));
-  const handleAddToWishlist = (book) => dispatch(addToWishlist(book));
-  const handleRemoveFromWishlist = (id) => dispatch(removeFromWishlist(id));
+  // ENHANCED HANDLERS WITH NOTIFICATIONS
+  const handleAddToCart = (book) => {
+    dispatch(addToCart(book));
+    notification.addToCart(book.title); // Show notification
+  };
+
+  const handleRemoveFromCart = (id) => {
+    const bookToRemove = cart.find(item => item.id === id);
+    dispatch(removeFromCart(id));
+    notification.removeFromCart(bookToRemove?.title); // Show notification
+  };
+
+  const handleUpdateCartItemQuantity = (id, newQuantity) => {
+    dispatch(updateCartItemQuantity({ id, newQuantity }));
+    if (newQuantity > 0) {
+      notification.custom('Cart updated successfully!', 'success');
+    }
+  };
+
+  const handleAddToWishlist = (book) => {
+    dispatch(addToWishlist(book));
+    notification.addToWishlist(book.title); // Show notification
+  };
+
+  const handleRemoveFromWishlist = (id) => {
+    const bookToRemove = wishlist.find(item => item.id === id);
+    dispatch(removeFromWishlist(id));
+    notification.removeFromWishlist(bookToRemove?.title); // Show notification
+  };
 
   // HOME PAGE
   const HomePage = () => (
@@ -90,6 +116,10 @@ function App() {
     <div className="App">
       {!isAdminRoute && <Navbar cartCount={cart.length} wishlistCount={wishlist.length} />}
       <ScrollToTop />
+      
+      {/* Add Notification Component Here */}
+      <Notification />
+      
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/library" element={<LibraryPageWrapper />} />

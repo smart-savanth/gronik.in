@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
-import { ShoppingCart, Heart, Star, ArrowRight, Sparkles, BookOpen, Check } from 'lucide-react';
+import { ShoppingCart, Heart, Star, ArrowRight, Sparkles, BookOpen, Check, ExternalLink } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-
-// Import centralized data from LibrarySection (adjust the path to where your file lives)
 import { centralizedBooksData } from '../pages/LibrarySection';
 
 const FeaturedBooksSection = ({
@@ -18,27 +16,45 @@ const FeaturedBooksSection = ({
   const [wishlistButtonClicked, setWishlistButtonClicked] = useState({});
   const [animatingCart, setAnimatingCart] = useState({});
   const [animatingWishlist, setAnimatingWishlist] = useState({});
+  
+  // Use navigate hook directly in component
   const navigate = useNavigate();
 
   const featuredBooks = centralizedBooksData.filter(book => book.featured === true);
   const isInCart = (book) => cart.some(item => item.id === book.id);
   const isInWishlist = (book) => wishlist.some(item => item.id === book.id);
 
-  const handleAddToCart = (book) => {
+  // FIXED: Digital platform - all books are always available, no stock check needed
+  const handleCartAction = (e, book) => {
+    e.stopPropagation();
+    e.preventDefault();
+    
     if (animatingCart[book.id]) return;
 
-    const adding = !isInCart(book);
+    const inCart = isInCart(book);
+    
+    if (inCart) {
+      // Navigate to cart instead of removing item
+      console.log('Navigating to cart...'); // Debug log
+      navigate('/cart');
+      return;
+    }
+
+    // Add to cart with animation
     setAnimatingCart(prev => ({ ...prev, [book.id]: true }));
     setCartButtonClicked(prev => ({ ...prev, [book.id]: true }));
+    
     setTimeout(() => {
-      if (adding) onAddToCart && onAddToCart(book);
-      else onRemoveFromCart && onRemoveFromCart(book.id);
+      onAddToCart && onAddToCart(book);
       setAnimatingCart(prev => ({ ...prev, [book.id]: false }));
       setCartButtonClicked(prev => ({ ...prev, [book.id]: false }));
     }, 1200);
   };
 
-  const handleToggleWishlist = (book) => {
+  const handleToggleWishlist = (e, book) => {
+    e.stopPropagation();
+    e.preventDefault();
+    
     if (animatingWishlist[book.id]) return;
     setAnimatingWishlist(prev => ({ ...prev, [book.id]: true }));
     setWishlistButtonClicked(prev => ({ ...prev, [book.id]: true }));
@@ -48,6 +64,10 @@ const FeaturedBooksSection = ({
       setAnimatingWishlist(prev => ({ ...prev, [book.id]: false }));
       setWishlistButtonClicked(prev => ({ ...prev, [book.id]: false }));
     }, 250);
+  };
+
+  const handleCardClick = (book) => {
+    navigate(`/product/${book.id}`, { state: { from: 'featured' } });
   };
 
   return (
@@ -83,9 +103,9 @@ const FeaturedBooksSection = ({
               >
                 <div
                   className={`relative bg-[#1A0F2E]/80 backdrop-blur-md rounded-2xl p-3 sm:p-6 lg:p-8 border border-white/10 transition-all duration-500 transform hover:scale-105 hover:-translate-y-2 shadow-2xl w-full max-w-none sm:max-w-[280px] lg:max-w-[320px] h-auto flex flex-col card-hover-gold ${hoveredBook === book.id ? 'gold-glow' : ''}`}
-                  onClick={e => {
+                  onClick={(e) => {
                     if (e.target.closest('.add-to-cart-btn') || e.target.closest('.wishlist-btn')) return;
-                    navigate(`/product/${book.id}`, { state: { from: 'featured' } });
+                    handleCardClick(book);
                   }}
                   style={{ cursor: 'pointer' }}
                 >
@@ -124,54 +144,54 @@ const FeaturedBooksSection = ({
                       <div className="text-xs sm:text-sm text-green-400 font-medium">{book.discount}</div>
                     </div>
 
-                    {/* Actions */}
+                    {/* Actions - All books are available in digital platform */}
                     <div className="flex flex-row gap-2 w-full mb-4">
-                      {book.inStock ? (
-                        <button
-                          onClick={(e) => { e.stopPropagation(); e.preventDefault(); handleAddToCart(book); }}
-                          disabled={animatingCart[book.id]}
-                          className={`add-to-cart-btn cart-button-animated ${cartButtonClicked[book.id] ? 'clicked' : ''} flex-1 py-3 px-4 rounded-xl font-semibold text-base flex items-center justify-center gap-2 transition-all duration-300 hover:scale-105 shadow-xl hover:shadow-2xl ${
-                            isInCart(book)
-                              ? 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white'
-                              : 'bg-gradient-to-r from-white to-gray-100 hover:from-gray-100 hover:to-white text-[#2D1B3D] shadow-xl'
-                          }`}
-                        >
-                          <ShoppingCart className="cart-icon w-5 h-5" />
-                          <div className="box-icon w-3 h-3 bg-current rounded-sm"></div>
+                      <button
+                        onClick={(e) => handleCartAction(e, book)}
+                        disabled={animatingCart[book.id]}
+                        className={`add-to-cart-btn cart-button-animated ${cartButtonClicked[book.id] ? 'clicked' : ''} flex-1 py-3 px-4 rounded-xl font-semibold text-base flex items-center justify-center gap-2 transition-all duration-300 hover:scale-105 shadow-xl hover:shadow-2xl ${
+                          isInCart(book)
+                            ? 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white'
+                            : 'bg-gradient-to-r from-white to-gray-100 hover:from-gray-100 hover:to-white text-[#2D1B3D] shadow-xl'
+                        }`}
+                      >
+                        {isInCart(book) ? (
+                          <ExternalLink className="w-5 h-5" />
+                        ) : (
+                          <>
+                            <ShoppingCart className="cart-icon w-5 h-5" />
+                            <div className="box-icon w-3 h-3 bg-current rounded-sm"></div>
+                          </>
+                        )}
 
-                          {/* ✅ SAME MOBILE/DESKTOP LABELS */}
-                          <span className="cart-text" aria-live="polite" aria-atomic="true">
-                            {animatingCart[book.id] ? (
-                              <>
-                                <span className="sm:hidden">Adding…</span>
-                                <span className="hidden sm:inline">Adding to Cart…</span>
-                              </>
-                            ) : isInCart(book) ? (
-                              <>
-                                <span className="sm:hidden">In&nbsp;Cart</span>
-                                <span className="hidden sm:inline">Remove from Cart</span>
-                              </>
-                            ) : (
-                              <>
-                                <span className="sm:hidden">Cart</span>
-                                <span className="hidden sm:inline">Add to Cart</span>
-                              </>
-                            )}
-                          </span>
+                        {/* Button Labels */}
+                        <span className="cart-text" aria-live="polite" aria-atomic="true">
+                          {animatingCart[book.id] ? (
+                            <>
+                              <span className="sm:hidden">Adding…</span>
+                              <span className="hidden sm:inline">Adding to Cart…</span>
+                            </>
+                          ) : isInCart(book) ? (
+                            <>
+                              <span className="sm:hidden">Go&nbsp;Cart</span>
+                              <span className="hidden sm:inline">Go to Cart</span>
+                            </>
+                          ) : (
+                            <>
+                              <span className="sm:hidden">Cart</span>
+                              <span className="hidden sm:inline">Add to Cart</span>
+                            </>
+                          )}
+                        </span>
 
-                          <span className="added-text">
-                            <Check className="w-5 h-5 mr-2 inline" />
-                            Added!
-                          </span>
-                        </button>
-                      ) : (
-                        <div className="flex-1 py-3 px-4 rounded-xl text-base font-semibold bg-gray-400/70 text-white/90 text-center cursor-not-allowed select-none">
-                          Out of Stock
-                        </div>
-                      )}
+                        <span className="added-text">
+                          <Check className="w-5 h-5 mr-2 inline" />
+                          Added!
+                        </span>
+                      </button>
 
                       <button
-                        onClick={(e) => { e.stopPropagation(); e.preventDefault(); handleToggleWishlist(book); }}
+                        onClick={(e) => handleToggleWishlist(e, book)}
                         disabled={animatingWishlist[book.id]}
                         className={`wishlist-btn wishlist-button-animated ${wishlistButtonClicked[book.id] ? 'clicked' : ''} p-3 rounded-xl transition-all duration-200 hover:scale-105 shadow-lg hover:shadow-xl ${
                           isInWishlist(book)
