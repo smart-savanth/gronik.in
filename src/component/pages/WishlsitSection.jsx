@@ -51,15 +51,15 @@ const WishlistPage = ({
           <div className="flex items-center">
             <button 
               onClick={handleContinueShopping}
-              className="flex items-center text-gronik-light hover:text-gronik-accent transition-colors duration-200 mr-6"
+              className="flex items-center text-white/80 hover:text-white transition-colors duration-200 mr-6"
             >
               <ArrowLeft className="w-5 h-5 mr-2" />
               Continue Shopping
             </button>
             <div className="flex items-center">
-              <Heart className="w-8 h-8 text-gronik-accent mr-3" />
+              <Heart className="w-8 h-8 text-white fill-white mr-3" />
               <h1 className="text-3xl font-bold text-white">My Wishlist</h1>
-              <span className="ml-3 bg-gronik-accent text-white text-sm px-3 py-1 rounded-full">
+              <span className="ml-3 bg-white text-[#2D1B3D] text-sm px-3 py-1 rounded-full font-semibold">
                 {wishlist.length} items
               </span>
             </div>
@@ -95,10 +95,10 @@ const WishlistPage = ({
           </div>
           <div className="text-center">
             <div className="flex items-center justify-center mb-2">
-              <Heart className="w-6 h-6 text-gronik-accent mr-2 fill-current" />
+              <Heart className="w-6 h-6 text-white fill-white mr-2" />
               <h1 className="text-xl font-bold text-white">My Wishlist</h1>
             </div>
-            <span className="inline-block bg-gradient-to-r from-gronik-accent to-gronik-secondary text-white text-xs px-3 py-1 rounded-full">
+            <span className="inline-block bg-white text-[#2D1B3D] text-xs px-3 py-1 rounded-full font-semibold">
               {wishlist.length} {wishlist.length === 1 ? 'item' : 'items'}
             </span>
           </div>
