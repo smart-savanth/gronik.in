@@ -345,9 +345,10 @@ const BooksManagement = () => {
           <p className="text-[#2D1B3D]/80 text-lg">Manage your ebook collection</p>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-8 justify-between">
-          <div className="flex items-center gap-3">
-            <div className="relative w-full sm:w-64">
+        {/* Controls - DON'T CHANGE ANYTHING ELSE, JUST FIX THIS PART */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-8">
+            {/* Search */}
+            <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/40 w-4 h-4" />
               <input
                 type="text"
@@ -357,26 +358,27 @@ const BooksManagement = () => {
                 className="w-full pl-10 pr-4 py-2 bg-[#2D1B3D]/80 text-white rounded-lg border border-white/10 placeholder-white/40 focus:outline-none focus:border-white/20 text-sm"
               />
             </div>
+            
+            {/* Filter & Button */}
+            <div className="flex items-center gap-3">
+              <select
+                value={filterCategory}
+                onChange={e => setFilterCategory(e.target.value)}
+                className="px-4 py-2 bg-[#2D1B3D] text-white rounded-lg border border-white/10 focus:outline-none focus:border-white/20 text-sm"
+              >
+                {categories.map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+              <button
+                onClick={openAddModal}
+                className="flex items-center space-x-2 px-4 py-2 bg-[#2D1B3D] text-white rounded-lg hover:bg-[#9B7BB8] transition-colors text-sm font-semibold whitespace-nowrap"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Add Book</span>
+              </button>
+            </div>
           </div>
-          <div className="flex items-center gap-3">
-            <select
-              value={filterCategory}
-              onChange={e => setFilterCategory(e.target.value)}
-              className="flex-1 sm:flex-initial px-4 py-2 bg-[#2D1B3D] text-white rounded-lg border border-white/10 focus:outline-none focus:border-white/20 text-sm"
-            >
-              {categories.map(cat => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
-            </select>
-            <button
-              onClick={openAddModal}
-              className="flex items-center space-x-2 px-4 py-2 bg-[#2D1B3D] text-white rounded-lg hover:bg-[#9B7BB8] transition-colors text-sm font-semibold whitespace-nowrap"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Add Book</span>
-            </button>
-          </div>
-        </div>
 
         <div className="overflow-x-auto rounded-2xl shadow-lg bg-[#2D1B3D]/80 border border-white/10">
           <table className="min-w-full divide-y divide-white/10">
