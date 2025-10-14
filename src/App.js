@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import './index.css';
 import Navbar from './component/layout/Navbar';
-import Notification from './component/layout/Notification'; // Add this import
+import Notification from './component/layout/Notification';
 import HeroSection from './component/home/HeroSection';
 import AboutSection from './component/home/AboutSection';
 import FeaturedBooks from './component/home/FeaturedBooks';
@@ -23,6 +23,7 @@ import AdminDashboard from './component/admin/AdminDashboard';
 import BooksManagement from './component/admin/BooksManagement';
 import UsersManagement from './component/admin/UsersManagement';
 import OrdersManagement from './component/admin/OrdersManagement';
+import Transactions from './component/admin/Transactions'; // ADD THIS
 import SettingsPage from './component/admin/Settings';
 import CheckoutSection from './component/pages/CheckoutSection';
 import AdminLogin from './component/admin/AdminLogin';
@@ -33,24 +34,24 @@ import AccessDenied from './component/pages/AccessDenied';
 import { useSelector, useDispatch } from 'react-redux';
 import { addToCart, removeFromCart, updateCartItemQuantity } from './slices/cartSlice';
 import { addToWishlist, removeFromWishlist } from './slices/wishlistSlice';
-import { useNotification } from './hooks/useNotification'; // Add this import
+import { useNotification } from './hooks/useNotification';
 
 function App() {
   const cart = useSelector(state => state.cart.items);
   const wishlist = useSelector(state => state.wishlist.items);
   const dispatch = useDispatch();
-  const notification = useNotification(); // Add this hook
+  const notification = useNotification();
 
   // ENHANCED HANDLERS WITH NOTIFICATIONS
   const handleAddToCart = (book) => {
     dispatch(addToCart(book));
-    notification.addToCart(book.title); // Show notification
+    notification.addToCart(book.title);
   };
 
   const handleRemoveFromCart = (id) => {
     const bookToRemove = cart.find(item => item.id === id);
     dispatch(removeFromCart(id));
-    notification.removeFromCart(bookToRemove?.title); // Show notification
+    notification.removeFromCart(bookToRemove?.title);
   };
 
   const handleUpdateCartItemQuantity = (id, newQuantity) => {
@@ -62,13 +63,13 @@ function App() {
 
   const handleAddToWishlist = (book) => {
     dispatch(addToWishlist(book));
-    notification.addToWishlist(book.title); // Show notification
+    notification.addToWishlist(book.title);
   };
 
   const handleRemoveFromWishlist = (id) => {
     const bookToRemove = wishlist.find(item => item.id === id);
     dispatch(removeFromWishlist(id));
-    notification.removeFromWishlist(bookToRemove?.title); // Show notification
+    notification.removeFromWishlist(bookToRemove?.title);
   };
 
   // HOME PAGE
@@ -109,7 +110,6 @@ function App() {
 
   const location = useLocation();
   const isAdminRoute = location.pathname.startsWith('/admin');
-  // Dummy admin check (replace with real auth/role check after backend integration)
   const isAdmin = useSelector(state => state.adminAuth.adminRole) === 'admin';
 
   return (
@@ -117,7 +117,6 @@ function App() {
       {!isAdminRoute && <Navbar cartCount={cart.length} wishlistCount={wishlist.length} />}
       <ScrollToTop />
       
-      {/* Add Notification Component Here */}
       <Notification />
       
       <Routes>
@@ -156,17 +155,22 @@ function App() {
         <Route path="/my-library" element={<MyLibrarySection />} />
         <Route path="/login" element={<LoginSection />} />
         <Route path="/checkout" element={<CheckoutSection cart={cart} />} />
+        
         {/* Admin Login Route */}
         <Route path="/admin-login" element={<AdminLogin />} />
-        {/* Admin Routes (protected) */}
+        
+        {/* Admin Routes */}
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/admin/books" element={<BooksManagement />} />
         <Route path="/admin/users" element={<UsersManagement />} />
         <Route path="/admin/orders" element={<OrdersManagement />} />
+        <Route path="/admin/transactions" element={<Transactions />} /> {/* ADD THIS LINE */}
         <Route path="/admin/settings" element={<SettingsPage />} />
+        
         <Route path="/access-denied" element={<AccessDenied />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
+      
       {!isAdminRoute && <Footer />}
       {!isAdminRoute && <WhyEbooksButton />}
     </div>

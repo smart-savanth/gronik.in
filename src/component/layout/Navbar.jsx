@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Search, ShoppingCart, User, Menu, X, BookOpen, Heart } from 'lucide-react';
+import { Search, ShoppingCart, User, Menu, X, BookOpen, Heart, ChevronDown } from 'lucide-react';
 // Import centralizedBooksData for search
 import { centralizedBooksData } from '../pages/LibrarySection';
 import { useSelector } from 'react-redux';
@@ -11,11 +11,19 @@ const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
   const [isHovering, setIsHovering] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isMobile, setIsMobile] = useState(false);
-
+  
+  // Search Suggestions State
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [suggestions, setSuggestions] = useState([]);
+  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  
   const navigate = useNavigate();
   const location = useLocation();
-   const user = useSelector((state) => state.userAuth.user);
-   console.log(user, "user");
+  const user = useSelector((state) => state.userAuth.user);
+  const searchRef = useRef(null);
+  const suggestionsRef = useRef(null);
+  const searchTimeoutRef = useRef(null);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -44,6 +52,106 @@ const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
     if (isMenuOpen) setIsMenuOpen(false);
   }, [location.pathname]);
 
+  // Handle click outside to close suggestions
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        setShowSuggestions(false);
+        setIsSearchFocused(false);
+        setSelectedSuggestionIndex(-1);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Generate search suggestions
+  const generateSuggestions = (query) => {
+    if (!query.trim() || query.length < 2) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    const q = query.toLowerCase().trim();
+    const allSuggestions = [];
+
+    // Get book matches
+    centralizedBooksData.forEach(book => {
+      // Title matches
+      if (book.title.toLowerCase().includes(q)) {
+        allSuggestions.push({
+          type: 'book',
+          text: book.title,
+          author: book.author,
+          category: book.category,
+          image: book.image,
+          id: book.id,
+          priority: book.title.toLowerCase().startsWith(q) ? 1 : 2
+        });
+      }
+      
+      // Author matches
+      if (book.author.toLowerCase().includes(q) && !allSuggestions.find(s => s.text === book.author && s.type === 'author')) {
+        allSuggestions.push({
+          type: 'author',
+          text: book.author,
+          category: 'Author',
+          priority: book.author.toLowerCase().startsWith(q) ? 1 : 3
+        });
+      }
+      
+      // Category matches
+      if (book.category.toLowerCase().includes(q) && !allSuggestions.find(s => s.text === book.category && s.type === 'category')) {
+        allSuggestions.push({
+          type: 'category',
+          text: book.category,
+          category: 'Category',
+          priority: book.category.toLowerCase().startsWith(q) ? 1 : 4
+        });
+      }
+      
+      // Tag matches
+      if (book.tags) {
+        book.tags.forEach(tag => {
+          if (tag.toLowerCase().includes(q) && !allSuggestions.find(s => s.text === tag && s.type === 'tag')) {
+            allSuggestions.push({
+              type: 'tag',
+              text: tag,
+              category: 'Tag',
+              priority: tag.toLowerCase().startsWith(q) ? 1 : 5
+            });
+          }
+        });
+      }
+    });
+
+    // Sort by priority and limit results
+    const sortedSuggestions = allSuggestions
+      .sort((a, b) => a.priority - b.priority || a.text.localeCompare(b.text))
+      .slice(0, 8);
+
+    setSuggestions(sortedSuggestions);
+    setShowSuggestions(sortedSuggestions.length > 0);
+    setSelectedSuggestionIndex(-1);
+  };
+
+  // Debounced search
+  const handleSearchChange = (value) => {
+    setSearchQuery(value);
+    
+    // Clear previous timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    
+    // Set new timeout for debounced search
+    searchTimeoutRef.current = setTimeout(() => {
+      generateSuggestions(value);
+    }, 200);
+  };
+
   const scrollToSection = (sectionId) => {
     if (location.pathname !== '/') {
       navigate('/');
@@ -71,35 +179,191 @@ const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
     setIsMenuOpen(false);
   };
 
-  const handleSearchSubmit = () => {
-    if (searchQuery.trim()) {
-      // Enhanced search: match title, author, category, tags
-      const q = searchQuery.trim().toLowerCase();
-      const filtered = centralizedBooksData.filter(book =>
-        book.title.toLowerCase().includes(q) ||
-        book.author.toLowerCase().includes(q) ||
-        book.category.toLowerCase().includes(q) ||
-        (book.tags && book.tags.some(tag => tag.toLowerCase().includes(q)))
-      );
-      // Pass filtered results via state (or fallback to query param for now)
-      navigate(`/library?search=${encodeURIComponent(searchQuery.trim())}`);
+  const handleSearchSubmit = (suggestion = null) => {
+    let searchTerm = '';
+    
+    if (suggestion) {
+      if (suggestion.type === 'book') {
+        // Navigate to specific book
+        navigate(`/product/${suggestion.id}`);
+        setSearchQuery('');
+        setShowSuggestions(false);
+        setSelectedSuggestionIndex(-1);
+        return;
+      } else {
+        searchTerm = suggestion.text;
+      }
+    } else {
+      searchTerm = searchQuery.trim();
+    }
+    
+    if (searchTerm) {
+      navigate(`/library?search=${encodeURIComponent(searchTerm)}`);
       setSearchQuery('');
+      setShowSuggestions(false);
+      setSelectedSuggestionIndex(-1);
     }
   };
 
   const handleKeyPress = (e) => {
-    if (e.key === 'Enter') {
-      handleSearchSubmit();
+    if (!showSuggestions || suggestions.length === 0) {
+      if (e.key === 'Enter') {
+        handleSearchSubmit();
+      }
+      return;
+    }
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setSelectedSuggestionIndex(prev => 
+          prev < suggestions.length - 1 ? prev + 1 : 0
+        );
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setSelectedSuggestionIndex(prev => 
+          prev > 0 ? prev - 1 : suggestions.length - 1
+        );
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (selectedSuggestionIndex >= 0) {
+          handleSearchSubmit(suggestions[selectedSuggestionIndex]);
+        } else {
+          handleSearchSubmit();
+        }
+        break;
+      case 'Escape':
+        setShowSuggestions(false);
+        setSelectedSuggestionIndex(-1);
+        searchRef.current?.blur();
+        break;
     }
   };
+
+  const handleSearchFocus = () => {
+    setIsSearchFocused(true);
+    if (searchQuery.length >= 2) {
+      generateSuggestions(searchQuery);
+    }
+  };
+
+  const getSuggestionIcon = (type) => {
+    switch (type) {
+      case 'book':
+        return <BookOpen className="w-4 h-4 text-[#9B7BB8]" />;
+      case 'author':
+        return <User className="w-4 h-4 text-blue-500" />;
+      case 'category':
+        return <div className="w-4 h-4 bg-green-500 rounded-sm" />;
+      case 'tag':
+        return <div className="w-4 h-4 bg-orange-500 rounded-full" />;
+      default:
+        return <Search className="w-4 h-4 text-gray-500" />;
+    }
+  };
+
+  const renderSearchInput = (isMobileVersion = false) => (
+    <div className="relative w-full" ref={searchRef}>
+      <div className="relative">
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => handleSearchChange(e.target.value)}
+          onKeyDown={handleKeyPress}
+          onFocus={handleSearchFocus}
+          placeholder="Search books, authors, categories..."
+          className={`w-full bg-gronik-secondary/20 text-gronik-light placeholder-gronik-light/60 px-4 py-2 pr-10 rounded-lg border border-gronik-secondary/30 focus:outline-none focus:border-gronik-accent focus:bg-gronik-secondary/30 focus:shadow-lg transition-all duration-200 ${
+            isMobileVersion ? 'text-sm' : ''
+          } ${showSuggestions ? 'rounded-b-none' : ''}`}
+        />
+        <button
+          onClick={() => handleSearchSubmit()}
+          className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-gronik-accent/20 rounded transition-all duration-200"
+        >
+          <Search className="w-4 h-4 text-gronik-light hover:text-gronik-accent" />
+        </button>
+        
+        {showSuggestions && suggestions.length > 0 && (
+          <>
+            <ChevronDown className="absolute right-8 top-1/2 -translate-y-1/2 w-3 h-3 text-gronik-light/60" />
+          </>
+        )}
+      </div>
+
+      {/* Search Suggestions Dropdown */}
+      {showSuggestions && suggestions.length > 0 && (
+        <div 
+          ref={suggestionsRef}
+          className="absolute top-full left-0 right-0 bg-white/95 backdrop-blur-md border border-gronik-secondary/30 border-t-0 rounded-b-lg shadow-2xl z-50 max-h-80 overflow-y-auto"
+        >
+          {suggestions.map((suggestion, index) => (
+            <div
+              key={`${suggestion.type}-${suggestion.text}-${index}`}
+              onClick={() => handleSearchSubmit(suggestion)}
+              className={`flex items-center space-x-3 px-4 py-3 hover:bg-[#9B7BB8]/10 cursor-pointer transition-colors duration-150 border-b border-gronik-secondary/10 last:border-b-0 ${
+                selectedSuggestionIndex === index ? 'bg-[#9B7BB8]/15' : ''
+              }`}
+            >
+              <div className="flex-shrink-0">
+                {suggestion.type === 'book' && suggestion.image ? (
+                  <img 
+                    src={suggestion.image} 
+                    alt={suggestion.text}
+                    className="w-8 h-10 object-cover rounded"
+                  />
+                ) : (
+                  <div className="w-8 h-10 bg-gronik-secondary/20 rounded flex items-center justify-center">
+                    {getSuggestionIcon(suggestion.type)}
+                  </div>
+                )}
+              </div>
+              
+              <div className="flex-1 min-w-0">
+                <div className="font-medium text-[#2D1B3D] truncate text-sm">
+                  {suggestion.text}
+                </div>
+                <div className="text-xs text-[#2D1B3D]/60 flex items-center space-x-2">
+                  <span>{suggestion.category}</span>
+                  {suggestion.author && suggestion.type === 'book' && (
+                    <>
+                      <span>•</span>
+                      <span>by {suggestion.author}</span>
+                    </>
+                  )}
+                </div>
+              </div>
+              
+              <div className="flex-shrink-0 text-[#9B7BB8] opacity-0 group-hover:opacity-100 transition-opacity">
+                <ChevronDown className="w-4 h-4 rotate-[-90deg]" />
+              </div>
+            </div>
+          ))}
+          
+          {searchQuery.trim() && (
+            <div
+              onClick={() => handleSearchSubmit()}
+              className="flex items-center space-x-3 px-4 py-3 hover:bg-[#9B7BB8]/10 cursor-pointer transition-colors duration-150 border-t-2 border-gronik-secondary/20 bg-gronik-secondary/5"
+            >
+              <Search className="w-4 h-4 text-[#9B7BB8]" />
+              <span className="text-sm font-medium text-[#2D1B3D]">
+                Search for "<span className="text-[#9B7BB8]">{searchQuery}</span>"
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <>
       {/* Mobile Navbar */}
       {isMobile && (
         <nav className="fixed top-0 left-0 right-0 z-50 bg-gronik-primary/95 backdrop-blur-md shadow-lg border-b border-gronik-secondary/20">
-          <div className="flex items-center justify-between h-16">
-            <div className="ml-8">
+          <div className="flex items-center justify-between h-16 px-4">
+            <div className="flex-shrink-0">
               <Link to="/" className="flex items-center">
                 <div className="w-28 h-10 sm:w-32 sm:h-12">
                   <img
@@ -110,7 +374,7 @@ const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
                 </div>
               </Link>
             </div>
-            <div className="mr-8">
+            <div className="flex-shrink-0">
               <button
                 className="p-2 text-gronik-light hover:text-gronik-accent transition-colors duration-200"
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -150,22 +414,7 @@ const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
                   Contact
                 </Link>
                 <div className="pt-3 border-t border-gronik-secondary/20">
-                  <div className="relative">
-                    <input
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      onKeyPress={handleKeyPress}
-                      placeholder="Search books..."
-                      className="w-full bg-gronik-secondary/20 text-gronik-light placeholder-gronik-light/60 px-4 py-2 pr-10 rounded-lg border border-gronik-secondary/30 focus:outline-none focus:border-gronik-accent"
-                    />
-                    <button
-                      onClick={handleSearchSubmit}
-                      className="absolute right-2 top-1/2 transform -translate-y-1/2 p-1"
-                    >
-                      <Search className="w-4 h-4 text-gronik-light" />
-                    </button>
-                  </div>
+                  {renderSearchInput(true)}
                 </div>
                 <div className="flex items-center justify-between pt-3 border-t border-gronik-secondary/20">
                   <div className="flex items-center space-x-4">
@@ -229,16 +478,16 @@ const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
         >
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
             <div className="flex items-center justify-between h-24 px-2">
-            <Link to="/" className="flex items-center absolute left-0 -ml-16">
-          <div className="w-40 h-16 flex items-center justify-center">
-            <img
-              src="/images/logo.png"
-              alt="Gronik Logo"
-              className="w-full h-full mr-[150px]"
-            />
-          </div>
-        </Link>
-              <div className="flex items-center space-x-8 ml-48">
+              <Link to="/" className="flex items-center absolute left-0 -ml-16">
+                <div className="w-40 h-16 flex items-center justify-center">
+                  <img
+                    src="/images/logo.png"
+                    alt="Gronik Logo"
+                    className="w-full h-full mr-[150px]"
+                  />
+                </div>
+              </Link>
+              <div className="flex items-center space-x-10 ml-48">
                 <Link
                   to="/"
                   className="text-gronik-light hover:text-gronik-accent transition-colors duration-200 font-medium hover:scale-105 transform"
@@ -264,22 +513,9 @@ const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
                   Contact
                 </Link>
               </div>
-              <div className="flex items-center space-x-4">
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    placeholder="Search books..."
-                    className="bg-gronik-secondary/20 text-gronik-light placeholder-gronik-light/60 px-4 py-2 pr-10 rounded-lg border border-gronik-secondary/30 focus:outline-none focus:border-gronik-accent focus:bg-gronik-secondary/30 focus:shadow-lg transition-all duration-200 w-64"
-                  />
-                  <button
-                    onClick={handleSearchSubmit}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-gronik-accent/20 rounded transition-all duration-200"
-                  >
-                    <Search className="w-4 h-4 text-gronik-light hover:text-gronik-accent" />
-                  </button>
+              <div className="flex items-center space-x-5 ml-12">
+                <div className="w-64 lg:w-72 xl:w-80">
+                  {renderSearchInput(false)}
                 </div>
                 <Link to="/wishlist" className="p-2 hover:bg-gronik-secondary/20 rounded-lg transition-colors duration-200 relative group">
                   <Heart className="w-5 h-5 text-gronik-light group-hover:text-gronik-accent transition-colors duration-200" />

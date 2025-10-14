@@ -1,12 +1,13 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { BookOpen, LayoutDashboard, Users, ShoppingCart, Settings } from 'lucide-react';
+import { BookOpen, LayoutDashboard, Users, ShoppingCart, Settings, Receipt } from 'lucide-react';
 
 const adminMenu = [
   { name: 'Dashboard', icon: LayoutDashboard, path: '/admin' },
   { name: 'Books', icon: BookOpen, path: '/admin/books' },
   { name: 'Users', icon: Users, path: '/admin/users' },
   { name: 'Orders', icon: ShoppingCart, path: '/admin/orders' },
+  { name: 'Transactions', icon: Receipt, path: '/admin/transactions' },
   { name: 'Settings', icon: Settings, path: '/admin/settings' },
 ];
 

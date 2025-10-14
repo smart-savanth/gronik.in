@@ -1,12 +1,15 @@
 import React, { useState, useEffect, useRef, Fragment } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, ShoppingCart, Heart, Star, Eye, Users, Check, BookOpen, ChevronDown, Quote, Plus, X, Send } from 'lucide-react';
+import { useSelector, useDispatch } from 'react-redux';
+import { ArrowLeft, ShoppingCart, Heart, Star, Eye, Users, Check, BookOpen, ChevronDown, Quote, Plus, X, Send, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
 import { centralizedBooksData } from './LibrarySection';
 
 const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCart, onAddToWishlist, onRemoveFromWishlist }) => {
   const { productId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const dispatch = useDispatch();
+  
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [activeTab, setActiveTab] = useState('overview');
   const [cartButtonClicked, setCartButtonClicked] = useState(false);
@@ -16,12 +19,51 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [newReview, setNewReview] = useState({ rating: 5, text: '', name: '' });
-
   const [imageErrors, setImageErrors] = useState({});
   const [selectedChapter, setSelectedChapter] = useState(null);
   const [showChapterModal, setShowChapterModal] = useState(false);
+  const [currentCarouselIndex, setCurrentCarouselIndex] = useState(0);
+  
+  // Suggested books state
+  const [suggestedCartClicked, setSuggestedCartClicked] = useState({});
+  const [suggestedWishlistClicked, setSuggestedWishlistClicked] = useState({});
+  const [animatingSuggestedCart, setAnimatingSuggestedCart] = useState({});
+  const [animatingSuggestedWishlist, setAnimatingSuggestedWishlist] = useState({});
+  const [hoveredSuggested, setHoveredSuggested] = useState(null);
+  
+  const scrollContainerRef = useRef(null);
+  const currentTransformRef = useRef(0);
 
-  const [reviews] = useState([
+  // Carousel data
+  const carouselBooks = [
+    {
+      id: 1,
+      image: "/images/book1.jpg",
+      description: "Unlock the secrets to wealth and success with timeless principles that have transformed millions of lives worldwide."
+    },
+    {
+      id: 2,
+      image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&h=400&fit=crop",
+      description: "Master the art of power and influence with strategic insights that will elevate your personal and professional life."
+    },
+    {
+      id: 3,
+      image: "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=300&h=400&fit=crop",
+      description: "Transform your life one small habit at a time with proven strategies for building good habits and breaking bad ones."
+    },
+    {
+      id: 4,
+      image: "https://images.unsplash.com/photo-1532012197267-da84d127e765?w=300&h=400&fit=crop",
+      description: "Discover powerful principles for personal effectiveness that will help you achieve lasting success in all areas of life."
+    },
+    {
+      id: 5,
+      image: "https://images.unsplash.com/photo-1553729459-efe14ef6055d?w=300&h=400&fit=crop",
+      description: "Learn how to unlock your potential and achieve remarkable success by embracing a growth-oriented mindset."
+    }
+  ];
+
+  const reviews = useSelector(state => state.reviews?.items || [
     { id: 1, rating: 5, text: "Books are easy to get and the quality is amazing! The reading experience is seamless and the collection is vast.", name: "Aarav Sharma" },
     { id: 2, rating: 5, text: "Great collection and smooth reading experience. Love the variety and user interface. Perfect for daily reading.", name: "Priya Patel" },
     { id: 3, rating: 4, text: "Love the variety of books available here. Perfect for my daily reading routine and the quality is top-notch.", name: "Rahul Verma" },
@@ -30,9 +72,52 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
     { id: 6, rating: 5, text: "Best e-book platform I've used! Great selection, amazing quality, and the interface is beautifully designed.", name: "Ananya Iyer" }
   ]);
 
-  const duplicatedReviews = [...reviews, ...reviews];
+  const duplicatedReviews = [...reviews, ...reviews, ...reviews];
 
   const productData = centralizedBooksData.find(book => book.id === parseInt(productId));
+  
+  const suggestedBooks = centralizedBooksData.filter(book => book.featured === true).slice(0, 3);
+
+  // Auto-play carousel
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentCarouselIndex((prev) => (prev + 1) % carouselBooks.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Carousel navigation
+  const nextSlide = () => {
+    setCurrentCarouselIndex((prev) => (prev + 1) % carouselBooks.length);
+  };
+
+  const prevSlide = () => {
+    setCurrentCarouselIndex((prev) => (prev - 1 + carouselBooks.length) % carouselBooks.length);
+  };
+
+  // Smooth animation for reviews
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    let intervalId;
+    const speed = 1;
+
+    if (!isPaused) {
+      intervalId = setInterval(() => {
+        currentTransformRef.current -= speed;
+        const resetPoint = -(container.scrollWidth / 3);
+        if (currentTransformRef.current <= resetPoint) {
+          currentTransformRef.current = 0;
+        }
+        container.style.transform = `translateX(${currentTransformRef.current}px)`;
+      }, 16);
+    }
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [isPaused]);
 
   useEffect(() => {
     if (!productData) navigate('/library');
@@ -59,7 +144,6 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
 
   const enhancedProductData = {
     ...productData,
-    // Since this is a digital platform, all books are in stock
     inStock: true,
     totalSales: productData.totalSales || Math.floor(Math.random() * 20000) + 5000,
     pages: productData.pages || Math.floor(Math.random() * 400) + 200,
@@ -143,20 +227,20 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
 
   const isInCart = cart.some(item => item.id === enhancedProductData.id);
   const isInWishlist = wishlist.some(item => item.id === enhancedProductData.id);
+  
+  const isSuggestedInCart = (book) => cart.some(item => item.id === book.id);
+  const isSuggestedInWishlist = (book) => wishlist.some(item => item.id === book.id);
 
   const handleAddToCart = () => {
-    // Since this is a digital platform, no stock check needed
     if (!isInCart) {
       setCartButtonClicked(true);
       setTimeout(() => setCartButtonClicked(false), 1500);
       onAddToCart && onAddToCart(enhancedProductData);
     } else {
-      // Navigate to cart instead of removing
       navigate('/cart');
     }
   };
 
-  // ✅ Wishlist always works for digital products
   const handleAddToWishlist = () => {
     setWishlistButtonClicked(true);
     setTimeout(() => setWishlistButtonClicked(false), 300);
@@ -187,8 +271,13 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
   };
 
   const handleSubmitReview = () => {
-    if (newReview.text && newReview.name) {
-      console.log('New review submitted:', newReview);
+    if (newReview.text.trim()) {
+      const review = {
+        id: Date.now(),
+        ...newReview,
+        timestamp: new Date().toISOString()
+      };
+      dispatch({ type: 'reviews/addReview', payload: review });
       setNewReview({ rating: 5, text: '', name: '' });
       setShowReviewForm(false);
     }
@@ -204,6 +293,48 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
     setSelectedChapter(null);
   };
 
+  const handleSuggestedCartAction = (e, book) => {
+    e.stopPropagation();
+    e.preventDefault();
+    
+    if (animatingSuggestedCart[book.id]) return;
+
+    const inCart = isSuggestedInCart(book);
+    
+    if (inCart) {
+      navigate('/cart');
+      return;
+    }
+
+    setAnimatingSuggestedCart(prev => ({ ...prev, [book.id]: true }));
+    setSuggestedCartClicked(prev => ({ ...prev, [book.id]: true }));
+    
+    setTimeout(() => {
+      onAddToCart && onAddToCart(book);
+      setAnimatingSuggestedCart(prev => ({ ...prev, [book.id]: false }));
+      setSuggestedCartClicked(prev => ({ ...prev, [book.id]: false }));
+    }, 1200);
+  };
+
+  const handleSuggestedToggleWishlist = (e, book) => {
+    e.stopPropagation();
+    e.preventDefault();
+    
+    if (animatingSuggestedWishlist[book.id]) return;
+    setAnimatingSuggestedWishlist(prev => ({ ...prev, [book.id]: true }));
+    setSuggestedWishlistClicked(prev => ({ ...prev, [book.id]: true }));
+    setTimeout(() => {
+      if (isSuggestedInWishlist(book)) onRemoveFromWishlist && onRemoveFromWishlist(book.id);
+      else onAddToWishlist && onAddToWishlist(book);
+      setAnimatingSuggestedWishlist(prev => ({ ...prev, [book.id]: false }));
+      setSuggestedWishlistClicked(prev => ({ ...prev, [book.id]: false }));
+    }, 250);
+  };
+
+  const handleSuggestedBookClick = (book) => {
+    navigate(`/product/${book.id}`, { state: { from: 'suggested' } });
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#2D1B3D] via-[#4A3B5C] to-[#9B7BB8] relative">
       {/* Background Pattern */}
@@ -216,7 +347,7 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
         ></div>
       </div>
 
-      {/* Button Animation Styles */}
+      {/* Styles */}
       <style jsx>{`
         .cart-button-animated { position: relative; overflow: hidden; }
         .cart-button-animated .cart-icon { position: absolute; z-index: 2; top: 50%; left: -10%; transform: translate(-50%, -50%); opacity: 0; }
@@ -238,6 +369,38 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
         .wishlist-button-animated.clicked .heart-static { transform: scale(1.2); }
         @keyframes pop { 0% { transform: scale(1); } 50% { transform: scale(1.08); } 100% { transform: scale(1); } }
 
+        .card-hover-gold:hover, .card-hover-gold.gold-glow {
+          box-shadow: 0 0 0 2px #ffe9b3, 0 4px 24px 0 #ffe9b3cc, 0 1.5px 8px 0 #fff7c1;
+        }
+        @media (hover: none) and (pointer: coarse) {
+          .card-hover-gold:active {
+            box-shadow: 0 0 0 2px #ffe9b3, 0 4px 24px 0 #ffe9b3cc, 0 1.5px 8px 0 #fff7c1;
+          }
+        }
+
+        @keyframes slideIn {
+          from { opacity: 0; transform: translateX(100px); }
+          to { opacity: 1; transform: translateX(0); }
+        }
+
+        @keyframes slideOut {
+          from { opacity: 1; transform: translateX(0); }
+          to { opacity: 0; transform: translateX(-100px); }
+        }
+
+        .carousel-slide-enter {
+          animation: slideIn 0.6s ease-out;
+        }
+
+        @media (max-width: 640px) { 
+          .group:hover { transform: none !important; z-index: initial !important; }
+          .mobile-overview-text { font-size: 0.875rem !important; line-height: 1.4 !important; }
+          .mobile-suggested-card { padding: 0.75rem !important; }
+          .mobile-suggested-image { width: 120px !important; height: 160px !important; }
+          .mobile-suggested-title { font-size: 0.875rem !important; }
+          .mobile-suggested-price { font-size: 1.125rem !important; }
+        }
+        
         @media (max-width: 400px) {
           .pt-32 { padding-top: 1.5rem; }
           .pb-8 { padding-bottom: 1rem; }
@@ -388,14 +551,14 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
               <p className="text-[#2D1B3D] text-lg leading-relaxed font-medium">{enhancedProductData.description}</p>
             </div>
 
-            {/* Actions - No more stock check since it's digital */}
-            <div className="flex flex-row gap-2 w-full mb-4">
+            {/* Actions - Fixed Hover Issue */}
+            <div className="flex flex-row gap-3 w-full mb-4">
               <button
                 onClick={handleAddToCart}
-                className={`cart-button-animated ${cartButtonClicked ? 'clicked' : ''} flex-1 py-3 px-4 rounded-xl font-semibold text-base flex items-center justify-center gap-2 transition-all duration-300 hover:scale-105 shadow-xl hover:shadow-2xl ${
+                className={`cart-button-animated ${cartButtonClicked ? 'clicked' : ''} flex-1 py-3 px-4 rounded-xl font-semibold text-base flex items-center justify-center gap-2 transition-all duration-300 shadow-xl ${
                   isInCart
-                    ? 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white'
-                    : 'bg-gradient-to-r from-white to-gray-100 hover:from-gray-100 hover:to-white text-[#2D1B3D] shadow-xl'
+                    ? 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white hover:shadow-2xl'
+                    : 'bg-gradient-to-r from-white to-gray-100 hover:from-yellow-100 hover:to-yellow-50 text-[#2D1B3D] hover:shadow-2xl'
                 }`}
               >
                 <ShoppingCart className="cart-icon w-5 h-5" />
@@ -410,13 +573,12 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
                 </span>
               </button>
 
-              {/* ✅ Wishlist always enabled for digital products */}
               <button
                 onClick={handleAddToWishlist}
-                className={`wishlist-button-animated ${wishlistButtonClicked ? 'clicked' : ''} p-3 rounded-xl transition-all duration-200 hover:scale-105 shadow-lg hover:shadow-xl ${
+                className={`wishlist-button-animated ${wishlistButtonClicked ? 'clicked' : ''} p-3 rounded-xl transition-all duration-200 shadow-lg ${
                   isInWishlist
-                    ? 'bg-gradient-to-r from-red-500 to-red-600 text-white'
-                    : 'bg-[#9B7BB8] text-[#2D1B3D] hover:bg-[#8A6AA7]'
+                    ? 'bg-gradient-to-r from-red-500 to-red-600 text-white hover:shadow-xl'
+                    : 'bg-[#9B7BB8] text-[#2D1B3D] hover:bg-[#8A6AA7] hover:shadow-xl'
                 }`}
                 style={{ minWidth: 0 }}
               >
@@ -449,65 +611,104 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
 
           <div className="text-[#2D1B3D]">
             {activeTab === 'overview' && (
-              <div className="space-y-8">
-                <div className="text-center mb-8">
-                  <h3 className="text-3xl font-bold text-[#2D1B3D] mb-4">Overview</h3>
-                  <div className="w-24 h-1 bg-[#2D1B3D]/60 mx-auto"></div>
+              <div className="space-y-6">
+                {/* Product Description - Mobile Optimized */}
+                <div className="px-4 sm:px-6 lg:px-12 mb-6">
+                  <p className="text-[#2D1B3D] text-sm sm:text-base lg:text-lg leading-relaxed text-center font-medium max-w-5xl mx-auto mobile-overview-text line-clamp-4 sm:line-clamp-none">
+                    {enhancedProductData.fullDescription}
+                  </p>
                 </div>
-                <div className="bg-[#2D1B3D]/70 backdrop-blur-md border-[#2D1B3D]/30 shadow-xl rounded-2xl p-6 sm:p-8 border">
-                  <p className="text-white/90 leading-relaxed text-lg">{enhancedProductData.fullDescription}</p>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="bg-[#2D1B3D]/70 backdrop-blur-md border-[#2D1B3D]/30 shadow-xl rounded-2xl p-8 border">
-                    <h4 className="text-xl font-semibold mb-6 text-white/90">Book Details</h4>
-                    <div className="space-y-4 text-white/90">
-                      <div className="flex justify-between items-center py-2 border-b border-white/20"><span className="font-medium">Language:</span><span>{enhancedProductData.language}</span></div>
-                      <div className="flex justify-between items-center py-2 border-b border-white/20"><span className="font-medium">Format:</span><span>{enhancedProductData.format}</span></div>
-                      <div className="flex justify-between items-center py-2 border-b border-white/20"><span className="font-medium">File Size:</span><span>{enhancedProductData.fileSize}</span></div>
-                      <div className="flex justify-between items-center py-2 border-b border-white/20"><span className="font-medium">Published:</span><span>{enhancedProductData.publishDate}</span></div>
-                      <div className="flex justify-between items-center py-2"><span className="font-medium">Pages:</span><span>{enhancedProductData.pages}</span></div>
+
+                {/* Stunning Carousel with Enhanced Golden Glow */}
+                <div className="relative bg-[#2D1B3D]/70 backdrop-blur-md border-[#2D1B3D]/30 shadow-xl rounded-2xl overflow-hidden border">
+                  <div className="carousel-slide-enter px-12 sm:px-16 lg:px-20 py-8 sm:py-10 lg:py-12">
+                    <div className="flex flex-col lg:flex-row items-center justify-center gap-6 sm:gap-8 lg:gap-12">
+                      {/* 3D Book Image with Enhanced Golden Glow - No Left Border */}
+                      <div className="flex-shrink-0">
+                        <div className="relative w-44 h-60 sm:w-52 sm:h-72 lg:w-60 lg:h-80">
+                          {/* 3D Shadow Effect */}
+                          <div className="absolute inset-0 bg-black/50 rounded-xl blur-xl transform translate-x-3 translate-y-3"></div>
+                          
+                          {/* Book with Enhanced Golden Glow */}
+                          <div className="relative w-full h-full rounded-xl overflow-hidden shadow-2xl transform hover:scale-105 transition-all duration-500"
+                               style={{
+                                 boxShadow: '0 6px 24px rgba(255, 233, 179, 0.4), 0 10px 48px rgba(255, 233, 179, 0.3), 0 3px 12px rgba(255, 247, 193, 0.35)'
+                               }}>
+                            <img 
+                              src={carouselBooks[currentCarouselIndex].image} 
+                              alt="Book"
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Book Description - Right Side */}
+                      <div className="flex-1 text-center lg:text-left max-w-2xl">
+                        <p className="text-base sm:text-lg lg:text-xl text-white leading-relaxed font-medium">
+                          {carouselBooks[currentCarouselIndex].description}
+                        </p>
+                      </div>
                     </div>
                   </div>
-                  <div className="bg-[#2D1B3D]/70 backdrop-blur-md border-[#2D1B3D]/30 shadow-xl rounded-2xl p-8 border">
-                    <h4 className="text-xl font-semibold mb-6 text-white/90">Community</h4>
-                    <div className="space-y-4 text-white/90">
-                      <div className="flex flex-col items-center py-2 border-b border-white/20">
-                        <span className="font-medium text-center">Want to connect with other readers, get exclusive deals, and join book discussions?</span>
-                        <a href="https://t.me/yourtelegram" target="_blank" rel="noopener noreferrer" className="underline text-[#FFD700] font-bold mt-2">Join our Telegram & Discord community!</a>
-                      </div>
-                      <div className="flex justify-between items-center py-2 border-b border-white/20"><span className="font-medium">Category:</span><span>{enhancedProductData.category}</span></div>
-                      <div className="flex justify-between items-center py-2 border-b border-white/20"><span className="font-medium">Rating:</span><span>{enhancedProductData.rating}/5 ({reviews.length} reviews)</span></div>
-                    </div>
+
+                  {/* Navigation Buttons */}
+                  <button
+                    onClick={prevSlide}
+                    className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 bg-[#9B7BB8] hover:bg-[#8A6AA7] text-white p-2.5 sm:p-3 rounded-full transition-all duration-300 shadow-xl hover:shadow-2xl hover:scale-110 z-20 border-2 border-white/20"
+                  >
+                    <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
+                  </button>
+                  <button
+                    onClick={nextSlide}
+                    className="absolute right-3 sm:right-4 top-1/2 transform -translate-y-1/2 bg-[#9B7BB8] hover:bg-[#8A6AA7] text-white p-2.5 sm:p-3 rounded-full transition-all duration-300 shadow-xl hover:shadow-2xl hover:scale-110 z-20 border-2 border-white/20"
+                  >
+                    <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6" />
+                  </button>
+
+                  {/* Dots Indicator - Hidden on Mobile */}
+                  <div className="hidden sm:flex justify-center space-x-2 py-4">
+                    {carouselBooks.map((_, index) => (
+                      <button
+                        key={index}
+                        onClick={() => setCurrentCarouselIndex(index)}
+                        className={`transition-all duration-300 rounded-full ${
+                          currentCarouselIndex === index 
+                            ? 'bg-[#9B7BB8] w-8 h-2.5 shadow-lg' 
+                            : 'bg-white/50 hover:bg-white/70 w-2.5 h-2.5'
+                        }`}
+                      />
+                    ))}
                   </div>
                 </div>
               </div>
             )}
 
             {activeTab === 'what-you-learn' && (
-              <div className="space-y-8">
-                <div className="text-center mb-8">
-                  <h3 className="text-3xl font-bold text-[#2D1B3D] mb-4">What You Will Learn</h3>
-                  <div className="w-24 h-1 bg-[#2D1B3D]/60 mx-auto"></div>
-                </div>
-                <div className="space-y-6">
-                  {(enhancedProductData.learningObjectives || [
-                    "Master modern web development frameworks and tools",
-                    "Learn responsive design principles and best practices",
-                    "Understand advanced JavaScript concepts and ES6+ features",
-                    "Build scalable and maintainable applications",
-                    "Implement security best practices in web applications",
-                    "Deploy applications to production environments"
-                  ]).map((objective, index) => (
-                    <div key={index} className="bg-[#2D1B3D]/70 backdrop-blur-md border-[#2D1B3D]/30 shadow-xl rounded-2xl p-6 border transition-all duration-300">
-                      <div className="flex items-start space-x-4">
-                        <div className="bg-[#9B7BB8] text-[#2D1B3D] w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0">{index + 1}</div>
-                        <p className="text-white/90 leading-relaxed">{objective}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+            <div className="space-y-6 sm:space-y-8">
+              <div className="text-center mb-6 sm:mb-8">
+                <h3 className="text-2xl sm:text-3xl font-bold text-[#2D1B3D] mb-3 sm:mb-4">What You Will Learn</h3>
+                <div className="w-20 sm:w-24 h-1 bg-[#2D1B3D]/60 mx-auto"></div>
               </div>
-            )}
+              <div className="space-y-3 sm:space-y-6">
+                {(enhancedProductData.learningObjectives || [
+                  "Master modern web development frameworks and tools",
+                  "Learn responsive design principles and best practices",
+                  "Understand advanced JavaScript concepts and ES6+ features",
+                  "Build scalable and maintainable applications",
+                  "Implement security best practices in web applications",
+                  "Deploy applications to production environments"
+                ]).map((objective, index) => (
+                  <div key={index} className="bg-[#2D1B3D]/70 backdrop-blur-md border-[#2D1B3D]/30 shadow-xl rounded-xl sm:rounded-2xl p-4 sm:p-6 border transition-all duration-300">
+                    <div className="flex items-start space-x-3 sm:space-x-4">
+                      <div className="bg-[#9B7BB8] text-[#2D1B3D] w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-bold text-xs sm:text-sm flex-shrink-0">{index + 1}</div>
+                      <p className="text-white/90 leading-relaxed text-sm sm:text-base line-clamp-2">{objective}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
             {activeTab === 'contents' && (
               <div className="space-y-8">
@@ -600,11 +801,11 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
           </div>
         </div>
 
-        {/* Reviews */}
-        <div ref={reviewsSectionRef} className="bg-[#9B7BB8] rounded-3xl p-8 lg:p-12 shadow-2xl mt-20">
+        {/* Reviews Section */}
+        <div ref={reviewsSectionRef} className="mt-16 py-8 sm:py-12 md:py-16 lg:py-20 relative overflow-hidden">
           <div className="text-center mb-8 sm:mb-16">
-            <h3 className="text-2xl sm:text-4xl lg:text-5xl font-bold mb-4 sm:mb-6 text-[#2D1B3D] px-4">What Our Readers Say</h3>
-            <p className="text-sm sm:text-xl text-[#2D1B3D]/80 max-w-2xl mx-auto mb-6 sm:mb-8 font-medium px-4">
+            <h3 className="text-2xl sm:text-4xl lg:text-5xl font-bold mb-4 sm:mb-6 text-white px-4">What Our Readers Say</h3>
+            <p className="text-sm sm:text-xl text-white/70 max-w-2xl mx-auto mb-6 sm:mb-8 font-medium px-4">
               Join thousands of satisfied readers who have transformed their reading experience
             </p>
             <button
@@ -618,10 +819,14 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
 
           <div className="relative overflow-hidden" style={{ height: '280px', paddingTop: '20px', paddingBottom: '20px' }}>
             <div
-              className="flex gap-4 sm:gap-8 w-max"
-              style={{ animation: isPaused ? 'none' : 'scroll 80s linear infinite', transform: 'translateX(0)' }}
+              ref={scrollContainerRef}
+              className="flex gap-4 sm:gap-8 w-max transition-all duration-500 ease-out"
               onMouseEnter={() => setIsPaused(true)}
               onMouseLeave={() => setIsPaused(false)}
+              style={{
+                transform: 'translateX(0px)',
+                willChange: 'transform'
+              }}
             >
               {duplicatedReviews.map((review, index) => (
                 <div
@@ -650,7 +855,165 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
           </div>
         </div>
 
-        {/* Review Form */}
+        {/* Suggested Books - Mobile Optimized & Cuter */}
+        {suggestedBooks.length > 0 && (
+          <div className="mt-8 sm:mt-12 py-6 sm:py-12 relative">
+            <div className="text-center mb-6 sm:mb-12">
+              <div className="inline-flex items-center bg-white/10 backdrop-blur-sm rounded-full px-6 py-3 mb-6 border border-white/20 shadow-lg">
+                <Sparkles className="w-5 h-5 text-white mr-2" />
+                <span className="text-white font-bold text-base">You Might Also Like</span>
+              </div>
+              <h3 className="text-xl sm:text-3xl lg:text-4xl font-bold text-white mb-2 sm:mb-4 px-4">Suggested Books</h3>
+              <p className="text-white/60 text-sm sm:text-lg max-w-2xl mx-auto px-4">
+                Handpicked recommendations from our featured collection
+              </p>
+            </div>
+
+            {/* Mobile: Side by Side Layout with Full Backgrounds */}
+            <div className="block sm:hidden overflow-x-auto pb-4 px-4 -mx-4">
+              <div className="flex gap-3" style={{ minWidth: 'min-content' }}>
+                {suggestedBooks.map((book) => (
+                  <div
+                    key={book.id}
+                    className="flex-shrink-0 w-[115px] cursor-pointer bg-[#2D1B3D]/80 backdrop-blur-md rounded-lg p-2.5 border border-white/10 shadow-lg"
+                  >
+                    {/* Book Cover */}
+                    <div 
+                      className="w-full h-[140px] rounded-md overflow-hidden shadow-lg mb-2"
+                      onClick={() => handleSuggestedBookClick(book)}
+                    >
+                      <img src={book.image} alt={book.title} className="w-full h-full object-cover" />
+                    </div>
+
+                    {/* Book Title */}
+                    <h4 
+                      className="text-white text-[11px] font-semibold line-clamp-2 leading-tight mb-2 min-h-[28px]"
+                      onClick={() => handleSuggestedBookClick(book)}
+                    >
+                      {book.title}
+                    </h4>
+
+                    {/* Action Buttons with Backgrounds */}
+                    <div className="flex gap-1.5 items-center">
+                      <button
+                        onClick={(e) => handleSuggestedCartAction(e, book)}
+                        className={`flex-1 py-2 px-2 rounded-md text-[10px] font-bold transition-all flex items-center justify-center shadow-md ${
+                          isSuggestedInCart(book)
+                            ? 'bg-blue-500 text-white'
+                            : 'bg-white text-[#2D1B3D]'
+                        }`}
+                      >
+                        {isSuggestedInCart(book) ? 'Cart' : 'Add'}
+                      </button>
+                      <button
+                        onClick={(e) => handleSuggestedToggleWishlist(e, book)}
+                        className={`p-2 rounded-md transition-all flex items-center justify-center shadow-md ${
+                          isSuggestedInWishlist(book)
+                            ? 'bg-red-500 text-white'
+                            : 'bg-[#9B7BB8] text-white'
+                        }`}
+                      >
+                        <Heart className={`w-3.5 h-3.5 ${isSuggestedInWishlist(book) ? 'fill-current' : ''}`} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Desktop: Grid Layout (unchanged) */}
+            <div className="hidden sm:grid grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 max-w-6xl mx-auto">
+              {suggestedBooks.map((book) => (
+                <div
+                  key={book.id}
+                  className={`group cursor-pointer transform transition-all duration-500 hover:scale-105 card-hover-gold ${hoveredSuggested === book.id ? 'gold-glow' : ''}`}
+                  onClick={() => handleSuggestedBookClick(book)}
+                  onMouseEnter={() => setHoveredSuggested(book.id)}
+                  onMouseLeave={() => setHoveredSuggested(null)}
+                >
+                  <div className="relative bg-[#1A0F2E]/80 backdrop-blur-md rounded-2xl p-6 border border-white/20 shadow-2xl overflow-hidden h-full flex flex-col">
+                    <div className="relative mb-6 flex justify-center">
+                      <div className="relative w-40 h-56 lg:w-44 lg:h-60 rounded-xl overflow-hidden shadow-2xl transition-all duration-500 group-hover:shadow-3xl">
+                        <img src={book.image} alt={book.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
+                      </div>
+                    </div>
+
+                    <div className="text-center space-y-3 flex-1 flex flex-col">
+                      <h4 className="text-base lg:text-lg font-bold text-white line-clamp-2 leading-tight transition-all duration-300">
+                        {book.title}
+                      </h4>
+                      <p className="text-white/60 font-medium text-sm">by {book.author}</p>
+
+                      <div className="flex items-center justify-center space-x-2 py-2">
+                        <div className="flex">
+                          {[...Array(5)].map((_, i) => (
+                            <Star key={i} className={`w-4 h-4 ${i < Math.floor(book.rating) ? 'text-yellow-400 fill-current' : 'text-white/20'}`} />
+                          ))}
+                        </div>
+                        <span className="text-white font-semibold text-sm">{book.rating}</span>
+                      </div>
+
+                      <div className="py-2 flex-1 flex flex-col justify-center">
+                        <div className="flex items-center justify-center space-x-2 mb-1">
+                          <span className="text-2xl font-bold text-white">${book.price}</span>
+                          <span className="text-sm text-white/40 line-through">${book.originalPrice}</span>
+                        </div>
+                        <div className="text-sm font-bold text-green-400">
+                          {book.discount}
+                        </div>
+                      </div>
+
+                      <div className="flex flex-row gap-2 w-full pt-3 mt-auto">
+                        <button
+                          onClick={(e) => handleSuggestedCartAction(e, book)}
+                          disabled={animatingSuggestedCart[book.id]}
+                          className={`cart-button-animated ${suggestedCartClicked[book.id] ? 'clicked' : ''} flex-1 py-2.5 px-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all duration-300 hover:scale-105 shadow-xl ${
+                            isSuggestedInCart(book)
+                              ? 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white'
+                              : 'bg-gradient-to-r from-white to-gray-100 hover:from-yellow-100 hover:to-yellow-50 text-[#2D1B3D]'
+                          }`}
+                        >
+                          {isSuggestedInCart(book) ? (
+                            <Check className="w-4 h-4" />
+                          ) : (
+                            <>
+                              <ShoppingCart className="cart-icon w-4 h-4" />
+                              <div className="box-icon w-2 h-2 bg-current rounded-sm"></div>
+                            </>
+                          )}
+                          
+                          <span className="cart-text text-xs">
+                            {animatingSuggestedCart[book.id] ? 'Adding...' : isSuggestedInCart(book) ? 'Go to Cart' : 'Add to Cart'}
+                          </span>
+
+                          <span className="added-text text-xs">
+                            <Check className="w-3 h-3 mr-1 inline" />
+                            Added!
+                          </span>
+                        </button>
+
+                        <button
+                          onClick={(e) => handleSuggestedToggleWishlist(e, book)}
+                          disabled={animatingSuggestedWishlist[book.id]}
+                          className={`wishlist-button-animated ${suggestedWishlistClicked[book.id] ? 'clicked' : ''} p-2.5 rounded-xl transition-all duration-300 hover:scale-110 shadow-lg ${
+                            isSuggestedInWishlist(book)
+                              ? 'bg-gradient-to-r from-red-500 to-pink-600 text-white'
+                              : 'bg-[#9B7BB8] text-[#2D1B3D] hover:bg-[#8A6AA7]'
+                          }`}
+                        >
+                          <Heart className={`heart-static w-4 h-4 ${isSuggestedInWishlist(book) ? 'fill-current' : ''}`} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Review Form Modal */}
         {showReviewForm && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl p-6 sm:p-8 max-w-md w-full mx-4 shadow-2xl relative max-h-[calc(100%-2rem)] overflow-y-auto">
@@ -659,17 +1022,6 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
               </button>
               <h3 className="text-xl sm:text-2xl font-bold text-[#2D1B3D] mb-4 sm:mb-6 pr-8">Share Your Experience</h3>
               <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-[#2D1B3D] mb-2">Your Name</label>
-                  <input
-                    type="text"
-                    value={newReview.name}
-                    onChange={e => setNewReview({ ...newReview, name: e.target.value })}
-                    className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#9B7BB8] focus:border-transparent transition-all text-sm sm:text-base mb-2"
-                    placeholder="Enter your name..."
-                    maxLength={32}
-                  />
-                </div>
                 <div>
                   <label className="block text-sm font-medium text-[#2D1B3D] mb-2">Rating</label>
                   <div className="flex space-x-1">
@@ -688,11 +1040,16 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
                     rows={4}
                     className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#9B7BB8] focus:border-transparent transition-all resize-none text-sm sm:text-base"
                     placeholder="Share your experience with our platform..."
+                    maxLength={200}
                   />
+                  <div className="text-right text-xs text-gray-500 mt-1">
+                    {newReview.text.length}/200
+                  </div>
                 </div>
                 <button
                   onClick={handleSubmitReview}
-                  className="w-full bg-[#2D1B3D] text-white py-2 sm:py-3 rounded-lg hover:bg-[#3D2A54] transition-all duration-300 font-medium flex items-center justify-center space-x-2 text-sm sm:text-base"
+                  disabled={!newReview.text.trim()}
+                  className="w-full bg-[#2D1B3D] text-white py-2 sm:py-3 rounded-lg hover:bg-[#3D2A54] transition-all duration-300 font-medium flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
                 >
                   <Send className="w-4 h-4 sm:w-5 sm:h-5" />
                   <span>Submit Review</span>
@@ -752,41 +1109,6 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
           </div>
         )}
       </div>
-
-      {/* Mobile 400px tweaks */}
-      <style jsx>{`
-        @keyframes scroll { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
-        @media (max-width: 640px) { .group:hover { transform: none !important; z-index: initial !important; } }
-        @media (max-width: 400px) {
-          .pt-32 { padding-top: 1.5rem; }
-          .pb-8 { padding-bottom: 1rem; }
-          .w-40 { width: 120px !important; }
-          .h-56 { height: 170px !important; }
-          .w-10 { width: 40px !important; }
-          .h-14 { height: 56px !important; }
-          .w-[30%] { width: 30% !important; }
-          .w-[70%] { width: 70% !important; }
-          .p-4 { padding: 0.75rem !important; }
-          .rounded-xl { border-radius: 0.75rem !important; }
-          .gap-2 { gap: 0.5rem !important; }
-          .mb-4 { margin-bottom: 1rem !important; }
-          .flex-row { flex-direction: row !important; }
-          .flex-col { flex-direction: column !important; }
-          .items-center { align-items: center !important; }
-          .justify-center { justify-content: center !important; }
-          .text-xs { font-size: 0.75rem !important; }
-          .text-base { font-size: 1rem !important; }
-          .font-semibold { font-weight: 600 !important; }
-          .font-bold { font-weight: 700 !important; }
-          .back-to-library-mobile-fix { margin-top: 4rem; }
-          .back-to-library-btn-mobile { margin-left: 0 !important; margin-right: auto !important; display: flex !important; }
-          .main-book-image-mobile-fix { max-width: 230px !important; }
-          .about-section-mobile-fix { font-size: 0.92rem !important; padding: 1rem !important; border-radius: 0.7rem !important; }
-          .text-3xl { font-size: 1.15rem !important; }
-          .text-lg { font-size: 0.98rem !important; }
-          .p-8 { padding: 1rem !important; }
-        }
-      `}</style>
     </div>
   );
 };
