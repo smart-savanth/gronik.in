@@ -3,6 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { ArrowLeft, ShoppingCart, Heart, Star, Eye, Users, Check, BookOpen, ChevronDown, Quote, Plus, X, Send, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
 import { centralizedBooksData } from './LibrarySection';
+import { useGetAllBooksQuery } from '../../utils/booksService';
 
 const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCart, onAddToWishlist, onRemoveFromWishlist }) => {
   const { productId } = useParams();
@@ -71,14 +72,17 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
     { id: 5, rating: 4, text: "Fantastic digital library with great features. Love how easy it is to find and read books on any device.", name: "Vikram Singh" },
     { id: 6, rating: 5, text: "Best e-book platform I've used! Great selection, amazing quality, and the interface is beautifully designed.", name: "Ananya Iyer" }
   ]);
+     const { data: booksResponse, isLoading, isError } = useGetAllBooksQuery({
+          page: 1,
+          pageSize: 10,
+        });
+  // Duplicate reviews for seamless infinite scroll (same as home page)
+  const duplicatedReviews = [...reviews, ...reviews];
+  console.log(productId,)
+  // Get product data from centralized books data
+  const productData = booksResponse?.data?.find(book => book.id ===productId);
 
-  const duplicatedReviews = [...reviews, ...reviews, ...reviews];
-
-  const productData = centralizedBooksData.find(book => book.id === parseInt(productId));
-  
-  const suggestedBooks = centralizedBooksData.filter(book => book.featured === true).slice(0, 3);
-
-  // Auto-play carousel
+  // If product not found, redirect to library
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentCarouselIndex((prev) => (prev + 1) % carouselBooks.length);

@@ -4,6 +4,7 @@ import { Search, ShoppingCart, User, Menu, X, BookOpen, Heart, ChevronDown } fro
 // Import centralizedBooksData for search
 import { centralizedBooksData } from '../pages/LibrarySection';
 import { useSelector } from 'react-redux';
+import { useGetAllBooksQuery } from '../../utils/booksService';
 
 const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -20,11 +21,16 @@ const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
   
   const navigate = useNavigate();
   const location = useLocation();
-  const user = useSelector((state) => state.userAuth.user);
+  // const user = useSelector((state) => state.userAuth.user);
   const searchRef = useRef(null);
   const suggestionsRef = useRef(null);
   const searchTimeoutRef = useRef(null);
 
+   const user = useSelector((state) => state.userAuth.user);
+    const { data: booksResponse, isLoading, isError } = useGetAllBooksQuery({
+        page: 1,
+        pageSize: 10,
+      });
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);

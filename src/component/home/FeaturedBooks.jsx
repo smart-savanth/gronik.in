@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ShoppingCart, Heart, Star, ArrowRight, Sparkles, BookOpen, Check, ExternalLink } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { centralizedBooksData } from '../pages/LibrarySection';
+import { useGetAllBooksQuery } from '../../utils/booksService';
 
 const FeaturedBooksSection = ({
   cart = [],
@@ -19,8 +20,15 @@ const FeaturedBooksSection = ({
   
   // Use navigate hook directly in component
   const navigate = useNavigate();
-
-  const featuredBooks = centralizedBooksData.filter(book => book.featured === true);
+  
+  // Get only featured books from centralized data
+    const { data: booksResponse, isLoading, isError } = useGetAllBooksQuery({
+      page: 1,
+      pageSize: 10,
+    });
+const featuredBooks = booksResponse?.data?.filter(book => book.featured) ?? [];
+  
+  // Helper functions to check if a book is in cart/wishlist
   const isInCart = (book) => cart.some(item => item.id === book.id);
   const isInWishlist = (book) => wishlist.some(item => item.id === book.id);
 
@@ -138,10 +146,12 @@ const FeaturedBooksSection = ({
                     {/* Price */}
                     <div className="text-center mb-3 sm:mb-4">
                       <div className="flex items-center justify-center space-x-1 sm:space-x-2 mb-1">
-                        <span className="text-lg sm:text-xl lg:text-2xl font-bold text-white">${book.price}</span>
-                        <span className="text-xs sm:text-sm text-white/50 line-through">${book.originalPrice}</span>
+                        <span className="text-lg sm:text-xl lg:text-2xl font-bold text-white">${book.original_price}</span>
+                        <span className="text-xs sm:text-sm text-white/50 line-through">${book.final_price}</span>
                       </div>
-                      <div className="text-xs sm:text-sm text-green-400 font-medium">{book.discount}</div>
+                      <div className="text-xs sm:text-sm text-green-400 font-medium">
+                        {Math.round(((book.original_price - book.final_price) / book.original_price) * 100)}% OFF
+                      </div>
                     </div>
 
                     {/* Actions - All books are available in digital platform */}

@@ -1,49 +1,66 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice } from "@reduxjs/toolkit";
+
+// Load from localStorage (if available)
+const savedCart = JSON.parse(localStorage.getItem("cartItems")) || [];
 
 const initialState = {
-  items: JSON.parse(localStorage.getItem('gronik-cart')) || [],
+  items: savedCart, 
 };
 
 const cartSlice = createSlice({
-  name: 'cart',
+  name: "cart",
   initialState,
   reducers: {
+    // ✅ Set cart (used when syncing from backend)
+    setCart: (state, action) => {
+      state.items = action.payload;
+      localStorage.setItem("cartItems", JSON.stringify(state.items));
+    },
+
+    // ✅ Add item to cart
     addToCart: (state, action) => {
-      const exists = state.items.find(item => item.id === action.payload.id);
+      const exists = state.items.find((item) => item.id === action.payload.id);
       if (exists) {
-        state.items = state.items.map(item =>
-          item.id === action.payload.id ? { ...item, quantity: item.quantity + 1 } : item
+        state.items = state.items.map((item) =>
+          item.id === action.payload.id
+            ? { ...item, quantity: (item.quantity || 1) + 1 }
+            : item
         );
       } else {
         state.items.push({ ...action.payload, quantity: 1 });
       }
-      localStorage.setItem('gronik-cart', JSON.stringify(state.items));
+      localStorage.setItem("cartItems", JSON.stringify(state.items));
     },
+
+    // ✅ Remove item
     removeFromCart: (state, action) => {
-      state.items = state.items.filter(item => item.id !== action.payload);
-      localStorage.setItem('gronik-cart', JSON.stringify(state.items));
+      state.items = state.items.filter((item) => item.id !== action.payload);
+      localStorage.setItem("cartItems", JSON.stringify(state.items));
     },
+
+    // ✅ Update quantity
     updateCartItemQuantity: (state, action) => {
       const { id, newQuantity } = action.payload;
-      if (newQuantity < 1) {
-        state.items = state.items.filter(item => item.id !== id);
-      } else {
-        state.items = state.items.map(item =>
-          item.id === id ? { ...item, quantity: newQuantity } : item
-        );
-      }
-      localStorage.setItem('gronik-cart', JSON.stringify(state.items));
+      state.items = state.items.map((item) =>
+        item.id === id ? { ...item, quantity: newQuantity } : item
+      );
+      localStorage.setItem("cartItems", JSON.stringify(state.items));
     },
-    setCart: (state, action) => {
-      state.items = action.payload;
-      localStorage.setItem('gronik-cart', JSON.stringify(state.items));
-    },
+
+    // ✅ Clear all
     clearCart: (state) => {
       state.items = [];
-      localStorage.setItem('gronik-cart', JSON.stringify(state.items));
+      localStorage.removeItem("cartItems");
     },
   },
 });
 
-export const { addToCart, removeFromCart, updateCartItemQuantity, setCart, clearCart } = cartSlice.actions;
-export default cartSlice.reducer; 
+export const {
+  setCart,
+  addToCart,
+  removeFromCart,
+  updateCartItemQuantity,
+  clearCart,
+} = cartSlice.actions;
+
+export default cartSlice.reducer;
