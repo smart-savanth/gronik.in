@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, Fragment } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, ShoppingCart, Heart, Star, Eye, Users, Zap, Check, BookOpen, ChevronDown, ChevronRight, Quote, Plus, X, Send } from 'lucide-react';
 import { centralizedBooksData } from './LibrarySection';
+import { useGetAllBooksQuery } from '../../utils/booksService';
 
 const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCart, onAddToWishlist, onRemoveFromWishlist }) => {
   const { productId } = useParams();
@@ -65,12 +66,15 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
       name: "Ananya Iyer"
     }
   ]);
-
+     const { data: booksResponse, isLoading, isError } = useGetAllBooksQuery({
+          page: 1,
+          pageSize: 10,
+        });
   // Duplicate reviews for seamless infinite scroll (same as home page)
   const duplicatedReviews = [...reviews, ...reviews];
-
+  console.log(productId,)
   // Get product data from centralized books data
-  const productData = centralizedBooksData.find(book => book.id === parseInt(productId));
+  const productData = booksResponse?.data?.find(book => book.id ===productId);
 
   // If product not found, redirect to library
   useEffect(() => {

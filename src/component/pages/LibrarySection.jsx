@@ -1,222 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { ShoppingCart, Heart, Star, Filter, ChevronDown, Check, X } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { Filter, ChevronDown, Star, ShoppingCart, Heart, Check, X } from 'lucide-react';
+import { useGetAllBooksQuery } from '../../utils/booksService'; 
+import { saveCart, useGetCartByUserIdQuery, useSaveCartMutation } from '../../utils/cartService';
 
-// Centralized Books Data - This will be your single source of truth
-export const centralizedBooksData = [
-  {
-    id: 1,
-    title: "Think and Grow Rich",
-    author: "Napoleon Hill",
-    category: "Self Development",
-    price: 150,
-    originalPrice: 200,
-    rating: 4.8,
-    reviews: 234,
-    // image: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=300&h=400&fit=crop",
-    image: "/images/book1.jpg",
-    description: "Transform your mindset and unlock the secrets to wealth and success.",
-    badge: "BESTSELLER",
-    discount: "25% OFF",
-    featured: true,
-    hero: true,
-    inStock: true,
-    tags: ["Success", "Mindset", "Wealth", "Motivation"],
-    fileSize: "2.4 MB"
-  },
-  {
-    id: 2,
-    title: "48 Laws of Power",
-    author: "Robert Greene",
-    category: "Psychology",
-    price: 200,
-    originalPrice: 250,
-    rating: 4.6,
-    reviews: 189,
-    image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&h=400&fit=crop",
-    description: "Master the art of power and influence in every aspect of life.",
-    badge: "TRENDING",
-    discount: "20% OFF",
-    featured: true,
-    hero: true,
-    inStock: true,
-    tags: ["Power", "Influence", "Strategy", "Leadership"],
-    fileSize: "1.8 MB"
-  },
-  {
-    id: 3,
-    title: "Atomic Habits",
-    author: "James Clear",
-    category: "Productivity",
-    price: 175,
-    originalPrice: 225,
-    rating: 4.9,
-    reviews: 456,
-    image: "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=300&h=400&fit=crop",
-    description: "Build good habits, break bad ones, and get 1% better every day.",
-    badge: "NEW RELEASE",
-    discount: "22% OFF",
-    featured: true,
-    hero: true,
-    inStock: true,
-    tags: ["Habits", "Productivity", "Self-Improvement", "Behavior"],
-    fileSize: "1.2 MB"
-  },
-  {
-    id: 4,
-    title: "The 7 Habits of Highly Effective People",
-    author: "Stephen Covey",
-    category: "Self Development",
-    price: 180,
-    originalPrice: 220,
-    rating: 4.7,
-    reviews: 312,
-    image: "https://images.unsplash.com/photo-1532012197267-da84d127e765?w=300&h=400&fit=crop",
-    description: "A powerful lesson in personal change and effectiveness.",
-    badge: "CLASSIC",
-    discount: "18% OFF",
-    featured: false,
-    hero: true,
-    inStock: true,
-    tags: ["Effectiveness", "Leadership", "Personal Development", "Success"],
-    fileSize: "2.0 MB"
-  },
-  {
-    id: 5,
-    title: "Mindset: The New Psychology of Success",
-    author: "Carol Dweck",
-    category: "Psychology",
-    price: 160,
-    originalPrice: 190,
-    rating: 4.5,
-    reviews: 278,
-    image: "https://images.unsplash.com/photo-1553729459-efe14ef6055d?w=300&h=400&fit=crop",
-    description: "Learn how to fulfill your potential with the right mindset.",
-    badge: "POPULAR",
-    discount: "16% OFF",
-    featured: false,
-    hero: true,
-    inStock: true,
-    tags: ["Mindset", "Psychology", "Growth", "Success"],
-    fileSize: "1.9 MB"
-  },
-  {
-    id: 6,
-    title: "Out of Stock Book - Test",
-    author: "Test Author",
-    category: "Self Development",
-    price: 120,
-    originalPrice: 150,
-    rating: 4.3,
-    reviews: 89,
-    image: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=300&h=400&fit=crop",
-    description: "This book is out of stock for testing purposes.",
-    badge: "OUT OF STOCK",
-    discount: "20% OFF",
-    featured: false,
-    hero: false,
-    inStock: false,
-    tags: ["Test", "Out of Stock", "Sample"],
-    fileSize: "1.5 MB"
-  },
-  {
-    id: 7,
-    title: "Getting Things Done",
-    author: "David Allen",
-    category: "Productivity",
-    price: 170,
-    originalPrice: 200,
-    rating: 4.4,
-    reviews: 198,
-    image: "https://images.unsplash.com/photo-1589829085413-56de8ae18c73?w=300&h=400&fit=crop",
-    description: "The art of stress-free productivity and time management.",
-    badge: "RECOMMENDED",
-    discount: "15% OFF",
-    featured: false,
-    hero: false,
-    inStock: false,
-    tags: ["Productivity", "Time Management", "Organization", "Stress-Free"],
-    fileSize: "1.0 MB"
-  },
-  {
-    id: 8,
-    title: "Deep Work",
-    author: "Cal Newport",
-    category: "Productivity",
-    price: 165,
-    originalPrice: 195,
-    rating: 4.6,
-    reviews: 321,
-    image: "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=300&h=400&fit=crop",
-    description: "Rules for focused success in a distracted world.",
-    badge: "RECOMMENDED",
-    discount: "15% OFF",
-    featured: false,
-    hero: false,
-    inStock: true,
-    tags: ["Focus", "Deep Work", "Concentration", "Success"],
-    fileSize: "1.1 MB"
-  },
-  {
-    id: 9,
-    title: "The Subtle Art of Not Giving a F*ck",
-    author: "Mark Manson",
-    category: "Self Development",
-    price: 155,
-    originalPrice: 185,
-    rating: 4.3,
-    reviews: 267,
-    image: "https://images.unsplash.com/photo-1512820790803-83ca734da794?w=300&h=400&fit=crop",
-    description: "A counterintuitive approach to living a good life.",
-    badge: "POPULAR",
-    discount: "16% OFF",
-    featured: false,
-    hero: false,
-    inStock: true,
-    tags: ["Life Philosophy", "Happiness", "Mindfulness", "Self-Help"],
-    fileSize: "0.8 MB"
-  },
-  {
-    id: 10,
-    title: "Sapiens",
-    author: "Yuval Noah Harari",
-    category: "History",
-    price: 190,
-    originalPrice: 240,
-    rating: 4.8,
-    reviews: 543,
-    image: "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=300&h=400&fit=crop",
-    description: "A brief history of humankind and our journey to the top.",
-    badge: "BESTSELLER",
-    discount: "21% OFF",
-    featured: false,
-    hero: false,
-    inStock: false,
-    tags: ["History", "Anthropology", "Human Evolution", "Civilization"],
-    fileSize: "2.5 MB"
-  },
-  {
-    id: 11,
-    title: "The Power of Now",
-    author: "Eckhart Tolle",
-    category: "Spirituality",
-    price: 145,
-    originalPrice: 175,
-    rating: 4.5,
-    reviews: 198,
-    image: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=300&h=400&fit=crop",
-    description: "A guide to spiritual enlightenment and present-moment awareness.",
-    badge: "INSPIRING",
-    discount: "17% OFF",
-    featured: false,
-    hero: false,
-    inStock: true,
-    tags: ["Spirituality", "Mindfulness", "Enlightenment", "Present Moment"],
-    fileSize: "1.3 MB"
-  }
-];
-
-const LibraryPage = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCart, onAddToWishlist, onRemoveFromWishlist, onQuickView }) => {
+import { addToCart, removeFromCart ,setCart} from '../../slices/cartSlice';
+import { addToWishlist, removeFromWishlist } from '../../slices/wishlistSlice';
+import { useDispatch, useSelector } from 'react-redux';
+import { useSaveWishlistMutation } from '../../utils/wishListService';
+const LibraryPage = () => {
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
   const searchQuery = searchParams.get('search')?.toLowerCase() || '';
@@ -230,9 +22,71 @@ const LibraryPage = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCart, 
   const [hoveredBook, setHoveredBook] = useState(null);
   const [animatingCart, setAnimatingCart] = useState({});
   const [animatingWishlist, setAnimatingWishlist] = useState({});
+    const [localCart, setLocalCart] = useState([]);
+  // Fetch books using RTK Query
+       const dispatch = useDispatch();
+  const cart = useSelector((state) => state.cart.items);
+  const wishlist = useSelector((state) => state.wishlist.items);
 
-  // Use centralized books data
-  const books = centralizedBooksData;
+     const user = useSelector((state) => state.userAuth.user);
+
+       const { data: backendCart, isSuccess } = useGetCartByUserIdQuery(user?.guid, {
+    skip: !user?.guid,
+  });
+
+useEffect(() => {
+  if (isSuccess && backendCart?.data) {
+    const formatted = backendCart.data.flatMap(item =>
+      item.product_details.map(product => ({
+        id: product._id,
+        title: product.title,
+        price: product.final_price,
+        originalPrice: product.original_price,
+        quantity: item.quantity || 1,
+        image: product.coverImageUrl,
+      }))
+    );
+
+    // Avoid infinite loop — only dispatch if different
+    const isDifferent = JSON.stringify(formatted) !== JSON.stringify(cart);
+    if (isDifferent) {
+      dispatch(setCart(formatted));
+    }
+  }
+}, [isSuccess, backendCart, dispatch, cart]);
+
+
+
+       const { data: booksResponse, isLoading, isError } = useGetAllBooksQuery({
+    page: currentPage,
+    pageSize: itemsPerPage,
+  });
+
+ 
+   
+        const [saveCart] = useSaveCartMutation();
+          const [saveWishlist] = useSaveWishlistMutation();
+
+
+  const books = booksResponse?.data?.map(book => ({
+    id: book._id,
+    title: book.title,
+    author: book.belongs_to || 'Unknown Author', 
+    category: book.category.charAt(0).toUpperCase() + book.category.slice(1),
+    price: book.final_price,
+    originalPrice: book.original_price,
+    rating: 4.5, // Placeholder
+    reviews: 100, // Placeholder
+    image: book.coverImageUrl || '/images/placeholder.jpg',
+    description: book.one_line_description,
+    badge: book.featured ? 'BESTSELLER' : 'POPULAR',
+    discount: Math.round(((book.original_price - book.final_price) / book.original_price) * 100) + '% OFF',
+    featured: book.featured,
+    hero: book.hero,
+    inStock: book.isActive,
+    tags: book.what_you_will_learn.split(', ').map(tag => tag.charAt(0).toUpperCase() + tag.slice(1)),
+    fileSize: '2.0 MB', 
+  })) || [];
 
   // Get unique categories
   const categories = ['All', ...new Set(books.map(book => book.category))];
@@ -248,7 +102,7 @@ const LibraryPage = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCart, 
   });
 
   // Pagination logic
-  const totalPages = Math.ceil(filteredBooks.length / itemsPerPage);
+  const totalPages = booksResponse?.totalPages || Math.ceil(filteredBooks.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const currentBooks = filteredBooks.slice(startIndex, endIndex);
@@ -262,7 +116,6 @@ const LibraryPage = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCart, 
   const handleLoadMore = () => {
     if (currentPage < totalPages) {
       setCurrentPage(prev => prev + 1);
-      // Scroll to top of library section after pagination
       setTimeout(() => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }, 100);
@@ -273,50 +126,91 @@ const LibraryPage = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCart, 
   const isInCart = (book) => cart.some(item => item.id === book.id);
   const isInWishlist = (book) => wishlist.some(item => item.id === book.id);
 
-  const handleAddToCart = (e, book) => {
+  const handleAddToCart = async (e, book) => {
     e.stopPropagation();
-    if (!book.inStock || animatingCart[book.id]) return;
-    
-    // Toggle cart functionality - add if not in cart, remove if in cart
-    if (!isInCart(book)) {
-      setAnimatingCart(prev => ({ ...prev, [book.id]: true }));
-      setCartButtonClicked(prev => ({ ...prev, [book.id]: true }));
+    if (animatingCart[book.id]) return;
+
+    const type = isInCart(book) ? 'remove' : 'save';
+    setAnimatingCart(prev => ({ ...prev, [book.id]: true }));
+
+    try {
+      // Optimistic update to Redux
+      if (type === 'save') {
+        dispatch(addToCart(book));
+      } else {
+        dispatch(removeFromCart(book.id));
+      }
+
+      // Sync with backend
+      await saveCart({ userId: user?.guid, productId: book.id, type }).unwrap();
+    } catch (err) {
+      console.error('Cart update failed', err);
+      // Rollback on failure
+      if (type === 'save') {
+        dispatch(removeFromCart(book.id));
+      } else {
+        dispatch(addToCart(book));
+      }
+    } finally {
       setTimeout(() => {
-        onAddToCart && onAddToCart(book);
         setAnimatingCart(prev => ({ ...prev, [book.id]: false }));
-        setCartButtonClicked(prev => ({ ...prev, [book.id]: false }));
-      }, 1200);
-    } else {
-      // Remove from cart if already in cart
-      setAnimatingCart(prev => ({ ...prev, [book.id]: true }));
-      setCartButtonClicked(prev => ({ ...prev, [book.id]: true }));
-      setTimeout(() => {
-        onRemoveFromCart && onRemoveFromCart(book.id);
-        setAnimatingCart(prev => ({ ...prev, [book.id]: false }));
-        setCartButtonClicked(prev => ({ ...prev, [book.id]: false }));
-      }, 1200);
+      }, 800);
     }
   };
 
-  const handleToggleWishlist = (e, book) => {
+   const handleToggleWishlist = async (e, book) => {
     e.stopPropagation();
     if (animatingWishlist[book.id]) return;
+
+    const type = isInWishlist(book) ? 'remove' : 'save';
+
     setAnimatingWishlist(prev => ({ ...prev, [book.id]: true }));
     setWishlistButtonClicked(prev => ({ ...prev, [book.id]: true }));
-    setTimeout(() => {
-      if (isInWishlist(book)) {
-        onRemoveFromWishlist && onRemoveFromWishlist(book.id);
+
+    try {
+      // Optimistic update to Redux
+      if (type === 'save') {
+        dispatch(addToWishlist(book));
       } else {
-        onAddToWishlist && onAddToWishlist(book);
+        dispatch(removeFromWishlist(book.id));
       }
-      setAnimatingWishlist(prev => ({ ...prev, [book.id]: false }));
-      setWishlistButtonClicked(prev => ({ ...prev, [book.id]: false }));
-    }, 250);
+
+      // Sync with backend
+      await saveWishlist({ userId: user?.guid, productId: book.id, type }).unwrap();
+    } catch (err) {
+      // Rollback on failure
+      if (type === 'save') {
+        dispatch(removeFromWishlist(book.id));
+      } else {
+        dispatch(addToWishlist(book));
+      }
+    } finally {
+      setTimeout(() => {
+        setAnimatingWishlist(prev => ({ ...prev, [book.id]: false }));
+        setWishlistButtonClicked(prev => ({ ...prev, [book.id]: false }));
+      }, 800);
+    }
   };
 
   const handleCardClick = (book) => {
     navigate(`/product/${book.id}`, { state: { from: 'library' } });
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#9B7BB8] flex items-center justify-center">
+        <div className="text-white text-xl">Loading books...</div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="min-h-screen bg-[#9B7BB8] flex items-center justify-center">
+        <div className="text-white text-xl">Error fetching books. Please try again later.</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#9B7BB8] relative overflow-hidden" key={JSON.stringify(cart) + JSON.stringify(wishlist)}>
@@ -485,7 +379,7 @@ const LibraryPage = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCart, 
                               </>
                             ) : (
                               <>
-                                <span className="hidden sm:inline">Add to </span>Cart
+                                <span className="hidden sm:inline">Add to  </span>Cart
                               </>
                             )}
                           </span>
@@ -605,6 +499,7 @@ const LibraryPage = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCart, 
           </div>
         )}
       </div>
+      
       <style jsx>{`
         .cart-button-animated {
           position: relative;

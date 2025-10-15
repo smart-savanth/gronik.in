@@ -2,14 +2,18 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Star, Play } from 'lucide-react';
 import { centralizedBooksData } from '../pages/LibrarySection';
+import { useGetAllBooksQuery } from '../../utils/booksService';
 
 const HeroSection = ({ cart = [], wishlist = [], onAddToCart, onAddToWishlist, onRemoveFromCart, onRemoveFromWishlist }) => {
   const [activeBook, setActiveBook] = useState(0); // Start with first book
   const [isAnimating, setIsAnimating] = useState(false);
   const navigate = useNavigate();
-
+      const { data: booksResponse, isLoading, isError } = useGetAllBooksQuery({
+              page: 1,
+              pageSize: 10,
+            });
   // Filter books marked as hero from centralized data
-  const heroBooks = centralizedBooksData.filter(book => book.hero === true);
+const heroBooks = booksResponse?.data?.filter(book => book.hero === true) || [];
   
   // Set the center book as active initially
   useEffect(() => {

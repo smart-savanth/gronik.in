@@ -1,24 +1,56 @@
 import React from 'react';
 import { Plus, Minus, Trash2, ShoppingBag, ArrowLeft, Heart, Star } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useGetCartByUserIdQuery, useRemoveFromCartMutation, useUpdateCartQuantityMutation } from '../../utils/cartService';
+import { useSelector } from 'react-redux';
 
 const CartSection = ({
-  cart = [],
-  removeFromCart,
-  updateCartItemQuantity,
   addToWishlist,
   wishlist = []
 }) => {
-  const navigate = useNavigate();
 
+  const navigate = useNavigate();
+     const user = useSelector((state) => state.userAuth.user);
+const { data: cartResponse, isLoading, refetch } = useGetCartByUserIdQuery(user?.guid, { skip: !user?.guid });
+const cart = cartResponse?.data || []; 
+    console.log('cart', cart);
+     const [removeFromCartApi] = useRemoveFromCartMutation();
+  const [updateCartQuantityApi] = useUpdateCartQuantityMutation();
+
+
+ const removeFromCart = async (id) => {
+  if (!user?.guid) return;
+  await removeFromCartApi({ userId: user.guid, itemId: id });
+  refetch(); 
+};
+
+const updateCartItemQuantity = async (id, qty) => {
+  if (!user?.guid || qty < 1) return;
+  await updateCartQuantityApi({ userId: user.guid, itemId: id, quantity: qty });
+  refetch();
+};
   const handleContinueShopping = () => {
     navigate('/library');
   };
 
-  const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  const savings = cart.reduce((sum, item) => sum + ((item.originalPrice - item.price) * item.quantity), 0);
-  const tax = subtotal * 0.08; // 8% tax
-  const total = subtotal + tax;
+  // Use optional chaining and default values for fields
+const subtotal = cart.reduce((sum, item) => {
+  const product = item.product_details?.[0];
+  const price = product?.final_price || product?.price || 0;
+  const qty = item.quantity || 1;
+  return sum + (price !== undefined ? price : 0) * qty;
+}, 0);
+
+const savings = cart.reduce((sum, item) => {
+  const product = item.product_details?.[0];
+  const original = product?.original_price || 0;
+  const final = product?.final_price || product?.price || 0;
+  const qty = item.quantity || 1;
+  return sum + (original - final) * qty;
+}, 0);
+
+const tax = subtotal * 0.08;
+const total = subtotal + tax;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#9B7BB8] to-[#8A6AA7] pt-20">
@@ -166,44 +198,51 @@ const CartSection = ({
               )}
             </div>
             {/* Order Summary */}
-            {cart.length > 0 && (
-              <div className="lg:col-span-1">
-                <div className="bg-[#2D1B3D]/95 backdrop-blur-sm rounded-2xl p-6 border border-gronik-accent/20 sticky top-24">
-                  <h2 className="text-xl font-bold text-white mb-6 flex items-center">
-                    <ShoppingBag className="w-5 h-5 mr-2 text-gronik-accent" />
-                    Order Summary
-                  </h2>
-                  <div className="space-y-4 mb-6">
-                    <div className="flex justify-between text-gronik-light">
-                      <span>Subtotal ({cart.reduce((sum, item) => sum + item.quantity, 0)} items)</span>
-                      <span>${subtotal.toFixed(2)}</span>
-                    </div>
-                    {savings > 0 && (
-                      <div className="flex justify-between text-green-400">
-                        <span>You Save</span>
-                        <span>-${savings.toFixed(2)}</span>
-                      </div>
-                    )}
-                    <div className="flex justify-between text-gronik-light">
-                      <span>Tax (8%)</span>
-                      <span>${tax.toFixed(2)}</span>
-                    </div>
-                    <div className="border-t border-gronik-accent/20 pt-4">
-                      <div className="flex justify-between text-lg font-bold text-white">
-                        <span>Total</span>
-                        <span className="text-gronik-accent">${total.toFixed(2)}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <button
-                    className="w-full bg-gradient-to-r from-gronik-accent to-gronik-secondary hover:from-gronik-secondary hover:to-gronik-accent text-white py-4 rounded-xl font-bold text-lg transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-gronik-accent/25 mb-4"
-                    onClick={() => navigate('/checkout')}
-                  >
-                    Proceed to Checkout
-                  </button>
-                </div>
-              </div>
-            )}
+          {cart.length > 0 && (
+  <div className="lg:col-span-1">
+    <div className="bg-[#2D1B3D]/95 backdrop-blur-sm rounded-2xl p-6 border border-gronik-accent/20 sticky top-24">
+      <h2 className="text-xl font-bold text-white mb-6 flex items-center">
+        <ShoppingBag className="w-5 h-5 mr-2 text-gronik-accent" />
+        Order Summary
+      </h2>
+      <div className="space-y-4 mb-6">
+        <div className="flex justify-between text-gronik-light">
+          <span>
+            Subtotal ({cart.reduce((sum, item) => sum + (item.quantity || 0), 0)} items)
+          </span>
+          <span>₹{(subtotal ?? 0).toFixed(2)}</span>
+        </div>
+
+        {savings > 0 && (
+          <div className="flex justify-between text-green-400">
+            <span>You Save</span>
+            <span>-₹{(savings ?? 0).toFixed(2)}</span>
+          </div>
+        )}
+
+        <div className="flex justify-between text-gronik-light">
+          <span>Tax (8%)</span>
+          <span>₹{(tax ?? 0).toFixed(2)}</span>
+        </div>
+
+        <div className="border-t border-gronik-accent/20 pt-4">
+          <div className="flex justify-between text-lg font-bold text-white">
+            <span>Total</span>
+            <span className="text-gronik-accent">₹{(total ?? 0).toFixed(2)}</span>
+          </div>
+        </div>
+      </div>
+
+      <button
+        className="w-full bg-gradient-to-r from-gronik-accent to-gronik-secondary hover:from-gronik-secondary hover:to-gronik-accent text-white py-4 rounded-xl font-bold text-lg transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-gronik-accent/25 mb-4"
+        onClick={() => navigate('/checkout')}
+      >
+        Proceed to Checkout
+      </button>
+    </div>
+  </div>
+)}
+
           </div>
         </div>
 

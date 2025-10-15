@@ -4,6 +4,7 @@ import { Search, ShoppingCart, User, Menu, X, BookOpen, Heart } from 'lucide-rea
 // Import centralizedBooksData for search
 import { centralizedBooksData } from '../pages/LibrarySection';
 import { useSelector } from 'react-redux';
+import { useGetAllBooksQuery } from '../../utils/booksService';
 
 const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -15,7 +16,10 @@ const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
   const navigate = useNavigate();
   const location = useLocation();
    const user = useSelector((state) => state.userAuth.user);
-
+    const { data: booksResponse, isLoading, isError } = useGetAllBooksQuery({
+        page: 1,
+        pageSize: 10,
+      });
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
@@ -74,7 +78,7 @@ const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
     if (searchQuery.trim()) {
       // Enhanced search: match title, author, category, tags
       const q = searchQuery.trim().toLowerCase();
-      const filtered = centralizedBooksData.filter(book =>
+      const filtered = booksResponse.filter(book =>
         book.title.toLowerCase().includes(q) ||
         book.author.toLowerCase().includes(q) ||
         book.category.toLowerCase().includes(q) ||
