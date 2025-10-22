@@ -72,6 +72,20 @@ const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Scroll to section when navigating from other pages
+  useEffect(() => {
+    if (location.state?.scrollTo) {
+      setTimeout(() => {
+        const element = document.getElementById(location.state.scrollTo);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth' });
+        }
+        // Clear the state
+        navigate(location.pathname, { replace: true, state: {} });
+      }, 300);
+    }
+  }, [location, navigate]);
+
   // Generate search suggestions
   const generateSuggestions = (query) => {
     if (!query.trim() || query.length < 2) {
@@ -160,13 +174,7 @@ const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
 
   const scrollToSection = (sectionId) => {
     if (location.pathname !== '/') {
-      navigate('/');
-      setTimeout(() => {
-        const element = document.getElementById(sectionId);
-        if (element) {
-          element.scrollIntoView({ behavior: 'smooth' });
-        }
-      }, 100);
+      navigate('/', { state: { scrollTo: sectionId } });
     } else {
       const element = document.getElementById(sectionId);
       if (element) {
@@ -279,21 +287,23 @@ const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
           onChange={(e) => handleSearchChange(e.target.value)}
           onKeyDown={handleKeyPress}
           onFocus={handleSearchFocus}
-          placeholder="Search books, authors, categories..."
-          className={`w-full bg-gronik-secondary/20 text-gronik-light placeholder-gronik-light/60 px-4 py-2 pr-10 rounded-lg border border-gronik-secondary/30 focus:outline-none focus:border-gronik-accent focus:bg-gronik-secondary/30 focus:shadow-lg transition-all duration-200 ${
-            isMobileVersion ? 'text-sm' : ''
+          placeholder={isMobileVersion ? "Search..." : "Search books, authors, categories..."}
+          className={`w-full bg-gronik-secondary/20 text-gronik-light placeholder-gronik-light/60 px-3 py-1.5 rounded-lg focus:outline-none focus:border-gronik-accent focus:bg-gronik-secondary/30 focus:shadow-lg transition-all duration-200 ${
+            isMobileVersion ? 'text-xs border-2 border-white/40 pr-3' : 'border border-gronik-secondary/30 pr-8'
           } ${showSuggestions ? 'rounded-b-none' : ''}`}
         />
-        <button
-          onClick={() => handleSearchSubmit()}
-          className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-gronik-accent/20 rounded transition-all duration-200"
-        >
-          <Search className="w-4 h-4 text-gronik-light hover:text-gronik-accent" />
-        </button>
+        {!isMobileVersion && (
+          <button
+            onClick={() => handleSearchSubmit()}
+            className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 hover:bg-gronik-accent/20 rounded transition-all duration-200"
+          >
+            <Search className="w-3.5 h-3.5 text-gronik-light hover:text-gronik-accent" />
+          </button>
+        )}
         
-        {showSuggestions && suggestions.length > 0 && (
+        {showSuggestions && suggestions.length > 0 && !isMobileVersion && (
           <>
-            <ChevronDown className="absolute right-8 top-1/2 -translate-y-1/2 w-3 h-3 text-gronik-light/60" />
+            <ChevronDown className="absolute right-7 top-1/2 -translate-y-1/2 w-2.5 h-2.5 text-gronik-light/60" />
           </>
         )}
       </div>
@@ -302,14 +312,20 @@ const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
       {showSuggestions && suggestions.length > 0 && (
         <div 
           ref={suggestionsRef}
-          className="absolute top-full left-0 right-0 bg-white/95 backdrop-blur-md border border-gronik-secondary/30 border-t-0 rounded-b-lg shadow-2xl z-50 max-h-80 overflow-y-auto"
+          className={`absolute top-full left-0 right-0 backdrop-blur-xl rounded-b-lg shadow-2xl z-50 max-h-80 overflow-y-auto ${
+            isMobileVersion 
+              ? 'bg-white border-2 border-white/80' 
+              : 'bg-white/95 border border-gronik-secondary/30 border-t-0'
+          }`}
         >
           {suggestions.map((suggestion, index) => (
             <div
               key={`${suggestion.type}-${suggestion.text}-${index}`}
               onClick={() => handleSearchSubmit(suggestion)}
-              className={`flex items-center space-x-3 px-4 py-3 hover:bg-[#9B7BB8]/10 cursor-pointer transition-colors duration-150 border-b border-gronik-secondary/10 last:border-b-0 ${
-                selectedSuggestionIndex === index ? 'bg-[#9B7BB8]/15' : ''
+              className={`flex items-center space-x-3 px-3 py-3 cursor-pointer transition-colors duration-150 border-b last:border-b-0 ${
+                isMobileVersion 
+                  ? `${selectedSuggestionIndex === index ? 'bg-[#9B7BB8]/20' : 'hover:bg-[#9B7BB8]/10'} border-gray-200`
+                  : `${selectedSuggestionIndex === index ? 'bg-[#9B7BB8]/15' : 'hover:bg-[#9B7BB8]/10'} border-gronik-secondary/10`
               }`}
             >
               <div className="flex-shrink-0">
@@ -317,43 +333,49 @@ const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
                   <img 
                     src={suggestion.image} 
                     alt={suggestion.text}
-                    className="w-8 h-10 object-cover rounded"
+                    className={isMobileVersion ? "w-10 h-12 object-cover rounded shadow-md" : "w-8 h-10 object-cover rounded"}
                   />
                 ) : (
-                  <div className="w-8 h-10 bg-gronik-secondary/20 rounded flex items-center justify-center">
+                  <div className={`bg-gronik-secondary/20 rounded flex items-center justify-center ${
+                    isMobileVersion ? 'w-10 h-12' : 'w-8 h-10'
+                  }`}>
                     {getSuggestionIcon(suggestion.type)}
                   </div>
                 )}
               </div>
               
               <div className="flex-1 min-w-0">
-                <div className="font-medium text-[#2D1B3D] truncate text-sm">
+                <div className={`font-bold truncate ${
+                  isMobileVersion ? 'text-[#2D1B3D] text-sm' : 'text-[#2D1B3D] text-sm'
+                }`}>
                   {suggestion.text}
                 </div>
-                <div className="text-xs text-[#2D1B3D]/60 flex items-center space-x-2">
-                  <span>{suggestion.category}</span>
-                  {suggestion.author && suggestion.type === 'book' && (
-                    <>
-                      <span>•</span>
-                      <span>by {suggestion.author}</span>
-                    </>
-                  )}
+                <div className={`text-xs flex items-center space-x-2 ${
+                  isMobileVersion ? 'text-[#4A3B5C] font-medium' : 'text-[#2D1B3D]/60'
+                }`}>
+                  <span className="font-semibold">{suggestion.category}</span>
                 </div>
               </div>
               
-              <div className="flex-shrink-0 text-[#9B7BB8] opacity-0 group-hover:opacity-100 transition-opacity">
-                <ChevronDown className="w-4 h-4 rotate-[-90deg]" />
-              </div>
+              {!isMobileVersion && (
+                <div className="flex-shrink-0 text-[#9B7BB8] opacity-0 group-hover:opacity-100 transition-opacity">
+                  <ChevronDown className="w-4 h-4 rotate-[-90deg]" />
+                </div>
+              )}
             </div>
           ))}
           
           {searchQuery.trim() && (
             <div
               onClick={() => handleSearchSubmit()}
-              className="flex items-center space-x-3 px-4 py-3 hover:bg-[#9B7BB8]/10 cursor-pointer transition-colors duration-150 border-t-2 border-gronik-secondary/20 bg-gronik-secondary/5"
+              className={`flex items-center space-x-3 px-3 py-3 cursor-pointer transition-colors duration-150 border-t-2 ${
+                isMobileVersion
+                  ? 'hover:bg-[#9B7BB8]/10 border-gray-300 bg-gray-50'
+                  : 'hover:bg-[#9B7BB8]/10 border-gronik-secondary/20 bg-gronik-secondary/5'
+              }`}
             >
-              <Search className="w-4 h-4 text-[#9B7BB8]" />
-              <span className="text-sm font-medium text-[#2D1B3D]">
+              <Search className={`w-4 h-4 ${isMobileVersion ? 'text-[#9B7BB8]' : 'text-[#9B7BB8]'}`} />
+              <span className={`text-sm font-bold ${isMobileVersion ? 'text-[#2D1B3D]' : 'text-[#2D1B3D]'}`}>
                 Search for "<span className="text-[#9B7BB8]">{searchQuery}</span>"
               </span>
             </div>
@@ -365,13 +387,14 @@ const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
 
   return (
     <>
-      {/* Mobile Navbar */}
+      {/* Mobile Navbar - CART INSTEAD OF WISHLIST */}
       {isMobile && (
         <nav className="fixed top-0 left-0 right-0 z-50 bg-gronik-primary/95 backdrop-blur-md shadow-lg border-b border-gronik-secondary/20">
-          <div className="flex items-center justify-between h-16 px-4">
+          <div className="flex items-center justify-between h-16 px-3 gap-2">
+            {/* Logo - Left */}
             <div className="flex-shrink-0">
               <Link to="/" className="flex items-center">
-                <div className="w-28 h-10 sm:w-32 sm:h-12">
+                <div className="w-20 h-8">
                   <img
                     src="/images/logo.png"
                     alt="Gronik Logo"
@@ -380,6 +403,23 @@ const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
                 </div>
               </Link>
             </div>
+
+            {/* Search Bar & Cart - Center */}
+            <div className="flex-1 flex items-center gap-2 max-w-md">
+              <div className="flex-1">
+                {renderSearchInput(true)}
+              </div>
+              <Link to="/cart" className="p-2 rounded-lg relative flex-shrink-0">
+                <ShoppingCart className="w-5 h-5 text-gronik-light" />
+                {cartCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-gronik-accent text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold">
+                    {cartCount}
+                  </span>
+                )}
+              </Link>
+            </div>
+
+            {/* Menu Button - Right */}
             <div className="flex-shrink-0">
               <button
                 className="p-2 text-gronik-light hover:text-gronik-accent transition-colors duration-200"
@@ -389,6 +429,8 @@ const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
               </button>
             </div>
           </div>
+
+          {/* Mobile Menu Dropdown - WISHLIST INSTEAD OF CART */}
           {isMenuOpen && (
             <div className="bg-gronik-primary/98 backdrop-blur-md border-t border-gronik-secondary/20 shadow-xl">
               <div className="p-4 space-y-3">
@@ -419,52 +461,51 @@ const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
                 >
                   Contact
                 </Link>
-                <div className="pt-3 border-t border-gronik-secondary/20">
-                  {renderSearchInput(true)}
-                </div>
-                <div className="flex items-center justify-between pt-3 border-t border-gronik-secondary/20">
-                  <div className="flex items-center space-x-4">
-                    <Link to="/wishlist" className="p-2 rounded-lg relative">
-                      <Heart className="w-5 h-5 text-gronik-light" />
+
+                {/* Actions Section */}
+                <div className="pt-3 border-t border-gronik-secondary/20 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Link to="/wishlist" className="flex items-center gap-2 text-gronik-light hover:text-gronik-accent">
+                      <Heart className="w-5 h-5" />
+                      <span className="font-medium">Wishlist</span>
                       {wishlistCount > 0 && (
-                        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                        <span className="bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
                           {wishlistCount}
                         </span>
                       )}
                     </Link>
-                    <Link to="/cart" className="p-2 rounded-lg relative">
-                      <ShoppingCart className="w-5 h-5 text-gronik-light" />
-                      {cartCount > 0 && (
-                        <span className="absolute -top-1 -right-1 bg-gronik-accent text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                          {cartCount}
-                        </span>
-                      )}
-                    </Link>
                     <Link
-                      to="/profile"
+                      to={user ? "/profile" : "/login"}
                       onClick={() => setIsMenuOpen(false)}
-                      className="p-2 rounded-lg"
+                      className="flex items-center gap-2 text-gronik-light hover:text-gronik-accent"
                     >
-                      <User className="w-5 h-5 text-gronik-light" />
+                      <User className="w-5 h-5" />
+                      <span className="font-medium">{user ? "Profile" : "Login"}</span>
                     </Link>
                   </div>
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    <button
-                      onClick={() => {
-                        navigate('/login');
-                        setIsMenuOpen(false);
-                      }}
-                      className="bg-gradient-to-r from-gronik-accent to-gronik-secondary text-white px-4 py-2 rounded-lg font-medium text-sm"
-                    >
-                      Login
-                    </button>
-                    <Link
-                      to="/admin"
-                      onClick={() => setIsMenuOpen(false)}
-                      className="bg-gradient-to-r from-gronik-accent to-gronik-secondary text-white px-4 py-2 rounded-lg font-medium text-sm text-center"
-                    >
-                      Admin
-                    </Link>
+
+                  {/* Buttons */}
+                  <div className="flex flex-col gap-2">
+                    {!user && (
+                      <button
+                        onClick={() => {
+                          navigate('/login');
+                          setIsMenuOpen(false);
+                        }}
+                        className="bg-gradient-to-r from-gronik-accent to-gronik-secondary text-white px-4 py-2 rounded-lg font-medium text-sm text-center"
+                      >
+                        Login
+                      </button>
+                    )}
+                    {user && (
+                      <Link
+                        to="/admin"
+                        onClick={() => setIsMenuOpen(false)}
+                        className="bg-gradient-to-r from-gronik-accent to-gronik-secondary text-white px-4 py-2 rounded-lg font-medium text-sm text-center"
+                      >
+                        Admin
+                      </Link>
+                    )}
                   </div>
                 </div>
               </div>
@@ -539,31 +580,28 @@ const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
                     </span>
                   )}
                 </Link>
-                          <Link
-                to={user ? "/profile" : "/login"}  
-                className="p-2 hover:bg-gronik-secondary/20 rounded-lg transition-colors duration-200 group"
-              >
-                <User className="w-5 h-5 text-gronik-light group-hover:text-gronik-accent transition-colors duration-200" />
-              </Link>
-                            {!user && (
-                <button
-                  onClick={() => navigate('/login')}
-                  className="bg-gradient-to-r from-gronik-accent to-gronik-secondary hover:from-gronik-secondary hover:to-gronik-accent text-white px-6 py-2 rounded-lg transition-all duration-200 transform hover:scale-105 font-medium shadow-lg"
+                <Link
+                  to={user ? "/profile" : "/login"}  
+                  className="p-2 hover:bg-gronik-secondary/20 rounded-lg transition-colors duration-200 group"
                 >
-                  Login
-                </button>
-              )}
-
-                {
-                  user && (
-                    <Link
-                  to="/admin"
-                  className="bg-gradient-to-r from-gronik-accent to-gronik-secondary hover:from-gronik-secondary hover:to-gronik-accent text-white px-6 py-2 rounded-lg transition-all duration-200 transform hover:scale-105 font-medium shadow-lg"
-                >
-                  Admin
+                  <User className="w-5 h-5 text-gronik-light group-hover:text-gronik-accent transition-colors duration-200" />
                 </Link>
-                  )
-                }
+                {!user && (
+                  <button
+                    onClick={() => navigate('/login')}
+                    className="bg-gradient-to-r from-gronik-accent to-gronik-secondary hover:from-gronik-secondary hover:to-gronik-accent text-white px-6 py-2 rounded-lg transition-all duration-200 transform hover:scale-105 font-medium shadow-lg"
+                  >
+                    Login
+                  </button>
+                )}
+                {user && (
+                  <Link
+                    to="/admin"
+                    className="bg-gradient-to-r from-gronik-accent to-gronik-secondary hover:from-gronik-secondary hover:to-gronik-accent text-white px-6 py-2 rounded-lg transition-all duration-200 transform hover:scale-105 font-medium shadow-lg"
+                  >
+                    Admin
+                  </Link>
+                )}
               </div>
             </div>
           </div>

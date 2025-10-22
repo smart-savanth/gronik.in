@@ -99,19 +99,13 @@ const WhyEbooksButton = () => {
 
   return (
     <>
-      {/* Main Button - Bottom right corner */}
+      {/* Main Button - Bottom right corner - BIGGER ON MOBILE */}
       <div className="fixed bottom-4 right-4 z-50">
         <button
           ref={buttonRef}
           onClick={handleButtonClick}
           className={`group relative 
-            w-10 h-10 
-            xs:w-11 xs:h-11 
-            sm:w-12 sm:h-12 
-            md:w-14 md:h-14 
-            lg:w-16 lg:h-16 
-            xl:w-18 xl:h-18 
-            2xl:w-20 2xl:h-20
+            ${isMobile ? 'w-16 h-16 sm:w-20 sm:h-20' : 'w-10 h-10 xs:w-11 xs:h-11 sm:w-12 sm:h-12 md:w-14 md:h-14 lg:w-16 lg:h-16 xl:w-18 xl:h-18 2xl:w-20 2xl:h-20'}
             bg-gradient-to-br from-[#2D1B3D] to-[#4A3B5C] 
             ${isRectangle ? 'rounded-xl' : 'rounded-full'} 
             shadow-2xl hover:shadow-3xl transition-all duration-100 transform hover:scale-105 hover:-translate-y-1 
@@ -133,18 +127,12 @@ const WhyEbooksButton = () => {
             <div className="absolute top-4 right-3 w-0.5 h-0.5 bg-white/50 rounded-full animate-pulse animation-delay-500"></div>
           </div>
 
-          {/* Logo Container - CENTERED LAYOUT */}
-          <div className="relative z-10 flex flex-col items-center justify-center h-full">
+          {/* Logo Container - 2 LINES: "Why" and "E-Books?" */}
+          <div className="relative z-10 flex flex-col items-center justify-center h-full gap-0.5">
             <span 
-              className="block 
-                text-[9px] 
-                xs:text-[10px] 
-                sm:text-[11px] 
-                md:text-[13px] 
-                lg:text-[15px] 
-                xl:text-[17px] 
-                2xl:text-[19px] 
-                font-extrabold leading-tight mb-1 text-white"
+              className={`block font-extrabold leading-tight text-white ${
+                isMobile ? 'text-sm sm:text-base' : 'text-[9px] xs:text-[10px] sm:text-[11px] md:text-[13px] lg:text-[15px] xl:text-[17px] 2xl:text-[19px]'
+              }`}
               style={{
                 fontFamily: 'Quicksand, Nunito, Playfair Display, serif',
                 letterSpacing: '0.08em',
@@ -154,15 +142,9 @@ const WhyEbooksButton = () => {
               Why
             </span>
             <span 
-              className="block 
-                text-[6px] 
-                xs:text-[7px] 
-                sm:text-[8px] 
-                md:text-[9px] 
-                lg:text-[10px] 
-                xl:text-[11px] 
-                2xl:text-[12px] 
-                font-extrabold leading-tight text-white"
+              className={`block font-extrabold leading-tight text-white ${
+                isMobile ? 'text-xs sm:text-sm' : 'text-[6px] xs:text-[7px] sm:text-[8px] md:text-[9px] lg:text-[10px] xl:text-[11px] 2xl:text-[12px]'
+              }`}
               style={{
                 fontFamily: 'Quicksand, Nunito, Playfair Display, serif',
                 letterSpacing: '0.10em',
@@ -174,7 +156,9 @@ const WhyEbooksButton = () => {
           </div>
 
           {/* Sparkle Effect */}
-          <Sparkles className="absolute top-1 right-1 w-2 h-2 sm:w-3 sm:h-3 text-yellow-300 opacity-0 group-hover:opacity-100 group-hover:animate-spin transition-all duration-300" />
+          <Sparkles className={`absolute top-1 right-1 text-yellow-300 opacity-0 group-hover:opacity-100 group-hover:animate-spin transition-all duration-300 ${
+            isMobile ? 'w-4 h-4' : 'w-2 h-2 sm:w-3 sm:h-3'
+          }`} />
         </button>
 
         {/* Background Blur Overlay - Only shows when hovered */}
@@ -210,6 +194,7 @@ const WhyEbooksButton = () => {
             xl:w-[70vw] 
             2xl:w-[65vw] 
             max-w-4xl relative overflow-hidden mx-2">
+
             {/* Subtle Background Pattern */}
             <div className="absolute inset-0 opacity-5">
               <div className="absolute top-6 left-6 w-12 h-12 border border-white/20 rounded-full"></div>
@@ -360,17 +345,6 @@ const WhyEbooksButton = () => {
         .animation-delay-1000 {
           animation-delay: 1s;
         }
-        /* Stylish font for WHY text */
-        .font-stylish {
-          font-family: 'Playfair Display', Georgia, serif;
-          font-weight: 900;
-          text-shadow: 0 1px 3px rgba(0,0,0,0.4);
-        }
-        /* Enhanced responsive design */
-        @media (max-width: 480px) {
-          .w-20 { width: 3rem; }
-          .h-20 { height: 3rem; }
-        }
         /* Touch improvements for mobile */
         @media (hover: none) and (pointer: coarse) {
           .group:hover {
@@ -383,8 +357,8 @@ const WhyEbooksButton = () => {
         /* Ensure proper touch targets */
         @media (max-width: 640px) {
           button {
-            min-height: 44px;
-            min-width: 44px;
+            min-height: 64px;
+            min-width: 64px;
           }
         }
         /* Prevent text selection in modal */

@@ -64,7 +64,14 @@ const ReviewsSection = () => {
   });
 
   const scrollContainerRef = useRef(null);
-  const currentTransformRef = useRef(0); // Store position in ref to persist across renders
+  const currentTransformRef = useRef(0);
+  
+  // Touch/Swipe state
+  const touchStartRef = useRef(0);
+  const touchEndRef = useRef(0);
+  const isDraggingRef = useRef(false);
+  const lastTouchXRef = useRef(0);
+  const velocityRef = useRef(0);
 
   // Duplicate reviews for seamless infinite scroll
   const duplicatedReviews = [...reviews, ...reviews, ...reviews];
@@ -77,7 +84,7 @@ const ReviewsSection = () => {
     let intervalId;
     const speed = 1; // pixels per interval
 
-    if (!isPaused) {
+    if (!isPaused && !isDraggingRef.current) {
       intervalId = setInterval(() => {
         currentTransformRef.current -= speed;
         
@@ -98,6 +105,7 @@ const ReviewsSection = () => {
     };
   }, [isPaused]);
 
+  // Mouse handlers (desktop)
   const handleMouseEnter = () => {
     setIsPaused(true);
   };
@@ -106,12 +114,87 @@ const ReviewsSection = () => {
     setIsPaused(false);
   };
 
+  // Touch handlers (mobile)
+  const handleTouchStart = (e) => {
+    isDraggingRef.current = true;
+    touchStartRef.current = e.touches[0].clientX;
+    lastTouchXRef.current = e.touches[0].clientX;
+    velocityRef.current = 0;
+    setIsPaused(true);
+  };
+
+  const handleTouchMove = (e) => {
+    if (!isDraggingRef.current) return;
+    
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const currentTouch = e.touches[0].clientX;
+    const diff = currentTouch - lastTouchXRef.current;
+    
+    // Calculate velocity for momentum
+    velocityRef.current = diff;
+    
+    // Update position
+    currentTransformRef.current += diff;
+    
+    // Handle infinite loop boundaries
+    const resetPoint = -(container.scrollWidth / 3);
+    const maxPoint = 0;
+    
+    if (currentTransformRef.current <= resetPoint) {
+      currentTransformRef.current = 0;
+    } else if (currentTransformRef.current >= maxPoint) {
+      currentTransformRef.current = resetPoint + 50; // Small offset to prevent jarring
+    }
+    
+    container.style.transform = `translateX(${currentTransformRef.current}px)`;
+    lastTouchXRef.current = currentTouch;
+  };
+
+  const handleTouchEnd = () => {
+    isDraggingRef.current = false;
+    
+    // Apply momentum/inertia effect
+    const container = scrollContainerRef.current;
+    if (!container || Math.abs(velocityRef.current) < 2) {
+      setIsPaused(false);
+      return;
+    }
+
+    let momentum = velocityRef.current * 10; // Amplify for smooth deceleration
+    const deceleration = 0.95; // Friction factor
+
+    const applyMomentum = () => {
+      if (Math.abs(momentum) < 0.5) {
+        setIsPaused(false);
+        return;
+      }
+
+      currentTransformRef.current += momentum;
+      momentum *= deceleration;
+
+      // Handle boundaries during momentum
+      const resetPoint = -(container.scrollWidth / 3);
+      if (currentTransformRef.current <= resetPoint) {
+        currentTransformRef.current = 0;
+      } else if (currentTransformRef.current >= 0) {
+        currentTransformRef.current = resetPoint;
+      }
+
+      container.style.transform = `translateX(${currentTransformRef.current}px)`;
+      requestAnimationFrame(applyMomentum);
+    };
+
+    requestAnimationFrame(applyMomentum);
+  };
+
   const handleSubmitReview = () => {
     if (newReview.text) {
       const review = {
-        id: Date.now(), // Better ID generation
+        id: Date.now(),
         ...newReview,
-        name: "Anonymous", // Set default name since we removed the field
+        name: "Anonymous",
         timestamp: new Date().toISOString()
       };
       dispatch(addReview(review));
@@ -150,18 +233,25 @@ const ReviewsSection = () => {
         </div>
 
         {/* Continuous Scrolling Reviews Container */}
-        <div className="relative overflow-hidden" style={{ height: '280px', paddingTop: '20px', paddingBottom: '20px' }}>
+        <div 
+          className="relative overflow-hidden touch-pan-y" 
+          style={{ height: '280px', paddingTop: '20px', paddingBottom: '20px' }}
+        >
           <div 
             ref={scrollContainerRef}
             className="flex gap-4 sm:gap-8 w-max transition-all duration-500 ease-out"
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
             style={{
               transform: 'translateX(0px)',
-              willChange: 'transform'
+              willChange: 'transform',
+              cursor: isDraggingRef.current ? 'grabbing' : 'grab'
             }}
           >
-            {reviews.map((review, index) => (
+            {duplicatedReviews.map((review, index) => (
               <div 
                 key={`${review.id}-${index}`}
                 className="bg-[#2D1B3D]/70 backdrop-blur-md border-[#2D1B3D]/30 shadow-xl rounded-2xl p-4 sm:p-8 transition-all duration-300 relative group border w-64 sm:w-80 flex-shrink-0"
@@ -317,6 +407,12 @@ const ReviewsSection = () => {
           will-change: transform;
           backface-visibility: hidden;
           transform-style: preserve-3d;
+        }
+        
+        /* Touch-friendly cursor */
+        .touch-pan-y {
+          -webkit-overflow-scrolling: touch;
+          touch-action: pan-y;
         }
         
         /* Custom scrollbar */
