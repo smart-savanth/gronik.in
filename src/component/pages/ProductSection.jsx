@@ -14,6 +14,7 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [activeTab, setActiveTab] = useState('overview');
   const [cartButtonClicked, setCartButtonClicked] = useState(false);
+  const [expandedDescription, setExpandedDescription] = useState(false);
   const [wishlistButtonClicked, setWishlistButtonClicked] = useState(false);
   const [expandedSections, setExpandedSections] = useState({});
   const reviewsSectionRef = useRef(null);
@@ -80,7 +81,12 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
   const duplicatedReviews = [...reviews, ...reviews];
   console.log(productId,)
   // Get product data from centralized books data
-  const productData = booksResponse?.data?.find(book => book.id ===productId);
+  const productData = booksResponse?.data?.find(book => book.id === productId);
+
+  const suggestedBooks = booksResponse?.data?.filter(book => 
+    book.id !== productId && 
+    (book.category === productData?.category || book.author === productData?.author)
+  ).slice(0, 6) || [];
 
   // If product not found, redirect to library
   useEffect(() => {
@@ -616,11 +622,23 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
           <div className="text-[#2D1B3D]">
             {activeTab === 'overview' && (
               <div className="space-y-6">
-                {/* Product Description - Mobile Optimized */}
+                {/* Product Description - Mobile Optimized with Read More */}
                 <div className="px-4 sm:px-6 lg:px-12 mb-6">
-                  <p className="text-[#2D1B3D] text-sm sm:text-base lg:text-lg leading-relaxed text-center font-medium max-w-5xl mx-auto mobile-overview-text line-clamp-4 sm:line-clamp-none">
+                  <p className={`text-[#2D1B3D] text-sm sm:text-base lg:text-lg leading-relaxed text-center font-medium max-w-5xl mx-auto mobile-overview-text ${
+                    expandedDescription ? '' : 'line-clamp-3 sm:line-clamp-none'
+                  }`}>
                     {enhancedProductData.fullDescription}
                   </p>
+                  
+                  {/* Read More Button - Only on Mobile */}
+                  <div className="block sm:hidden text-center mt-3">
+                    <button
+                      onClick={() => setExpandedDescription(!expandedDescription)}
+                      className="text-[#2D1B3D] font-bold text-sm underline hover:text-[#9B7BB8] transition-colors"
+                    >
+                      {expandedDescription ? 'Read Less' : 'Read More'}
+                    </button>
+                  </div>
                 </div>
 
                 {/* Stunning Carousel with Enhanced Golden Glow */}
@@ -859,163 +877,205 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
           </div>
         </div>
 
-        {/* Suggested Books - Mobile Optimized & Cuter */}
-        {suggestedBooks.length > 0 && (
-          <div className="mt-8 sm:mt-12 py-6 sm:py-12 relative">
-            <div className="text-center mb-6 sm:mb-12">
-              <div className="inline-flex items-center bg-white/10 backdrop-blur-sm rounded-full px-6 py-3 mb-6 border border-white/20 shadow-lg">
-                <Sparkles className="w-5 h-5 text-white mr-2" />
-                <span className="text-white font-bold text-base">You Might Also Like</span>
-              </div>
-              <h3 className="text-xl sm:text-3xl lg:text-4xl font-bold text-white mb-2 sm:mb-4 px-4">Suggested Books</h3>
-              <p className="text-white/60 text-sm sm:text-lg max-w-2xl mx-auto px-4">
-                Handpicked recommendations from our featured collection
-              </p>
-            </div>
+    {/* Suggested Books - Cute & Compact for All Devices */}
+    {suggestedBooks.length > 0 && (
+      <div className="mt-12 md:mt-16 lg:mt-20 py-8 md:py-12 relative">
+        <div className="text-center mb-8 md:mb-12">
+          <div className="inline-flex items-center bg-white/10 backdrop-blur-sm rounded-full px-4 sm:px-6 py-2 sm:py-3 mb-4 sm:mb-6 border border-white/20 shadow-lg">
+            <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-white mr-2" />
+            <span className="text-white font-bold text-sm sm:text-base">You Might Also Like</span>
+          </div>
+          <h3 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-2 sm:mb-4 px-4">Suggested Books</h3>
+          <p className="text-white/60 text-sm sm:text-base lg:text-lg max-w-2xl mx-auto px-4">
+            Handpicked recommendations from our featured collection
+          </p>
+        </div>
 
-            {/* Mobile: Side by Side Layout with Full Backgrounds */}
-            <div className="block sm:hidden overflow-x-auto pb-4 px-4 -mx-4">
-              <div className="flex gap-3" style={{ minWidth: 'min-content' }}>
-                {suggestedBooks.map((book) => (
-                  <div
-                    key={book.id}
-                    className="flex-shrink-0 w-[115px] cursor-pointer bg-[#2D1B3D]/80 backdrop-blur-md rounded-lg p-2.5 border border-white/10 shadow-lg"
-                  >
-                    {/* Book Cover */}
-                    <div 
-                      className="w-full h-[140px] rounded-md overflow-hidden shadow-lg mb-2"
-                      onClick={() => handleSuggestedBookClick(book)}
-                    >
-                      <img src={book.image} alt={book.title} className="w-full h-full object-cover" />
-                    </div>
-
-                    {/* Book Title */}
-                    <h4 
-                      className="text-white text-[11px] font-semibold line-clamp-2 leading-tight mb-2 min-h-[28px]"
-                      onClick={() => handleSuggestedBookClick(book)}
-                    >
-                      {book.title}
-                    </h4>
-
-                    {/* Action Buttons with Backgrounds */}
-                    <div className="flex gap-1.5 items-center">
-                      <button
-                        onClick={(e) => handleSuggestedCartAction(e, book)}
-                        className={`flex-1 py-2 px-2 rounded-md text-[10px] font-bold transition-all flex items-center justify-center shadow-md ${
-                          isSuggestedInCart(book)
-                            ? 'bg-blue-500 text-white'
-                            : 'bg-white text-[#2D1B3D]'
-                        }`}
-                      >
-                        {isSuggestedInCart(book) ? 'Cart' : 'Add'}
-                      </button>
-                      <button
-                        onClick={(e) => handleSuggestedToggleWishlist(e, book)}
-                        className={`p-2 rounded-md transition-all flex items-center justify-center shadow-md ${
-                          isSuggestedInWishlist(book)
-                            ? 'bg-red-500 text-white'
-                            : 'bg-[#9B7BB8] text-white'
-                        }`}
-                      >
-                        <Heart className={`w-3.5 h-3.5 ${isSuggestedInWishlist(book) ? 'fill-current' : ''}`} />
-                      </button>
-                    </div>
+        {/* Mobile: Compact Cards */}
+        <div className="block sm:hidden space-y-3 px-4">
+          {suggestedBooks.map((book) => (
+            <div
+              key={book.id}
+              className="cursor-pointer transform transition-all duration-300"
+              style={{
+                boxShadow: hoveredSuggested === book.id 
+                  ? '0 0 0 2px #FFE9B3, 0 6px 24px 0 rgba(255, 233, 179, 0.4), 0 3px 12px 0 rgba(255, 247, 193, 0.35)'
+                  : '0 3px 15px rgba(0,0,0,0.3)',
+                borderRadius: '16px'
+              }}
+              onClick={() => handleSuggestedBookClick(book)}
+              onTouchStart={() => setHoveredSuggested(book.id)}
+              onTouchEnd={() => setHoveredSuggested(null)}
+            >
+              <div className="bg-[#1A0F2E]/90 backdrop-blur-md rounded-2xl p-3 border border-white/20 overflow-hidden">
+                <div className="flex gap-3">
+                  {/* Compact Book Image */}
+                  <div className="relative w-20 h-28 flex-shrink-0 rounded-lg overflow-hidden shadow-lg">
+                    <img src={book.image} alt={book.title} className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent"></div>
                   </div>
-                ))}
-              </div>
-            </div>
 
-            {/* Desktop: Grid Layout (unchanged) */}
-            <div className="hidden sm:grid grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 max-w-6xl mx-auto">
-              {suggestedBooks.map((book) => (
-                <div
-                  key={book.id}
-                  className={`group cursor-pointer transform transition-all duration-500 hover:scale-105 card-hover-gold ${hoveredSuggested === book.id ? 'gold-glow' : ''}`}
-                  onClick={() => handleSuggestedBookClick(book)}
-                  onMouseEnter={() => setHoveredSuggested(book.id)}
-                  onMouseLeave={() => setHoveredSuggested(null)}
-                >
-                  <div className="relative bg-[#1A0F2E]/80 backdrop-blur-md rounded-2xl p-6 border border-white/20 shadow-2xl overflow-hidden h-full flex flex-col">
-                    <div className="relative mb-6 flex justify-center">
-                      <div className="relative w-40 h-56 lg:w-44 lg:h-60 rounded-xl overflow-hidden shadow-2xl transition-all duration-500 group-hover:shadow-3xl">
-                        <img src={book.image} alt={book.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
-                      </div>
-                    </div>
-
-                    <div className="text-center space-y-3 flex-1 flex flex-col">
-                      <h4 className="text-base lg:text-lg font-bold text-white line-clamp-2 leading-tight transition-all duration-300">
+                  {/* Compact Book Info */}
+                  <div className="flex-1 flex flex-col justify-between min-w-0">
+                    <div>
+                      <h4 className="text-sm font-bold text-white line-clamp-2 leading-tight mb-1">
                         {book.title}
                       </h4>
-                      <p className="text-white/60 font-medium text-sm">by {book.author}</p>
-
-                      <div className="flex items-center justify-center space-x-2 py-2">
-                        <div className="flex">
-                          {[...Array(5)].map((_, i) => (
-                            <Star key={i} className={`w-4 h-4 ${i < Math.floor(book.rating) ? 'text-yellow-400 fill-current' : 'text-white/20'}`} />
-                          ))}
-                        </div>
-                        <span className="text-white font-semibold text-sm">{book.rating}</span>
+                      <p className="text-white/60 font-medium text-xs mb-1">by {book.author}</p>
+                      
+                      <div className="flex items-center space-x-1 mb-1">
+                        {[...Array(5)].map((_, i) => (
+                          <Star key={i} className={`w-2.5 h-2.5 ${i < Math.floor(book.rating) ? 'text-yellow-400 fill-current' : 'text-white/20'}`} />
+                        ))}
+                        <span className="text-white font-semibold text-xs ml-1">{book.rating}</span>
                       </div>
 
-                      <div className="py-2 flex-1 flex flex-col justify-center">
-                        <div className="flex items-center justify-center space-x-2 mb-1">
-                          <span className="text-2xl font-bold text-white">${book.price}</span>
-                          <span className="text-sm text-white/40 line-through">${book.originalPrice}</span>
-                        </div>
-                        <div className="text-sm font-bold text-green-400">
-                          {book.discount}
-                        </div>
+                      <div className="flex items-center space-x-1.5 mb-1">
+                        <span className="text-lg font-bold text-white">${book.price}</span>
+                        <span className="text-xs text-white/40 line-through">${book.originalPrice}</span>
                       </div>
-
-                      <div className="flex flex-row gap-2 w-full pt-3 mt-auto">
-                        <button
-                          onClick={(e) => handleSuggestedCartAction(e, book)}
-                          disabled={animatingSuggestedCart[book.id]}
-                          className={`cart-button-animated ${suggestedCartClicked[book.id] ? 'clicked' : ''} flex-1 py-2.5 px-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all duration-300 hover:scale-105 shadow-xl ${
-                            isSuggestedInCart(book)
-                              ? 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white'
-                              : 'bg-gradient-to-r from-white to-gray-100 hover:from-yellow-100 hover:to-yellow-50 text-[#2D1B3D]'
-                          }`}
-                        >
-                          {isSuggestedInCart(book) ? (
-                            <Check className="w-4 h-4" />
-                          ) : (
-                            <>
-                              <ShoppingCart className="cart-icon w-4 h-4" />
-                              <div className="box-icon w-2 h-2 bg-current rounded-sm"></div>
-                            </>
-                          )}
-                          
-                          <span className="cart-text text-xs">
-                            {animatingSuggestedCart[book.id] ? 'Adding...' : isSuggestedInCart(book) ? 'Go to Cart' : 'Add to Cart'}
-                          </span>
-
-                          <span className="added-text text-xs">
-                            <Check className="w-3 h-3 mr-1 inline" />
-                            Added!
-                          </span>
-                        </button>
-
-                        <button
-                          onClick={(e) => handleSuggestedToggleWishlist(e, book)}
-                          disabled={animatingSuggestedWishlist[book.id]}
-                          className={`wishlist-button-animated ${suggestedWishlistClicked[book.id] ? 'clicked' : ''} p-2.5 rounded-xl transition-all duration-300 hover:scale-110 shadow-lg ${
-                            isSuggestedInWishlist(book)
-                              ? 'bg-gradient-to-r from-red-500 to-pink-600 text-white'
-                              : 'bg-[#9B7BB8] text-[#2D1B3D] hover:bg-[#8A6AA7]'
-                          }`}
-                        >
-                          <Heart className={`heart-static w-4 h-4 ${isSuggestedInWishlist(book) ? 'fill-current' : ''}`} />
-                        </button>
-                      </div>
+                      <div className="text-xs font-bold text-green-400">{book.discount}</div>
                     </div>
                   </div>
                 </div>
-              ))}
+
+                {/* Compact Action Buttons */}
+                <div className="flex gap-2 mt-3">
+                  <button
+                    onClick={(e) => handleSuggestedCartAction(e, book)}
+                    className={`flex-1 py-1.5 px-2 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-md ${
+                      isSuggestedInCart(book)
+                        ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
+                        : 'bg-gradient-to-r from-white to-gray-100 text-[#2D1B3D]'
+                    }`}
+                  >
+                    {isSuggestedInCart(book) ? <Check className="w-3 h-3" /> : <ShoppingCart className="w-3 h-3" />}
+                    <span>{isSuggestedInCart(book) ? 'Cart' : 'Add'}</span>
+                  </button>
+                  <button
+                    onClick={(e) => handleSuggestedToggleWishlist(e, book)}
+                    className={`p-1.5 rounded-lg transition-all shadow-md ${
+                      isSuggestedInWishlist(book)
+                        ? 'bg-gradient-to-r from-red-500 to-pink-600 text-white'
+                        : 'bg-[#9B7BB8] text-white'
+                    }`}
+                  >
+                    <Heart className={`w-3.5 h-3.5 ${isSuggestedInWishlist(book) ? 'fill-current' : ''}`} />
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
-        )}
+          ))}
+        </div>
+
+        {/* Tablet & Desktop: Cute Compact Cards */}
+        <div className="hidden sm:grid grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 max-w-6xl mx-auto px-4">
+          {suggestedBooks.map((book) => (
+            <div
+              key={book.id}
+              className="group cursor-pointer transform transition-all duration-500 hover:scale-105"
+              style={{
+                boxShadow: hoveredSuggested === book.id 
+                  ? '0 0 0 2px #FFE9B3, 0 8px 32px 0 rgba(255, 233, 179, 0.5), 0 4px 16px 0 rgba(255, 247, 193, 0.4)'
+                  : '0 6px 24px rgba(0,0,0,0.4)',
+                borderRadius: '20px',
+                transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)'
+              }}
+              onClick={() => handleSuggestedBookClick(book)}
+              onMouseEnter={() => setHoveredSuggested(book.id)}
+              onMouseLeave={() => setHoveredSuggested(null)}
+            >
+              <div className="relative bg-[#1A0F2E]/85 backdrop-blur-md rounded-[20px] p-5 border border-white/20 overflow-hidden h-full flex flex-col">
+                
+                {/* Compact Book Image */}
+                <div className="relative mb-4 flex justify-center">
+                  <div className="relative w-32 h-44 lg:w-36 lg:h-48 rounded-xl overflow-hidden shadow-2xl transition-all duration-700 group-hover:shadow-3xl">
+                    <img 
+                      src={book.image} 
+                      alt={book.title} 
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
+                  </div>
+                </div>
+
+                {/* Compact Book Info */}
+                <div className="text-center space-y-2 flex-1 flex flex-col">
+                  <h4 className="text-base lg:text-lg font-bold text-white line-clamp-2 leading-tight transition-all duration-300 group-hover:text-[#FFE9B3]">
+                    {book.title}
+                  </h4>
+                  <p className="text-white/60 font-medium text-xs lg:text-sm">by {book.author}</p>
+
+                  <div className="flex items-center justify-center space-x-1 py-1">
+                    <div className="flex">
+                      {[...Array(5)].map((_, i) => (
+                        <Star key={i} className={`w-3 h-3 lg:w-3.5 lg:h-3.5 ${i < Math.floor(book.rating) ? 'text-yellow-400 fill-current' : 'text-white/20'}`} />
+                      ))}
+                    </div>
+                    <span className="text-white font-semibold text-xs lg:text-sm ml-1">{book.rating}</span>
+                  </div>
+
+                  <div className="py-1 flex-1 flex flex-col justify-center">
+                    <div className="flex items-center justify-center space-x-2 mb-1">
+                      <span className="text-xl lg:text-2xl font-bold text-white">${book.price}</span>
+                      <span className="text-xs lg:text-sm text-white/40 line-through">${book.originalPrice}</span>
+                    </div>
+                    <div className="text-xs lg:text-sm font-bold text-green-400">
+                      {book.discount}
+                    </div>
+                  </div>
+
+                  {/* Compact Action Buttons */}
+                  <div className="flex gap-2 w-full pt-2 mt-auto">
+                    <button
+                      onClick={(e) => handleSuggestedCartAction(e, book)}
+                      disabled={animatingSuggestedCart[book.id]}
+                      className={`cart-button-animated ${suggestedCartClicked[book.id] ? 'clicked' : ''} flex-1 py-2 px-2 rounded-xl font-bold text-xs lg:text-sm flex items-center justify-center gap-1.5 transition-all duration-300 hover:scale-105 shadow-xl ${
+                        isSuggestedInCart(book)
+                          ? 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white'
+                          : 'bg-gradient-to-r from-white to-gray-100 hover:from-yellow-100 hover:to-yellow-50 text-[#2D1B3D]'
+                      }`}
+                    >
+                      {isSuggestedInCart(book) ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
+                          <span className="hidden lg:inline">Go to Cart</span>
+                          <span className="lg:hidden">Cart</span>
+                        </>
+                      ) : (
+                        <>
+                          <ShoppingCart className="cart-icon w-3.5 h-3.5 lg:w-4 lg:h-4" />
+                          <div className="box-icon w-1.5 h-1.5 lg:w-2 lg:h-2 bg-current rounded-sm"></div>
+                          <span className="cart-text">
+                            {animatingSuggestedCart[book.id] ? 'Adding...' : 'Add'}
+                          </span>
+                          <span className="added-text flex items-center gap-1">
+                            <Check className="w-3 h-3" />
+                            Added!
+                          </span>
+                        </>
+                      )}
+                    </button>
+
+                    <button
+                      onClick={(e) => handleSuggestedToggleWishlist(e, book)}
+                      disabled={animatingSuggestedWishlist[book.id]}
+                      className={`wishlist-button-animated ${suggestedWishlistClicked[book.id] ? 'clicked' : ''} p-2 rounded-xl transition-all duration-300 hover:scale-110 shadow-lg ${
+                        isSuggestedInWishlist(book)
+                          ? 'bg-gradient-to-r from-red-500 to-pink-600 text-white'
+                          : 'bg-[#9B7BB8] text-white hover:bg-[#8A6AA7]'
+                      }`}
+                    >
+                      <Heart className={`heart-static w-4 h-4 lg:w-4.5 lg:h-4.5 ${isSuggestedInWishlist(book) ? 'fill-current' : ''}`} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
 
         {/* Review Form Modal */}
         {showReviewForm && (
