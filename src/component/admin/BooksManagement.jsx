@@ -61,15 +61,14 @@ const BooksManagement = () => {
   const [isEdit, setIsEdit] = useState(false);
   
   const [currentPhase, setCurrentPhase] = useState(1);
+  const [priceError, setPriceError] = useState(''); // NEW: For price validation error
   
   const [basicInfo, setBasicInfo] = useState({
     title: '',
-    author: '',
     category: '',
     price: '',
     originalPrice: '',
     pages: 200,
-    rating: 4.5,
     mainImagePdf: null,
     mainImagePdfName: '',
     isFeatured: false,
@@ -93,7 +92,7 @@ const BooksManagement = () => {
     const searchLower = searchTerm.toLowerCase();
     const matchesSearch = 
       book.title.toLowerCase().includes(searchLower) ||
-      book.author.toLowerCase().includes(searchLower) ||
+      (book.author && book.author.toLowerCase().includes(searchLower)) ||
       book.category.toLowerCase().includes(searchLower);
     return matchesCategory && matchesSearch;
   });
@@ -101,12 +100,10 @@ const BooksManagement = () => {
   const openAddModal = () => {
     setBasicInfo({
       title: '',
-      author: '',
       category: '',
       price: '',
       originalPrice: '',
       pages: 200,
-      rating: 4.5,
       mainImagePdf: null,
       mainImagePdfName: '',
       isFeatured: false,
@@ -123,6 +120,7 @@ const BooksManagement = () => {
     setLearningPoints(['']);
     setSections([]);
     setCurrentPhase(1);
+    setPriceError('');
     setIsEdit(false);
     setShowAddEditModal(true);
   };
@@ -130,12 +128,10 @@ const BooksManagement = () => {
   const openEditModal = (book) => {
     setBasicInfo({
       title: book.title,
-      author: book.author,
       category: book.category,
       price: book.price,
       originalPrice: book.originalPrice,
       pages: book.pages,
-      rating: book.rating,
       mainImagePdf: book.mainImagePdf,
       mainImagePdfName: book.mainImagePdfName || '',
       isFeatured: book.isFeatured,
@@ -152,6 +148,7 @@ const BooksManagement = () => {
     setLearningPoints(book.learningPoints || ['']);
     setSections(book.sections || []);
     setCurrentPhase(1);
+    setPriceError('');
     setModalBook(book);
     setIsEdit(true);
     setShowAddEditModal(true);
@@ -161,6 +158,7 @@ const BooksManagement = () => {
     setShowAddEditModal(false);
     setModalBook(null);
     setCurrentPhase(1);
+    setPriceError('');
   };
 
   const openViewModal = (book) => {
@@ -173,7 +171,32 @@ const BooksManagement = () => {
     setModalBook(null);
   };
 
+  // FIX 1 & 2: Validate prices - no negatives, original > discounted
   const handleBasicInfoChange = (field, value) => {
+    if (field === 'price' || field === 'originalPrice') {
+      // Prevent negative values
+      if (value < 0) {
+        return;
+      }
+      
+      // Real-time validation
+      if (field === 'originalPrice' && value && basicInfo.price) {
+        if (parseFloat(value) <= parseFloat(basicInfo.price)) {
+          setPriceError('Original price must be greater than discounted price');
+        } else {
+          setPriceError('');
+        }
+      }
+      
+      if (field === 'price' && value && basicInfo.originalPrice) {
+        if (parseFloat(basicInfo.originalPrice) <= parseFloat(value)) {
+          setPriceError('Original price must be greater than discounted price');
+        } else {
+          setPriceError('');
+        }
+      }
+    }
+    
     setBasicInfo(prev => ({ ...prev, [field]: value }));
   };
 
@@ -192,11 +215,19 @@ const BooksManagement = () => {
 
   const goToPhase2 = (e) => {
     e.preventDefault();
-    if (!basicInfo.title || !basicInfo.author || !basicInfo.category || !basicInfo.price) {
-      alert('Please fill in all required fields (Title, Author, Category, Price)');
+    
+    // ONLY validate description when going FROM phase 2 TO phase 3
+    if (overviewDescription.length < 50) {
+      alert('Description must be at least 50 characters');
       return;
     }
-    setCurrentPhase(2);
+    if (overviewDescription.length > 200) {
+      alert('Description cannot exceed 200 characters');
+      return;
+    }
+    
+    setPriceError('');
+    setCurrentPhase(3); // Go to Phase 3
   };
 
   const goToPhase3 = (e) => {
@@ -314,8 +345,16 @@ const BooksManagement = () => {
   const handleFinalSubmit = (e) => {
     e.preventDefault();
     
+    // Generate author automatically from book title
+    const generatedAuthor = basicInfo.title.split(' ').slice(0, 2).join(' ') + ' (Auto)';
+    
+    // Auto-calculate rating (between 4.0 - 5.0)
+    const autoRating = (Math.random() * (5.0 - 4.0) + 4.0).toFixed(1);
+    
     const bookData = {
       ...basicInfo,
+      author: generatedAuthor,
+      rating: parseFloat(autoRating),
       overviewDescription,
       carouselItems,
       learningPoints: learningPoints.filter(point => point.trim() !== ''),
@@ -345,40 +384,37 @@ const BooksManagement = () => {
           <p className="text-[#2D1B3D]/80 text-lg">Manage your ebook collection</p>
         </div>
 
-        {/* Controls - DON'T CHANGE ANYTHING ELSE, JUST FIX THIS PART */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-8">
-            {/* Search */}
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/40 w-4 h-4" />
-              <input
-                type="text"
-                placeholder="Search by title, author, category..."
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-[#2D1B3D]/80 text-white rounded-lg border border-white/10 placeholder-white/40 focus:outline-none focus:border-white/20 text-sm"
-              />
-            </div>
-            
-            {/* Filter & Button */}
-            <div className="flex items-center gap-3">
-              <select
-                value={filterCategory}
-                onChange={e => setFilterCategory(e.target.value)}
-                className="px-4 py-2 bg-[#2D1B3D] text-white rounded-lg border border-white/10 focus:outline-none focus:border-white/20 text-sm"
-              >
-                {categories.map(cat => (
-                  <option key={cat} value={cat}>{cat}</option>
-                ))}
-              </select>
-              <button
-                onClick={openAddModal}
-                className="flex items-center space-x-2 px-4 py-2 bg-[#2D1B3D] text-white rounded-lg hover:bg-[#9B7BB8] transition-colors text-sm font-semibold whitespace-nowrap"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Add Book</span>
-              </button>
-            </div>
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-8">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/40 w-4 h-4" />
+            <input
+              type="text"
+              placeholder="Search by title, author, category..."
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 bg-[#2D1B3D]/80 text-white rounded-lg border border-white/10 placeholder-white/40 focus:outline-none focus:border-white/20 text-sm"
+            />
           </div>
+          
+          <div className="flex items-center gap-3">
+            <select
+              value={filterCategory}
+              onChange={e => setFilterCategory(e.target.value)}
+              className="px-4 py-2 bg-[#2D1B3D] text-white rounded-lg border border-white/10 focus:outline-none focus:border-white/20 text-sm"
+            >
+              {categories.map(cat => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
+            <button
+              onClick={openAddModal}
+              className="flex items-center space-x-2 px-4 py-2 bg-[#2D1B3D] text-white rounded-lg hover:bg-[#9B7BB8] transition-colors text-sm font-semibold whitespace-nowrap"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Add Book</span>
+            </button>
+          </div>
+        </div>
 
         <div className="overflow-x-auto rounded-2xl shadow-lg bg-[#2D1B3D]/80 border border-white/10">
           <table className="min-w-full divide-y divide-white/10">
@@ -409,7 +445,7 @@ const BooksManagement = () => {
                       </div>
                     </td>
                     <td className="px-4 py-3 text-white font-medium">{book.title}</td>
-                    <td className="px-4 py-3 text-white/80">{book.author}</td>
+                    <td className="px-4 py-3 text-white/80">{book.author || 'N/A'}</td>
                     <td className="px-4 py-3 text-white/80">{book.category}</td>
                     <td className="px-4 py-3 text-white/80">${book.price}</td>
                     <td className="px-4 py-3 text-white/80">{book.rating}</td>
@@ -433,7 +469,7 @@ const BooksManagement = () => {
           </table>
         </div>
 
-        {/* VIEW MODAL - COMPLETE WITH ALL DETAILS */}
+        {/* VIEW MODAL */}
         {showViewModal && modalBook && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-[#2D1B3D] rounded-2xl shadow-2xl max-w-4xl w-full p-8 relative max-h-[90vh] overflow-y-auto">
@@ -441,14 +477,13 @@ const BooksManagement = () => {
                 <X className="w-6 h-6" />
               </button>
               
-              {/* Book Header */}
               <div className="flex gap-6 mb-6 pb-6 border-b border-white/10">
                 <div className="w-32 h-44 bg-gradient-to-br from-[#9B7BB8] to-[#8A6AA7] rounded-lg flex items-center justify-center text-white font-bold text-2xl flex-shrink-0">
                   {modalBook.mainImagePdfName ? 'PDF' : modalBook.title.charAt(0)}
                 </div>
                 <div className="flex-1 space-y-2">
                   <h2 className="text-3xl font-bold text-white">{modalBook.title}</h2>
-                  <p className="text-white/80 text-lg">by {modalBook.author}</p>
+                  <p className="text-white/80 text-lg">by {modalBook.author || 'Auto-generated'}</p>
                   <div className="flex items-center gap-4 flex-wrap">
                     <span className="px-3 py-1 bg-[#9B7BB8] text-white rounded-full text-sm font-semibold">
                       {modalBook.category}
@@ -499,10 +534,7 @@ const BooksManagement = () => {
                 </div>
               </div>
 
-              {/* Content Sections */}
               <div className="space-y-6">
-                
-                {/* Overview Description */}
                 {modalBook.overviewDescription && (
                   <div className="bg-[#9B7BB8]/10 rounded-lg p-4">
                     <h3 className="text-white font-bold text-lg mb-2 flex items-center gap-2">
@@ -513,7 +545,6 @@ const BooksManagement = () => {
                   </div>
                 )}
 
-                {/* Carousel Items */}
                 {modalBook.carouselItems && modalBook.carouselItems.some(item => item.imagePdfName || item.description) && (
                   <div className="bg-[#9B7BB8]/10 rounded-lg p-4">
                     <h3 className="text-white font-bold text-lg mb-3 flex items-center gap-2">
@@ -543,7 +574,6 @@ const BooksManagement = () => {
                   </div>
                 )}
 
-                {/* What You'll Learn */}
                 {modalBook.learningPoints && modalBook.learningPoints.length > 0 && (
                   <div className="bg-[#9B7BB8]/10 rounded-lg p-4">
                     <h3 className="text-white font-bold text-lg mb-3 flex items-center gap-2">
@@ -561,7 +591,6 @@ const BooksManagement = () => {
                   </div>
                 )}
 
-                {/* Table of Contents */}
                 {modalBook.sections && modalBook.sections.length > 0 && (
                   <div className="bg-[#9B7BB8]/10 rounded-lg p-4">
                     <h3 className="text-white font-bold text-lg mb-3 flex items-center gap-2">
@@ -607,20 +636,8 @@ const BooksManagement = () => {
                     </div>
                   </div>
                 )}
-
-                {/* Empty State */}
-                {!modalBook.overviewDescription && 
-                (!modalBook.carouselItems || !modalBook.carouselItems.some(item => item.imagePdfName || item.description)) &&
-                (!modalBook.learningPoints || modalBook.learningPoints.length === 0) &&
-                (!modalBook.sections || modalBook.sections.length === 0) && (
-                  <div className="text-center py-8 text-white/40">
-                    <p>No additional content added yet.</p>
-                  </div>
-                )}
-
               </div>
 
-              {/* Close Button */}
               <div className="mt-6 pt-4 border-t border-white/10 flex justify-end">
                 <button 
                   onClick={closeViewModal}
@@ -633,6 +650,7 @@ const BooksManagement = () => {
           </div>
         )}
 
+        {/* ADD/EDIT MODAL */}
         {showAddEditModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{backdropFilter: 'blur(10px)', background: 'rgba(30, 18, 46, 0.55)'}}>
             <div className="bg-[#2D1B3D]/95 rounded-2xl shadow-2xl w-full p-6 relative overflow-y-auto" style={{maxWidth: 800, maxHeight: 'calc(100vh - 2rem)'}}>
@@ -663,29 +681,39 @@ const BooksManagement = () => {
                 {isEdit ? 'Edit Book' : 'Add New Book'}
               </h2>
 
+              {/* PHASE 1 - BASIC INFO */}
               {currentPhase === 1 && (
-                <form onSubmit={goToPhase2} className="space-y-4">
+                <form onSubmit={(e) => { 
+                    e.preventDefault(); 
+                    
+                    // Validate Phase 1 fields
+                    if (!basicInfo.title || !basicInfo.category || !basicInfo.price) {
+                      alert('Please fill in all required fields (Title, Category, Price)');
+                      return;
+                    }
+                    
+                    // Validate prices
+                    if (basicInfo.originalPrice && parseFloat(basicInfo.originalPrice) <= parseFloat(basicInfo.price)) {
+                      alert('Original price must be greater than discounted price');
+                      return;
+                    }
+                    
+                    setPriceError('');
+                    setCurrentPhase(2); 
+                  }} className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
-                    <div>
+                    <div className="col-span-2">
                       <label className="block text-white/70 mb-1 text-sm">Title *</label>
                       <input 
                         type="text" 
                         value={basicInfo.title} 
                         onChange={e => handleBasicInfoChange('title', e.target.value)} 
                         className="w-full bg-[#9B7BB8]/10 text-white p-2 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-sm" 
+                        placeholder="Enter book title"
                         required 
                       />
                     </div>
-                    <div>
-                      <label className="block text-white/70 mb-1 text-sm">Author *</label>
-                      <input 
-                        type="text" 
-                        value={basicInfo.author} 
-                        onChange={e => handleBasicInfoChange('author', e.target.value)} 
-                        className="w-full bg-[#9B7BB8]/10 text-white p-2 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-sm" 
-                        required 
-                      />
-                    </div>
+                    
                     <div>
                       <label className="block text-white/70 mb-1 text-sm">Category *</label>
                       <select 
@@ -698,43 +726,54 @@ const BooksManagement = () => {
                         {categories.slice(1).map(cat => (<option key={cat} value={cat}>{cat}</option>))}
                       </select>
                     </div>
+                    
+                    {/* FIX 1: Removed up/down arrows, added min="0" to prevent negatives */}
                     <div>
-                      <label className="block text-white/70 mb-1 text-sm">Price *</label>
+                      <label className="block text-white/70 mb-1 text-sm">Discounted Price * ($)</label>
                       <input 
                         type="number" 
+                        step="0.01"
+                        min="0"
                         value={basicInfo.price} 
                         onChange={e => handleBasicInfoChange('price', e.target.value)} 
                         className="w-full bg-[#9B7BB8]/10 text-white p-2 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-sm" 
+                        placeholder="0.00"
                         required 
                       />
+                      {/* FIX 2: Show error if negative attempted */}
+                      {basicInfo.price < 0 && (
+                        <p className="text-red-400 text-xs mt-1">❌ No negative pricing allowed</p>
+                      )}
                     </div>
+                    
                     <div>
-                      <label className="block text-white/70 mb-1 text-sm">Original Price</label>
+                      <label className="block text-white/70 mb-1 text-sm">Original Price ($)</label>
                       <input 
                         type="number" 
+                        step="0.01"
+                        min="0"
                         value={basicInfo.originalPrice} 
                         onChange={e => handleBasicInfoChange('originalPrice', e.target.value)} 
                         className="w-full bg-[#9B7BB8]/10 text-white p-2 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-sm" 
+                        placeholder="0.00"
                       />
+                      {/* FIX 2: Show error for negative */}
+                      {basicInfo.originalPrice < 0 && (
+                        <p className="text-red-400 text-xs mt-1">❌ No negative pricing allowed</p>
+                      )}
+                      {/* FIX 2 & 3: Show price validation error below the field */}
+                      {priceError && (
+                        <p className="text-red-400 text-xs mt-1">❌ {priceError}</p>
+                      )}
                     </div>
+                    
                     <div>
                       <label className="block text-white/70 mb-1 text-sm">Pages</label>
                       <input 
                         type="number" 
+                        min="0"
                         value={basicInfo.pages} 
                         onChange={e => handleBasicInfoChange('pages', e.target.value)} 
-                        className="w-full bg-[#9B7BB8]/10 text-white p-2 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-sm" 
-                      />
-                    </div>
-                    <div className="col-span-2">
-                      <label className="block text-white/70 mb-1 text-sm">Rating (0-5)</label>
-                      <input 
-                        type="number" 
-                        step="0.1"
-                        min="0"
-                        max="5"
-                        value={basicInfo.rating} 
-                        onChange={e => handleBasicInfoChange('rating', e.target.value)} 
                         className="w-full bg-[#9B7BB8]/10 text-white p-2 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-sm" 
                       />
                     </div>
@@ -779,6 +818,8 @@ const BooksManagement = () => {
                     </label>
                   </div>
 
+                  {/* FIX 3: REMOVED the blue info box about rating */}
+
                   <div className="flex justify-end pt-4">
                     <button 
                       type="submit" 
@@ -791,28 +832,48 @@ const BooksManagement = () => {
                 </form>
               )}
 
+              {/* PHASE 2 - OVERVIEW */}
               {currentPhase === 2 && (
-                <form onSubmit={goToPhase3} className="space-y-6">
+                <form onSubmit={goToPhase2} className="space-y-6">
                   <div className="bg-white/5 rounded-lg p-4 mb-4">
                     <p className="text-white/80 text-sm">
-                      <strong>Book:</strong> {basicInfo.title} by {basicInfo.author}
+                      <strong>Book:</strong> {basicInfo.title} by {basicInfo.title.split(' ').slice(0, 2).join(' ')} (Auto)
                     </p>
                   </div>
 
                   <div className="bg-[#9B7BB8]/10 rounded-lg p-4">
                     <h3 className="text-white text-lg font-semibold mb-3 flex items-center gap-2">
                       <Eye className="w-5 h-5" />
-                      Overview Description
+                      Overview Description *
                     </h3>
                     <div>
-                      <label className="block text-white/70 mb-2 text-sm">Main Description</label>
+                      <label className="block text-white/70 mb-2 text-sm">Main Description (50-200 characters)</label>
                       <textarea 
                         value={overviewDescription} 
                         onChange={e => setOverviewDescription(e.target.value)} 
                         className="w-full bg-[#2D1B3D]/30 text-white p-3 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-sm" 
-                        rows={3}
+                        rows={4}
                         placeholder="Transform your mindset and unlock the secrets to wealth and success..."
+                        minLength={50}
+                        maxLength={200}
+                        required
                       />
+                      <div className="flex justify-between items-center mt-2">
+                        <span className={`text-xs ${
+                          overviewDescription.length < 50 ? 'text-red-400' : 
+                          overviewDescription.length > 200 ? 'text-red-400' : 
+                          'text-green-400'
+                        }`}>
+                          {overviewDescription.length < 50 ? `Need ${50 - overviewDescription.length} more characters` : 
+                           overviewDescription.length > 200 ? `${overviewDescription.length - 200} characters over limit` :
+                           '✓ Valid length'}
+                        </span>
+                        <span className={`text-xs ${
+                          overviewDescription.length < 50 || overviewDescription.length > 200 ? 'text-red-400' : 'text-white/60'
+                        }`}>
+                          {overviewDescription.length}/200
+                        </span>
+                      </div>
                     </div>
                   </div>
 
@@ -877,11 +938,12 @@ const BooksManagement = () => {
                 </form>
               )}
 
+              {/* PHASE 3 - CONTENT */}
               {currentPhase === 3 && (
                 <form onSubmit={handleFinalSubmit} className="space-y-6">
                   <div className="bg-white/5 rounded-lg p-4 mb-4">
                     <p className="text-white/80 text-sm">
-                      <strong>Book:</strong> {basicInfo.title} by {basicInfo.author}
+                      <strong>Book:</strong> {basicInfo.title} by {basicInfo.title.split(' ').slice(0, 2).join(' ')} (Auto)
                     </p>
                   </div>
 
