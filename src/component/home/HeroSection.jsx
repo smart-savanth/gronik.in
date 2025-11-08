@@ -101,7 +101,7 @@ const HeroSection = ({ cart = [], wishlist = [], onAddToCart, onAddToWishlist, o
                   Where every page
                 </h1>
                 <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-3xl xl:text-4xl 2xl:text-5xl font-bold leading-tight text-[#2D1B3D] mt-1">
-                  opens a new world
+                  opens a new world ....................................
                 </h2>
               </div>
 
