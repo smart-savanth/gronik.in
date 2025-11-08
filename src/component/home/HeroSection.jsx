@@ -55,16 +55,16 @@ const HeroSection = ({ cart = [], wishlist = [], onAddToCart, onAddToWishlist, o
   // Get the current active book data
   const currentBook = heroBooks[activeBook];
 
-  if (!heroBooks || heroBooks.length === 0) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#9B7BB8] via-[#A67FC4] to-[#B894D1]">
-        <div className="text-center text-white">
-          <h2 className="text-2xl font-bold mb-4">No Hero Books Available</h2>
-          <p>Please mark some books as hero in your library.</p>
-        </div>
-      </div>
-    );
-  }
+  // if (!heroBooks || heroBooks.length === 0) {
+  //   return (
+  //     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#9B7BB8] via-[#A67FC4] to-[#B894D1]">
+  //       <div className="text-center text-white">
+  //         <h2 className="text-2xl font-bold mb-4">No Hero Books Available</h2>
+  //         <p>Please mark some books as hero in your library.</p>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   return (
     <div
