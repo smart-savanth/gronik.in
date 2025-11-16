@@ -26,38 +26,73 @@ const FeaturedBooksSection = ({
       page: 1,
       pageSize: 10,
     });
-const featuredBooks = booksResponse?.data?.filter(book => book.featured) ?? [];
+const featuredBooks = booksResponse?.data
+  ?.filter(book => book.featured)
+  ?.map(book => ({
+    ...book,
+    id: book._id   
+  })) ?? [];
+
+const [localCart, setLocalCart] = useState([]);
+
+React.useEffect(() => {
+  const stored = JSON.parse(localStorage.getItem("cart")) || [];
+  setLocalCart(stored);
+}, []);
+
+React.useEffect(() => {
+  const update = () => {
+    const stored = JSON.parse(localStorage.getItem("cart")) || [];
+    setLocalCart(stored);
+  };
+  window.addEventListener("storage", update);
+  return () => window.removeEventListener("storage", update);
+}, []);
+
+
   
   // Helper functions to check if a book is in cart/wishlist
-  const isInCart = (book) => cart.some(item => item.id === book.id);
+  const isInCart = (book) =>
+  localCart.some(item => item.id === book.id);
   const isInWishlist = (book) => wishlist.some(item => item.id === book.id);
 
   // FIXED: Digital platform - all books are always available, no stock check needed
-  const handleCartAction = (e, book) => {
-    e.stopPropagation();
-    e.preventDefault();
-    
-    if (animatingCart[book.id]) return;
+const handleCartAction = (e, book) => {
+  
 
-    const inCart = isInCart(book);
-    
-    if (inCart) {
-      // Navigate to cart instead of removing item
-      console.log('Navigating to cart...'); // Debug log
-      navigate('/cart');
-      return;
-    }
+  e.stopPropagation();
+  e.preventDefault();
 
-    // Add to cart with animation
-    setAnimatingCart(prev => ({ ...prev, [book.id]: true }));
-    setCartButtonClicked(prev => ({ ...prev, [book.id]: true }));
-    
-    setTimeout(() => {
-      onAddToCart && onAddToCart(book);
-      setAnimatingCart(prev => ({ ...prev, [book.id]: false }));
-      setCartButtonClicked(prev => ({ ...prev, [book.id]: false }));
-    }, 1200);
-  };
+  let localCart = JSON.parse(localStorage.getItem("cart")) || [];
+
+  const exists = localCart.some(item => item.id === book.id);
+
+  if (!exists) {
+    const newItem = {
+  id: book.id,
+  title: book.title,
+  author: book.author,
+  image:
+  book.coverImageUrl ||
+  book.image ||
+  "https://via.placeholder.com/300x400?text=No+Image",
+  price: Number(book.final_price),
+  originalPrice: Number(book.original_price),
+  quantity: 1
+};
+
+
+    localStorage.setItem("cart", JSON.stringify([...localCart, newItem]));
+    window.dispatchEvent(new Event("storage"));
+  }
+
+  setCartButtonClicked(prev => ({ ...prev, [book.id]: true }));
+  setTimeout(() => {
+    setCartButtonClicked(prev => ({ ...prev, [book.id]: false }));
+  }, 800);
+};
+
+
 
   const handleToggleWishlist = (e, book) => {
     e.stopPropagation();
@@ -100,7 +135,7 @@ const featuredBooks = booksResponse?.data?.filter(book => book.featured) ?? [];
 
         {/* Grid */}
         <div className="flex justify-center mb-16">
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6 lg:gap-10 w-full max-w-full px-2 sm:px-6 lg:px-0">
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(250px,1fr))] gap-2 sm:gap-2 lg:gap-2 w-full max-w-7xl mx-auto px-2 sm:px-4 lg:px-0">
             {featuredBooks.map((book, index) => (
               <div
                 key={book.id}
@@ -110,7 +145,7 @@ const featuredBooks = booksResponse?.data?.filter(book => book.featured) ?? [];
                 style={{ animationDelay: `${index * 200}ms` }}
               >
                 <div
-                  className={`relative bg-[#1A0F2E]/80 backdrop-blur-md rounded-2xl p-3 sm:p-6 lg:p-8 border border-white/10 transition-all duration-500 transform hover:scale-105 hover:-translate-y-2 shadow-2xl w-full max-w-none sm:max-w-[280px] lg:max-w-[320px] h-auto flex flex-col card-hover-gold ${hoveredBook === book.id ? 'gold-glow' : ''}`}
+                  className={`relative bg-[#1A0F2E]/80 backdrop-blur-md rounded-2xl p-3 sm:p-3 md:p-4 lg:p-4 border border-white/10 transition-all duration-500 transform hover:scale-105 hover:-translate-y-2 shadow-2xl w-full max-w-[260px] flex flex-col card-hover-gold ${hoveredBook === book.id ? 'gold-glow' : ''}`}
                   onClick={(e) => {
                     if (e.target.closest('.add-to-cart-btn') || e.target.closest('.wishlist-btn')) return;
                     handleCardClick(book);
@@ -118,16 +153,25 @@ const featuredBooks = booksResponse?.data?.filter(book => book.featured) ?? [];
                   style={{ cursor: 'pointer' }}
                 >
                   {/* Image */}
-                  <div className="relative mb-3 sm:mb-4 lg:mb-4 flex justify-center mt-2 sm:mt-6">
-                    <div className="relative w-24 sm:w-48 lg:w-44 h-32 sm:h-64 lg:h-60 rounded-lg overflow-hidden shadow-xl transition-transform duration-500">
-                      <img src={book.image} alt={book.title} className="w-full h-full object-cover" />
+                  <div className="relative mb-2 sm:mb-3 lg:mb-3 flex justify-center mt-2 sm:mt-6">
+                    <div className="relative w-[70%] sm:w-[75%] md:w-[80%] aspect-[3/4] rounded-xl overflow-hidden shadow-xl transition-transform duration-500 mx-auto">
+                      <img
+                            src={
+                              book.coverImageUrl ||
+                              book.image ||
+                              "https://via.placeholder.com/300x400?text=No+Image"
+                            }
+                            alt={book.title}
+                            className="w-full h-full object-cover"
+                          />
+
                     </div>
                   </div>
 
                   {/* Details */}
                   <div className="text-center space-y-2 sm:space-y-3 lg:space-y-3 flex-1 flex flex-col">
                     <div className="mb-2 sm:mb-3">
-                      <h3 className="text-sm sm:text-lg lg:text-lg font-bold text-white mb-1 sm:mb-2 group-hover:text-white/90 transition-colors duration-300 leading-tight line-clamp-2">
+                      <h3 className="text-xs sm:text-sm md:text-base font-bold text-white mb-1 sm:mb-2 group-hover:text-white/90 transition-colors duration-300 leading-snug break-words line-clamp-2">
                         {book.title}
                       </h3>
                       <p className="text-white/70 font-medium text-xs sm:text-sm lg:text-sm">by {book.author}</p>
@@ -146,8 +190,8 @@ const featuredBooks = booksResponse?.data?.filter(book => book.featured) ?? [];
                     {/* Price */}
                     <div className="text-center mb-3 sm:mb-4">
                       <div className="flex items-center justify-center space-x-1 sm:space-x-2 mb-1">
-                        <span className="text-lg sm:text-xl lg:text-2xl font-bold text-white">${book.original_price}</span>
-                        <span className="text-xs sm:text-sm text-white/50 line-through">${book.final_price}</span>
+                        <span className="text-lg sm:text-xl lg:text-2xl font-bold text-white">₹{book.original_price}</span>
+                        <span className="text-xs sm:text-sm text-white/50 line-through">₹{book.final_price}</span>
                       </div>
                       <div className="text-xs sm:text-sm text-green-400 font-medium">
                         {Math.round(((book.original_price - book.final_price) / book.original_price) * 100)}% OFF
@@ -155,7 +199,8 @@ const featuredBooks = booksResponse?.data?.filter(book => book.featured) ?? [];
                     </div>
 
                     {/* Actions - All books are available in digital platform */}
-                    <div className="flex flex-row gap-2 w-full mb-4">
+                   <div className="flex flex-row gap-2 w-full mb-4">
+
                       <button
                         onClick={(e) => handleCartAction(e, book)}
                         disabled={animatingCart[book.id]}
@@ -227,7 +272,7 @@ const featuredBooks = booksResponse?.data?.filter(book => book.featured) ?? [];
           <div className="text-center mt-20 pt-8 border-t border-white/10">
             <button
               onClick={() => navigate('/library')}
-              className="group inline-flex items-center bg-[#2D1B3D]/90 backdrop-blur-md hover:bg-[#2D1B3D] text-white px-6 py-3 sm:px-10 sm:py-5 rounded-2xl font-semibold transition-all duration-300 transform hover:scale-105 shadow-xl hover:shadow-2xl border border-white/20 hover:border-white/40"
+              className="group inline-flex items-center justify-center bg-[#2D1B3D]/90 backdrop-blur-md hover:bg-[#2D1B3D] text-white px-6 sm:px-8 md:px-10 py-3 sm:py-4 rounded-2xl font-semibold transition-all duration-300 transform hover:scale-105 shadow-xl hover:shadow-2xl border border-white/20 hover:border-white/40 w-full sm:w-auto"
             >
               <BookOpen className="w-4 h-4 sm:w-6 sm:h-6 mr-2 sm:mr-3 group-hover:rotate-12 transition-transform duration-300" />
               <span className="text-sm sm:text-lg">View All Books</span>

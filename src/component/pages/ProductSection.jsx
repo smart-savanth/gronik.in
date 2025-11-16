@@ -81,10 +81,10 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
   const duplicatedReviews = [...reviews, ...reviews];
   console.log(productId,)
   // Get product data from centralized books data
-  const productData = booksResponse?.data?.find(book => book.id === productId);
+  const productData = booksResponse?.data?.find(book => book._id === productId);
 
   const suggestedBooks = booksResponse?.data?.filter(book => 
-    book.id !== productId && 
+    book._id !== productId && 
     (book.category === productData?.category || book.author === productData?.author)
   ).slice(0, 6) || [];
 
@@ -526,8 +526,8 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
             <div className="bg-[#9B7BB8] rounded-2xl p-6 shadow-lg">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <span className="text-4xl font-bold text-[#2D1B3D]">${enhancedProductData.price}</span>
-                  <span className="text-xl text-[#2D1B3D]/60 line-through">${enhancedProductData.originalPrice}</span>
+                  <span className="text-4xl font-bold text-[#2D1B3D]">₹{enhancedProductData.price}</span>
+                  <span className="text-xl text-[#2D1B3D]/60 line-through">₹{enhancedProductData.originalPrice}</span>
                 </div>
                 <div className="bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-2 rounded-full text-sm font-bold shadow-lg">
                   Save {calculateDiscountPercentage()}% (${enhancedProductData.originalPrice - enhancedProductData.price})
@@ -931,8 +931,8 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
                       </div>
 
                       <div className="flex items-center space-x-1.5 mb-1">
-                        <span className="text-lg font-bold text-white">${book.price}</span>
-                        <span className="text-xs text-white/40 line-through">${book.originalPrice}</span>
+                        <span className="text-lg font-bold text-white">₹{book.price}</span>
+                        <span className="text-xs text-white/40 line-through">₹{book.originalPrice}</span>
                       </div>
                       <div className="text-xs font-bold text-green-400">{book.discount}</div>
                     </div>
@@ -1017,8 +1017,8 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
 
                   <div className="py-1 flex-1 flex flex-col justify-center">
                     <div className="flex items-center justify-center space-x-2 mb-1">
-                      <span className="text-xl lg:text-2xl font-bold text-white">${book.price}</span>
-                      <span className="text-xs lg:text-sm text-white/40 line-through">${book.originalPrice}</span>
+                      <span className="text-xl lg:text-2xl font-bold text-white">₹{book.price}</span>
+                      <span className="text-xs lg:text-sm text-white/40 line-through">₹{book.originalPrice}</span>
                     </div>
                     <div className="text-xs lg:text-sm font-bold text-green-400">
                       {book.discount}

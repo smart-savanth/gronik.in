@@ -8,6 +8,8 @@ import { useGetAllBooksQuery } from '../../utils/booksService';
 
 const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+
   const [isScrolled, setIsScrolled] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -18,6 +20,7 @@ const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
   const [suggestions, setSuggestions] = useState([]);
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+
   
   const navigate = useNavigate();
   const location = useLocation();
@@ -26,6 +29,42 @@ const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
   const suggestionsRef = useRef(null);
   const searchTimeoutRef = useRef(null);
 
+  // ---- CART BADGE STATE (LOCAL STORAGE + LISTENERS) ----
+const [localCartCount, setLocalCartCount] = useState(() => {
+  try {
+    const local = JSON.parse(localStorage.getItem("cart")) || [];
+    return local.length;
+  } catch {
+    return 0;
+  }
+});
+
+useEffect(() => {
+  const update = () => {
+    try {
+      const local = JSON.parse(localStorage.getItem("cart")) || [];
+      setLocalCartCount(local.length);
+    } catch {
+      setLocalCartCount(0);
+    }
+  };
+
+  window.addEventListener("cart-updated", update);
+  window.addEventListener("storage", update);
+
+  return () => {
+    window.removeEventListener("cart-updated", update);
+    window.removeEventListener("storage", update);
+  };
+}, []);
+
+
+
+
+// FINAL COUNT TO SHOW IN BADGE
+const finalCartCount = localCartCount || cartCount;
+
+
    const user = useSelector((state) => state.userAuth.user);
     const { data: booksResponse, isLoading, isError } = useGetAllBooksQuery({
         page: 1,
@@ -33,14 +72,14 @@ const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
       });
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
+      setIsMobile(window.innerWidth <= 1000);
     };
     checkMobile();
     window.addEventListener('resize', checkMobile);
 
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
-      if (window.innerWidth >= 768) {
+      if (window.innerWidth >= 1000) {
         setIsScrolled(currentScrollY > 100);
       } else {
         setIsScrolled(false);
@@ -405,19 +444,19 @@ const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
             </div>
 
             {/* Search Bar & Cart - Center */}
-            <div className="flex-1 flex items-center gap-2 max-w-md">
+            {/* <div className="flex-1 flex items-center gap-2 max-w-md">
               <div className="flex-1">
                 {renderSearchInput(true)}
               </div>
               <Link to="/cart" className="p-2 rounded-lg relative flex-shrink-0">
                 <ShoppingCart className="w-5 h-5 text-gronik-light" />
-                {cartCount > 0 && (
+                {finalCartCount > 0 && (
                   <span className="absolute -top-1 -right-1 bg-gronik-accent text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold">
-                    {cartCount}
+                   {finalCartCount}
                   </span>
                 )}
               </Link>
-            </div>
+            </div> */}
 
             {/* Menu Button - Right */}
             <div className="flex-shrink-0">
@@ -518,23 +557,23 @@ const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
       {!isMobile && (
         <nav
           className={`fixed top-0 left-0 right-0 z-50 bg-gronik-primary/95 backdrop-blur-md shadow-lg border-b border-gronik-secondary/20 
-            ${(!isScrolled || isHovering) ? 'translate-y-0' : '-translate-y-full pointer-events-none'
-            } transition-transform duration-500 ease-in-out`}
+           ${(!isScrolled || isHovering) ? 'translate-y-0' : '-translate-y-full'}
+               transition-transform duration-500 ease-in-out`}
           onMouseEnter={() => isScrolled && setIsHovering(true)}
           onMouseLeave={() => setIsHovering(false)}
         >
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-            <div className="flex items-center justify-between h-24 px-2">
-              <Link to="/" className="flex items-center absolute left-0 -ml-16">
-                <div className="w-40 h-16 flex items-center justify-center">
+        <div className="px-8 max-w-[1400px] mx-auto">
+            <div className="flex items-center justify-between h-24 w-full">
+              {/* LOGO LEFT SIDE */}
+                <Link to="/" className="flex items-center">
                   <img
                     src="/images/logo.png"
                     alt="Gronik Logo"
-                    className="w-full h-full mr-[150px]"
+                    className="w-24 h-24 object-contain"
                   />
-                </div>
-              </Link>
-              <div className="flex items-center space-x-10 ml-48">
+                </Link>
+
+              <div className="flex items-center space-x-10">
                 <Link
                   to="/"
                   className="text-gronik-light hover:text-gronik-accent transition-colors duration-200 font-medium hover:scale-105 transform"
@@ -560,10 +599,13 @@ const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
                   Contact
                 </Link>
               </div>
-              <div className="flex items-center space-x-5 ml-12">
-                <div className="w-64 lg:w-72 xl:w-80">
-                  {renderSearchInput(false)}
-                </div>
+              <div className="flex items-center space-x-5">
+                              {!isMobile && (
+                    <div className="w-[350px]">
+                      {renderSearchInput(false)}
+                    </div>
+                  )}
+
                 <Link to="/wishlist" className="p-2 hover:bg-gronik-secondary/20 rounded-lg transition-colors duration-200 relative group">
                   <Heart className="w-5 h-5 text-gronik-light group-hover:text-gronik-accent transition-colors duration-200" />
                   {wishlistCount > 0 && (
@@ -574,9 +616,9 @@ const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
                 </Link>
                 <Link to="/cart" className="p-2 hover:bg-gronik-secondary/20 rounded-lg transition-colors duration-200 relative group">
                   <ShoppingCart className="w-5 h-5 text-gronik-light group-hover:text-gronik-accent transition-colors duration-200" />
-                  {cartCount > 0 && (
+                  {finalCartCount > 0 && (
                     <span className="absolute -top-1 -right-1 bg-gronik-accent text-white text-xs rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
-                      {cartCount}
+                      {finalCartCount}
                     </span>
                   )}
                 </Link>
@@ -611,7 +653,7 @@ const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
       {/* Floating G Logo - Desktop Only */}
       {!isMobile && (
         <div 
-          className={`fixed top-4 left-4 z-50 transition-all duration-500 ease-in-out ${
+          className={`fixed top-4 -left-1 z-50 transition-all duration-500 ease-in-out ${
             isScrolled && !isHovering
               ? 'opacity-100 scale-100 translate-y-0' 
               : 'opacity-0 scale-75 -translate-y-4 pointer-events-none'

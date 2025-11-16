@@ -60,6 +60,16 @@ const Footer = () => {
               <a href="#" className="bg-gronik-secondary/20 text-gronik-light border border-gronik-secondary/30 rounded-lg px-4 py-2 sm:p-3 text-sm sm:text-base font-medium footer-social-btn instagram-btn">Instagram</a>
               <a href="#" className="bg-gronik-secondary/20 text-gronik-light border border-gronik-secondary/30 rounded-lg px-4 py-2 sm:p-3 text-sm sm:text-base font-medium footer-social-btn twitter-btn">Twitter</a>
             </div>
+            <div className="flex flex-row space-x-10 mt-4">
+                <a href="/terms-and-conditions" className="text-white underline">
+                  Terms and Conditions
+                </a>
+
+                <a href="/privacy-policy" className="text-white underline">
+                  Privacy Policy
+                </a>
+              </div>
+
           </div>
           
           {/* Mobile: Quick Links and Connect With Us side by side */}

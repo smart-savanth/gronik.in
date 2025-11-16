@@ -35,42 +35,88 @@ import { useSelector, useDispatch } from 'react-redux';
 import { addToCart, removeFromCart, updateCartItemQuantity } from './slices/cartSlice';
 import { addToWishlist, removeFromWishlist } from './slices/wishlistSlice';
 import { useNotification } from './hooks/useNotification';
+import TermsAndConditions from './component/pages/TermsAndConditions';
+import PrivacyPolicy from './component/pages/PrivacyPolicy';
 
 function App() {
-  const cart = useSelector(state => state.cart.items);
-  const wishlist = useSelector(state => state.wishlist.items);
+  const [cart, setCart] = useState([]);
+const [wishlist, setWishlist] = useState([]);
   const dispatch = useDispatch();
   const notification = useNotification();
 
   // ENHANCED HANDLERS WITH NOTIFICATIONS
   const handleAddToCart = (book) => {
-    dispatch(addToCart(book));
-    notification.addToCart(book.title);
-  };
+  let local = JSON.parse(localStorage.getItem("cart")) || [];
 
-  const handleRemoveFromCart = (id) => {
-    const bookToRemove = cart.find(item => item.id === id);
-    dispatch(removeFromCart(id));
-    notification.removeFromCart(bookToRemove?.title);
-  };
+  const exists = local.some(item => item.id === book._id || item.id === book.id);
+
+  if (!exists) {
+    local.push({
+      id: book._id || book.id,
+      title: book.title,
+      image: book.coverImageUrl,
+      price: book.final_price,
+      originalPrice: book.original_price,
+      author: book.author,
+      quantity: 1
+    });
+
+    localStorage.setItem("cart", JSON.stringify(local));
+    setCart(local);
+
+    // notify navbar
+    window.dispatchEvent(new Event("cart-updated"));
+  }
+
+  notification.addToCart(book.title);
+};
+
+
+const handleRemoveFromCart = (id) => {
+  const local = JSON.parse(localStorage.getItem("cart")) || [];
+  const updated = local.filter(item => item.id !== id);
+
+  localStorage.setItem("cart", JSON.stringify(updated));
+  setCart(updated);
+
+  window.dispatchEvent(new Event("cart-updated"));
+  notification.removeFromCart();
+};
+
 
   const handleUpdateCartItemQuantity = (id, newQuantity) => {
-    dispatch(updateCartItemQuantity({ id, newQuantity }));
+    
     if (newQuantity > 0) {
       notification.custom('Cart updated successfully!', 'success');
     }
   };
 
-  const handleAddToWishlist = (book) => {
-    dispatch(addToWishlist(book));
-    notification.addToWishlist(book.title);
-  };
+const handleAddToWishlist = (book) => {
+  let local = JSON.parse(localStorage.getItem("wishlist")) || [];
+  if (!local.some(item => item.id === book.id || item.id === book._id)) {
+    local.push({
+      id: book._id || book.id,
+      title: book.title,
+      image: book.coverImageUrl,
+      price: book.final_price,
+      author: book.author
+    });
+    localStorage.setItem("wishlist", JSON.stringify(local));
+    setWishlist(local);
+  }
+
+  window.dispatchEvent(new Event("wishlist-updated"));
+  notification.addToWishlist(book.title);
+};
+
 
   const handleRemoveFromWishlist = (id) => {
     const bookToRemove = wishlist.find(item => item.id === id);
-    dispatch(removeFromWishlist(id));
+    
     notification.removeFromWishlist(bookToRemove?.title);
   };
+
+
 
   // HOME PAGE
   const HomePage = () => (
@@ -155,6 +201,8 @@ function App() {
         <Route path="/my-library" element={<MyLibrarySection />} />
         <Route path="/login" element={<LoginSection />} />
         <Route path="/checkout" element={<CheckoutSection cart={cart} />} />
+        <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicy/>} />
         
         {/* Admin Login Route */}
         <Route path="/admin-login" element={<AdminLogin />} />
