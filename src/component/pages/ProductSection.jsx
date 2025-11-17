@@ -641,8 +641,8 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
             <div className="bg-[#9B7BB8] rounded-2xl p-6 shadow-lg">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <span className="text-4xl font-bold text-[#2D1B3D]">${enhancedProductData.price}</span>
-                  <span className="text-xl text-[#2D1B3D]/60 line-through">${enhancedProductData.originalPrice}</span>
+                  <span className="text-4xl font-bold text-[#2D1B3D]">₹{enhancedProductData.price}</span>
+                  <span className="text-xl text-[#2D1B3D]/60 line-through">₹{enhancedProductData.originalPrice}</span>
                 </div>
                 <div className="bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-2 rounded-full text-sm font-bold shadow-lg">
                   Save {calculateDiscountPercentage()}% (${enhancedProductData.originalPrice - enhancedProductData.price})

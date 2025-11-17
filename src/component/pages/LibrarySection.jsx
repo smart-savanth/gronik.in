@@ -453,8 +453,8 @@ const LibraryPage = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCart, 
                       {/* Price */}
                       <div className="text-center">
                         <div className="flex items-center justify-center space-x-1 mb-1">
-                          <span className="text-sm sm:text-base lg:text-xl font-bold text-white">${book.price}</span>
-                          <span className="text-xs sm:text-sm lg:text-sm text-white/50 line-through">${book.originalPrice}</span>
+                          <span className="text-sm sm:text-base lg:text-xl font-bold text-white">₹{book.price}</span>
+                          <span className="text-xs sm:text-sm lg:text-sm text-white/50 line-through">₹{book.originalPrice}</span>
                         </div>
                         <div className="text-xs sm:text-xs lg:text-sm text-green-400 font-medium">{book.discount}</div>
                       </div>

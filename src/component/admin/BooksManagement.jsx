@@ -420,7 +420,7 @@ const BooksManagement = () => {
                     <td className="px-4 py-3 text-white font-medium">{book.title}</td>
                     <td className="px-4 py-3 text-white/80">{book.author}</td>
                     <td className="px-4 py-3 text-white/80">{book.category}</td>
-                    <td className="px-4 py-3 text-white/80">${book.price.toFixed(2)}</td>
+                    <td className="px-4 py-3 text-white/80">₹{book.price.toFixed(2)}</td>
                     <td className="px-4 py-3 text-white/80">{book.pages}</td>
                     <td className="px-4 py-3 text-white/80">{book.publishedDate}</td>
                     <td className="px-4 py-3">{book.isFeatured ? <Star className="w-4 h-4 text-yellow-400" title="Featured" /> : '-'}</td>

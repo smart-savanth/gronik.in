@@ -140,7 +140,7 @@ const CheckoutSection = ({ cart = [] }) => {
                       <span className="text-xs text-white/60">Qty: {item.quantity}</span>
                     </div>
                     <div className="text-right">
-                      <span className="font-bold text-white">${(item.price * item.quantity).toFixed(2)}</span>
+                      <span className="font-bold text-white">₹{(item.price * item.quantity).toFixed(2)}</span>
                     </div>
                   </div>
                 ))}
@@ -363,21 +363,21 @@ const CheckoutSection = ({ cart = [] }) => {
                 <h4 className="font-semibold text-white mb-2">Order Summary</h4>
                 <div className="flex justify-between text-white/80 text-sm">
                   <span>Subtotal</span>
-                  <span>${subtotal.toFixed(2)}</span>
+                  <span>₹{subtotal.toFixed(2)}</span>
                 </div>
                 {savings > 0 && (
                   <div className="flex justify-between text-green-500 text-sm">
                     <span>You Save</span>
-                    <span>-${savings.toFixed(2)}</span>
+                    <span>-₹{savings.toFixed(2)}</span>
                   </div>
                 )}
                 <div className="flex justify-between text-white/80 text-sm">
                   <span>Tax (8%)</span>
-                  <span>${tax.toFixed(2)}</span>
+                  <span>₹{tax.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-white text-base font-bold mt-2">
                   <span>Total</span>
-                  <span>${total.toFixed(2)}</span>
+                  <span>₹{total.toFixed(2)}</span>
                 </div>
               </div>
             </div>

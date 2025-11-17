@@ -155,8 +155,8 @@ const FeaturedBooksSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveF
                     {/* Price */}
                     <div className="text-center mb-3 sm:mb-4">
                       <div className="flex items-center justify-center space-x-1 sm:space-x-2 mb-1">
-                        <span className="text-lg sm:text-xl lg:text-2xl font-bold text-white">${book.price}</span>
-                        <span className="text-xs sm:text-sm text-white/50 line-through">${book.originalPrice}</span>
+                        <span className="text-lg sm:text-xl lg:text-2xl font-bold text-white">₹{book.price}</span>
+                        <span className="text-xs sm:text-sm text-white/50 line-through">₹{book.originalPrice}</span>
                       </div>
                       <div className="text-xs sm:text-sm text-green-400 font-medium">{book.discount}</div>
                     </div>

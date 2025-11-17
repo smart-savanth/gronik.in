@@ -152,11 +152,11 @@ const CartSection = ({
                         <div className="flex flex-col items-end">
                           {item.originalPrice !== item.price && (
                             <span className="text-sm text-gronik-light/60 line-through">
-                              ${item.originalPrice.toFixed(2)}
+                              ₹{item.originalPrice.toFixed(2)}
                             </span>
                           )}
                           <span className="text-lg font-bold text-gronik-accent">
-                            ${item.price.toFixed(2)}
+                            ₹{item.price.toFixed(2)}
                           </span>
                         </div>
                       </div>
@@ -176,22 +176,22 @@ const CartSection = ({
                   <div className="space-y-4 mb-6">
                     <div className="flex justify-between text-gronik-light">
                       <span>Subtotal ({cart.reduce((sum, item) => sum + item.quantity, 0)} items)</span>
-                      <span>${subtotal.toFixed(2)}</span>
+                      <span>₹{subtotal.toFixed(2)}</span>
                     </div>
                     {savings > 0 && (
                       <div className="flex justify-between text-green-400">
                         <span>You Save</span>
-                        <span>-${savings.toFixed(2)}</span>
+                        <span>-₹{savings.toFixed(2)}</span>
                       </div>
                     )}
                     <div className="flex justify-between text-gronik-light">
                       <span>Tax (8%)</span>
-                      <span>${tax.toFixed(2)}</span>
+                      <span>₹{tax.toFixed(2)}</span>
                     </div>
                     <div className="border-t border-gronik-accent/20 pt-4">
                       <div className="flex justify-between text-lg font-bold text-white">
                         <span>Total</span>
-                        <span className="text-gronik-accent">${total.toFixed(2)}</span>
+                        <span className="text-gronik-accent">₹{total.toFixed(2)}</span>
                       </div>
                     </div>
                   </div>
@@ -331,22 +331,22 @@ const CartSection = ({
                   <div className="space-y-4 mb-6">
                     <div className="flex justify-between text-gronik-light">
                       <span>Subtotal ({cart.reduce((sum, item) => sum + item.quantity, 0)} items)</span>
-                      <span>${subtotal.toFixed(2)}</span>
+                      <span>₹{subtotal.toFixed(2)}</span>
                     </div>
                     {savings > 0 && (
                       <div className="flex justify-between text-green-400">
                         <span>You Save</span>
-                        <span>-${savings.toFixed(2)}</span>
+                        <span>-₹{savings.toFixed(2)}</span>
                       </div>
                     )}
                     <div className="flex justify-between text-gronik-light">
                       <span>Tax (8%)</span>
-                      <span>${tax.toFixed(2)}</span>
+                      <span>₹{tax.toFixed(2)}</span>
                     </div>
                     <div className="border-t border-gronik-accent/20 pt-4">
                       <div className="flex justify-between text-base font-bold text-white">
                         <span>Total</span>
-                        <span className="text-gronik-accent">${total.toFixed(2)}</span>
+                        <span className="text-gronik-accent">₹{total.toFixed(2)}</span>
                       </div>
                     </div>
                   </div>

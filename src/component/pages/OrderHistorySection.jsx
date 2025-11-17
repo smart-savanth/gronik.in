@@ -210,7 +210,7 @@ const OrderHistorySection = () => {
                     </div>
                     <div className="text-right">
                       <p className="text-white/60 text-sm">Total</p>
-                      <p className="text-[#9B7BB8] font-bold">${order.total}</p>
+                      <p className="text-[#9B7BB8] font-bold">₹{order.total}</p>
                     </div>
                     <button
                       onClick={() => handleViewOrder(order)}
@@ -232,7 +232,7 @@ const OrderHistorySection = () => {
                   </div>
                   <div className="flex items-center space-x-2">
                     <span className="text-white/60 text-xs">{new Date(order.date).toLocaleDateString()}</span>
-                    <span className="text-[#9B7BB8] font-bold text-xs">${order.total}</span>
+                    <span className="text-[#9B7BB8] font-bold text-xs">₹{order.total}</span>
                     <button
                       onClick={() => handleViewOrder(order)}
                       className="w-9 h-9 flex items-center justify-center bg-[#9B7BB8]/20 hover:bg-[#9B7BB8]/30 text-white rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#9B7BB8]"
@@ -254,7 +254,7 @@ const OrderHistorySection = () => {
                       <div className="flex-1 min-w-0">
                         <h4 className="text-white font-medium text-sm truncate">{item.title}</h4>
                         <p className="text-white/60 text-xs">by {item.author}</p>
-                        <p className="text-[#9B7BB8] font-medium text-sm">${item.price}</p>
+                        <p className="text-[#9B7BB8] font-medium text-sm">₹{item.price}</p>
                       </div>
                     </div>
                   ))}
@@ -272,7 +272,7 @@ const OrderHistorySection = () => {
                         <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
                       </div>
                       <h4 className="text-white font-medium text-xs truncate w-14 text-center">{item.title}</h4>
-                      <span className="text-[#9B7BB8] font-medium text-xs">${item.price}</span>
+                      <span className="text-[#9B7BB8] font-medium text-xs">₹{item.price}</span>
                     </div>
                   ))}
                   {order.items.length > 3 && (
@@ -341,7 +341,7 @@ const OrderHistorySection = () => {
                     <CreditCard className="w-4 h-4 text-[#9B7BB8]" />
                     <span className="text-white/60 text-sm">Total Amount</span>
                   </div>
-                  <p className="text-[#9B7BB8] font-bold text-lg">${selectedOrder.total}</p>
+                  <p className="text-[#9B7BB8] font-bold text-lg">₹{selectedOrder.total}</p>
                 </div>
               </div>
 
@@ -357,7 +357,7 @@ const OrderHistorySection = () => {
                       <div className="flex-1">
                         <h4 className="text-white font-medium">{item.title}</h4>
                         <p className="text-white/60 text-sm">by {item.author}</p>
-                        <p className="text-[#9B7BB8] font-medium">${item.price}</p>
+                        <p className="text-[#9B7BB8] font-medium">₹{item.price}</p>
                       </div>
                       <div className="text-right">
                         <span className="text-white/60 text-sm">{item.format}</span>
