@@ -98,7 +98,7 @@ For more information about our privacy practices, if you have questions, or if y
 Email: Gronikonline@gmail.com`
 
 
-const tnc=`
+const tnc=` 
 Welcome to Gronik! These Terms and Conditions govern your access to and use of our website and all associated services, products, content, and features (the "Service").
 
 By accessing or using the Service, you confirm that you have read, understood, and agree to be bound by these Terms and our Privacy Policy. If you do not agree with any part of these Terms, you must not use the Service.
