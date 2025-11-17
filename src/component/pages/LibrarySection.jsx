@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ShoppingCart, Heart, Star, Filter, ChevronDown, Check, ExternalLink, BookOpen } from 'lucide-react';
+import { useGetAllBooksQuery } from "../../utils/booksService";
+
 
 /** =========================
  *  Centralized Books Data
@@ -224,7 +226,28 @@ const LibraryPage = ({
   const [animatingCart, setAnimatingCart] = useState({});
   const [animatingWishlist, setAnimatingWishlist] = useState({});
 
-  const books = centralizedBooksData;
+ 
+
+  // Fetch books from backend
+const { data: booksResponse, isLoading, isError } = useGetAllBooksQuery({
+  page: 1,
+  pageSize: 1000, // load all
+});
+
+// Convert backend structure → frontend structure
+const books = booksResponse?.data?.map(book => ({
+  id: book._id,
+  title: book.title,
+  author: book.author,
+  category: book.category,
+  price: Number(book.final_price),
+  originalPrice: Number(book.original_price),
+  rating: book.rating || 4.5,
+  image: book.coverImageUrl || book.image || "https://via.placeholder.com/300x400?text=No+Image",
+  description: book.description,
+  featured: book.featured,
+})) || [];
+
   const categories = ['All', ...new Set(books.map(b => b.category))];
 
   const filteredBooks = books.filter(book => {
@@ -303,42 +326,104 @@ const LibraryPage = ({
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-60 h-60 bg-[#2D1B3D] rounded-full blur-3xl"></div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 lg:pt-32 relative z-10">
-        {/* Header + Filters */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8 lg:mb-16 gap-6 pt-16 lg:pt-0">
-          <div className="flex-1"></div>
-          <div className="flex items-center justify-center lg:justify-end">
-            <div className="relative">
-              <button
-                onClick={() => setIsFilterOpen(!isFilterOpen)}
-                className="flex items-center space-x-2 bg-[#2D1B3D]/90 backdrop-blur-sm text-white px-6 py-3 rounded-full border border-[#2D1B3D]/30 hover:bg-[#2D1B3D] transition-all duration-300 shadow-lg hover:shadow-xl font-medium min-w-[140px] justify-center"
-              >
-                <Filter className="w-5 h-5" />
-                <span className="truncate">{selectedCategory}</span>
-                <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isFilterOpen ? 'rotate-180' : ''}`} />
-              </button>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 lg:pt-28 relative z-10">
 
-              {isFilterOpen && (
-                <div className="absolute top-full mt-2 left-1/2 transform -translate-x-1/2 lg:left-auto lg:right-0 lg:transform-none bg-[#2D1B3D]/95 backdrop-blur-md rounded-2xl border border-[#3D2A54]/50 shadow-2xl min-w-48 z-50">
-                  {['All', ...new Set(books.map(b => b.category))].map(category => (
-                    <button
-                      key={category}
-                      onClick={() => {
-                        setSelectedCategory(category);
-                        setIsFilterOpen(false);
-                      }}
-                      className={`w-full text-left px-4 py-3 transition-all duration-200 first:rounded-t-2xl last:rounded-b-2xl ${
-                        selectedCategory === category ? 'bg-[#3D2A54] text-white font-medium' : 'text-white/80 hover:bg-[#3D2A54]/50 hover:text-white'
-                      }`}
-                    >
-                      {category}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
+      {/* 🔍 Search + Filter Wrapper */}
+<div className="w-full mb-8 space-y-2">
+
+{/* 🌟 MOBILE — Search + Filter SIDE BY SIDE */}
+<div className="mt-2 flex gap-2 bg-[#2D1B3D]/95 backdrop-blur-md rounded-2xl border border-[#3D2A54]/50 shadow-2xl p-2 lg:hidden">
+  
+  {/* Search Bar */}
+  <input
+    type="text"
+    value={searchQuery}
+    onChange={(e) => {
+      const value = e.target.value;
+      const params = new URLSearchParams(location.search);
+      if (value) params.set("search", value);
+      else params.delete("search");
+      navigate(`/library?${params.toString()}`);
+    }}
+    placeholder="Search books..."
+    className="flex-1 px-4 py-3 text-sm rounded-xl bg-[#2D1B3D]/90 text-white placeholder-white/60 border border-white/20 focus:outline-none focus:ring-2 focus:ring-[#B894D1]"
+  />
+
+  {/* Filter Button */}
+  <button
+    onClick={() => setIsFilterOpen(!isFilterOpen)}
+    className="flex items-center gap-2 bg-[#2D1B3D]/90 text-white px-4 py-3 rounded-xl border border-[#2D1B3D]/30 hover:bg-[#2D1B3D] transition-all shadow-lg"
+  >
+    <Filter className="w-5 h-5" />
+    <ChevronDown className={`w-4 h-4 transition-transform ${isFilterOpen ? 'rotate-180' : ''}`} />
+  </button>
+</div>
+
+
+  {/* 📌 Dropdown (Mobile + Desktop shared) */}
+  {isFilterOpen && (
+    <div className="mt-2 flex flex-col gap-2 bg-[#2D1B3D]/95 backdrop-blur-md rounded-2xl border border-[#3D2A54]/50 shadow-2xl p-2 lg:hidden">
+
+      {['All', ...new Set(books.map(b => b.category))].map(category => (
+        <button
+          key={category}
+          onClick={() => {
+            setSelectedCategory(category);
+            setIsFilterOpen(false);
+          }}
+          className={`w-full text-left px-4 py-3 rounded-xl transition ${
+            selectedCategory === category
+              ? 'bg-[#3D2A54] text-white font-medium'
+              : 'text-white/80 hover:bg-[#3D2A54]/50 hover:text-white'
+          }`}
+        >
+          {category}
+        </button>
+      ))}
+    </div>
+  )}
+
+  {/* 💻 DESKTOP — Search on top, Filter on right */}
+  <div className="hidden lg:flex items-center justify-between mt-4 block ">
+    {/* Desktop Filter */}
+    <div className="relative">
+      <button
+        onClick={() => setIsFilterOpen(!isFilterOpen)}
+        className="flex items-center gap-2 bg-[#2D1B3D]/90 text-white px-6 py-3 rounded-xl border border-[#2D1B3D]/30 hover:bg-[#2D1B3D] transition shadow-lg"
+      >
+        <Filter className="w-5 h-5" />
+        <span>{selectedCategory}</span>
+        <ChevronDown className={`w-4 h-4 transition-transform ${isFilterOpen ? 'rotate-180' : ''}`} />
+      </button>
+
+      {/* Desktop Dropdown */}
+      {isFilterOpen && (
+        <div className="absolute left-0 mt-2 bg-[#2D1B3D]/95 backdrop-blur-md rounded-2xl border border-[#3D2A54]/50 shadow-2xl w-48 z-50">
+
+          {['All', ...new Set(books.map(b => b.category))].map(category => (
+            <button
+              key={category}
+              onClick={() => {
+                setSelectedCategory(category);
+                setIsFilterOpen(false);
+              }}
+              className={`w-full text-left px-4 py-3 transition ${
+                selectedCategory === category
+                  ? 'bg-[#3D2A54] text-white font-medium'
+                  : 'text-white/80 hover:bg-[#3D2A54]/50 hover:text-white'
+              }`}
+            >
+              {category}
+            </button>
+          ))}
+
         </div>
+      )}
+    </div>
+  </div>
+
+</div>
+
 
         {/* Books Grid */}
         <div className="flex justify-center mb-12">
@@ -388,8 +473,8 @@ const LibraryPage = ({
                       </div>
                       <div className="text-center">
                         <div className="flex items-center justify-center space-x-1 mb-1">
-                          <span className="text-sm sm:text-base lg:text-xl font-bold text-white">${book.price}</span>
-                          <span className="text-xs sm:text-sm lg:text-sm text-white/50 line-through">${book.originalPrice}</span>
+                          <span className="text-sm sm:text-base lg:text-xl font-bold text-white">₹{book.price}</span>
+                          <span className="text-xs sm:text-sm lg:text-sm text-white/50 line-through">₹{book.originalPrice}</span>
                         </div>
                         <div className="text-xs sm:text-xs lg:text-sm text-green-400 font-medium">{book.discount}</div>
                       </div>

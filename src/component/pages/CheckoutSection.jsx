@@ -8,7 +8,23 @@ const steps = [
   { label: 'Success', icon: Smile },
 ];
 
-const CheckoutSection = ({ cart = [] }) => {
+const CheckoutSection = () => {
+  const [cart, setCart] = useState([]);
+  const [transactionError, setTransactionError] = useState("");
+
+  React.useEffect(() => {
+    const stored = JSON.parse(localStorage.getItem("cart")) || [];
+    setCart(stored);
+  }, []);
+
+  React.useEffect(() => {
+    const update = () => {
+      const stored = JSON.parse(localStorage.getItem("cart")) || [];
+      setCart(stored);
+    };
+    window.addEventListener("storage", update);
+    return () => window.removeEventListener("storage", update);
+  }, []);
   const [step, setStep] = useState(1);
   const [orderPlaced, setOrderPlaced] = useState(false);
 
@@ -21,12 +37,43 @@ const CheckoutSection = ({ cart = [] }) => {
   };
   
   const handleBack = () => setStep(s => Math.max(s - 1, 1));
-  
-  const handlePlaceOrder = () => {
-    // Payment will be handled by server
+ const handlePlaceOrder = async () => {
+  setTransactionError("");
+
+  // 1) Start fake payment
+  const payment = await simulateTransaction();
+
+  if (payment.status === "success") {
+    // 2) Clear cart
+    localStorage.setItem("cart", JSON.stringify([]));
+    window.dispatchEvent(new Event("storage"));
+
+    // 3) Go to success screen
     setOrderPlaced(true);
     setStep(3);
+    
+  } else {
+    // 4) Payment failed (do NOT clear cart)
+    setTransactionError("Transaction failed. Please try again.");
+  }
+};
+
+
+  const simulateTransaction = async () => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+
+        const success = false; // transaction api should be added here
+  
+        if (success) {
+          resolve({ status: "success", transactionId: "TXN" + Date.now() });
+        } else {
+          resolve({ status: "failed" });
+        }
+      }, 1500); 
+    });
   };
+  
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#9B7BB8] to-[#8A6AA7] w-full px-2 sm:px-4 md:px-6 lg:px-8 flex flex-col items-center pt-24 sm:pt-28 md:pt-32 pb-12 sm:pb-16 md:pb-20">
@@ -87,7 +134,7 @@ const CheckoutSection = ({ cart = [] }) => {
                         <p className="text-white/80 text-xs sm:text-sm truncate">by {item.author}</p>
                       </div>
                       <div className="text-right">
-                        <span className="font-bold text-white text-sm sm:text-base">${(item.price * (item.quantity || 1)).toFixed(2)}</span>
+                        <span className="font-bold text-white text-sm sm:text-base">₹{(item.price * (item.quantity || 1)).toFixed(2)}</span>
                       </div>
                     </div>
                   ))}
@@ -97,18 +144,18 @@ const CheckoutSection = ({ cart = [] }) => {
                 <div className="bg-[#9B7BB8]/10 rounded-xl p-4 mb-6">
                   <div className="flex justify-between text-white/80 text-sm mb-2">
                     <span>Subtotal ({cart.length} {cart.length === 1 ? 'item' : 'items'})</span>
-                    <span>${subtotal.toFixed(2)}</span>
+                    <span>₹{subtotal.toFixed(2)}</span>
                   </div>
                   {savings > 0 && (
                     <div className="flex justify-between text-green-500 text-sm mb-2">
                       <span>You Save</span>
-                      <span>-${savings.toFixed(2)}</span>
+                      <span>-₹{savings.toFixed(2)}</span>
                     </div>
                   )}
                   <div className="border-t border-white/20 pt-2 mt-2">
                     <div className="flex justify-between text-white text-lg font-bold">
                       <span>Total</span>
-                      <span>${total.toFixed(2)}</span>
+                      <span>₹{total.toFixed(2)}</span>
                     </div>
                   </div>
                 </div>
@@ -151,30 +198,35 @@ const CheckoutSection = ({ cart = [] }) => {
                   {cart.map(item => (
                     <div key={item.id} className="flex items-center justify-between text-white/80 text-sm">
                       <span className="truncate flex-1 mr-4">{item.title}</span>
-                      <span className="font-semibold text-white">${(item.price * (item.quantity || 1)).toFixed(2)}</span>
+                      <span className="font-semibold text-white">₹{(item.price * (item.quantity || 1)).toFixed(2)}</span>
                     </div>
                   ))}
                 </div>
               </div>
 
               {/* Order Summary */}
+              {transactionError && (
+                <div className="bg-red-500/20 border border-red-500/40 text-red-300 p-3 rounded-lg text-center mt-3">
+                  {transactionError}
+                </div>
+              )}
               <div className="bg-[#9B7BB8]/10 rounded-xl p-4">
                 <h4 className="font-semibold text-white mb-3 text-sm sm:text-base">Order Summary</h4>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between text-white/80">
                     <span>Subtotal ({cart.length} {cart.length === 1 ? 'item' : 'items'})</span>
-                    <span>${subtotal.toFixed(2)}</span>
+                    <span>₹{subtotal.toFixed(2)}</span>
                   </div>
                   {savings > 0 && (
                     <div className="flex justify-between text-green-500">
                       <span>You Save</span>
-                      <span>-${savings.toFixed(2)}</span>
+                      <span>-₹{savings.toFixed(2)}</span>
                     </div>
                   )}
                   <div className="border-t border-white/20 pt-2 mt-2">
                     <div className="flex justify-between text-white text-base sm:text-lg font-bold">
                       <span>Total</span>
-                      <span>${total.toFixed(2)}</span>
+                      <span>₹{total.toFixed(2)}</span>
                     </div>
                   </div>
                 </div>

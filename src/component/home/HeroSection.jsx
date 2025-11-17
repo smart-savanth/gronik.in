@@ -7,20 +7,40 @@ import { useGetAllBooksQuery } from '../../utils/booksService';
 const HeroSection = ({ cart = [], wishlist = [], onAddToCart, onAddToWishlist, onRemoveFromCart, onRemoveFromWishlist }) => {
   const [activeBook, setActiveBook] = useState(0); // Start with first book
   const [isAnimating, setIsAnimating] = useState(false);
+  const [currentIndex, setCurrentIndex] = useState(0);
   const navigate = useNavigate();
       const { data: booksResponse, isLoading, isError } = useGetAllBooksQuery({
               page: 1,
               pageSize: 10,
             });
   // Filter books marked as hero from centralized data
-const heroBooks = booksResponse?.data?.filter(book => book.hero === true) || [];
+const heroBooks = (booksResponse?.data || [])
+  .filter(book => book.featured === true)
+  .map(book => ({
+    id: book._id,
+    title: book.title,
+    author: book.author,
+    image: book.coverImageUrl,
+    rating: book.rating ?? 4.5,
+    reviews: book.reviews ?? 0
+  }));
+  console.log("Hero Books:", heroBooks);
+console.log("Books Response:", booksResponse);
+
+
   
-  // Set the center book as active initially
-  useEffect(() => {
-    if (heroBooks.length > 0) {
-      setActiveBook(Math.floor(heroBooks.length / 2));
-    }
-  }, [heroBooks.length]);
+// Set the center book as active initially (depend on length only)
+useEffect(() => {
+  if (!heroBooks || heroBooks.length === 0) return;
+
+  setActiveBook(prev => {
+    // keep existing valid index, otherwise default to center
+    if (prev >= 0 && prev < heroBooks.length) return prev;
+    return Math.floor(heroBooks.length / 2);
+  });
+}, [heroBooks.length]);
+
+
 
   const handleBookClick = (index) => {
     if (index !== activeBook && !isAnimating) {
@@ -30,34 +50,48 @@ const heroBooks = booksResponse?.data?.filter(book => book.hero === true) || [];
     }
   };
 
-  const getBookPosition = (index) => {
-    const diff = index - activeBook;
-    const positions = {
-      '-2': { x: -180, y: 40, scale: 0.6, zIndex: 1, opacity: 0.6, rotation: -20 },
-      '-1': { x: -100, y: 25, scale: 0.75, zIndex: 3, opacity: 1, rotation: -10 },
-      '0': { x: 0, y: 0, scale: 1, zIndex: 5, opacity: 1, rotation: 0 },
-      '1': { x: 100, y: 25, scale: 0.75, zIndex: 3, opacity: 1, rotation: 10 },
-      '2': { x: 180, y: 40, scale: 0.6, zIndex: 1, opacity: 0.6, rotation: 20 }
-    };
+useEffect(() => {
+  if (!heroBooks || heroBooks.length === 0) return;
 
-    let normalizedDiff = diff;
-    if (diff > 2) normalizedDiff = diff - heroBooks.length;
-    if (diff < -2) normalizedDiff = diff + heroBooks.length;
+  const id = setInterval(() => {
+    setActiveBook(prev => (prev + 1) % heroBooks.length);
+  }, 4000);
 
-    return positions[normalizedDiff.toString()] || { x: 0, y: 0, scale: 0, zIndex: 0, opacity: 0, rotation: 0 };
+  return () => clearInterval(id);
+}, [heroBooks.length]);
+
+
+
+const getBookPosition = (index) => {
+  const total = Math.max(1, heroBooks.length);
+  // wrap diff into range [0 .. total-1]
+  let diff = (index - activeBook + total) % total;
+  // convert to negative when it's shorter to go the other way
+  if (diff > Math.floor(total / 2)) diff -= total;
+
+  const positions = {
+    "-2": { x: -180, y: 40, scale: 0.6, zIndex: 1, opacity: 0.6, rotation: -20 },
+    "-1": { x: -100, y: 25, scale: 0.75, zIndex: 3, opacity: 1, rotation: -10 },
+    "0":  { x: 0,    y: 0,  scale: 1,    zIndex: 5, opacity: 1, rotation: 0 },
+    "1":  { x: 100,  y: 25, scale: 0.75, zIndex: 3, opacity: 1, rotation: 10 },
+    "2":  { x: 180,  y: 40, scale: 0.6, zIndex: 1, opacity: 0.6, rotation: 20 }
   };
 
-  const navigateToLibrary = () => {
-    // Navigate to the product page of the current active book
-    if (currentBook) {
-      navigate(`/product/${currentBook.id}`, { state: { from: 'hero' } });
-    } else {
-      navigate('/library');
-    }
-  };
+  return positions[diff] || { x: 0, y: 0, scale: 0, zIndex: 0, opacity: 0, rotation: 0 };
+};
+
+
+const navigateToLibrary = () => {
+  if (currentBook?.id) {
+    navigate(`/product/${currentBook.id}`);
+  }
+};
+
+
 
   // Get the current active book data
-  const currentBook = heroBooks[activeBook];
+  const currentBook = heroBooks?.[activeBook] ?? null;
+
 
   if (!heroBooks || heroBooks.length === 0) {
     return (
@@ -69,6 +103,21 @@ const heroBooks = booksResponse?.data?.filter(book => book.hero === true) || [];
       </div>
     );
   }
+
+    if (isLoading) {
+  return (
+    <div className="min-h-screen flex items-center justify-center text-white">
+      Loading books...
+    </div>
+  );
+}
+if (heroBooks.length === 0) {
+  return (
+    <div className="min-h-screen flex items-center justify-center text-white">
+      No hero books found
+    </div>
+  );
+}
 
   return (
     <div
@@ -90,14 +139,15 @@ const heroBooks = booksResponse?.data?.filter(book => book.hero === true) || [];
       </div>
 
       {/* Main Content Container - REDUCED TOP PADDING */}
-      <div className="relative z-10 min-h-screen flex items-center pt-8 sm:pt-12 lg:pt-16">
+     <div className="relative z-10 min-h-screen flex flex-col justify-center items-center pt-8 sm:pt-12 lg:pt-16 px-4 sm:px-6 lg:px-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
           
           {/* DESKTOP LAYOUT - IMPROVED SPACING & MOVED SLIGHTLY LEFT */}
-          <div className="hidden lg:flex lg:grid lg:grid-cols-2 gap-8 lg:gap-12 xl:gap-16 items-center min-h-[calc(100vh-6rem)]">
+          <div className="flex flex-col-reverse lg:grid lg:grid-cols-2 items-center gap-6 md:gap-8 lg:gap-12 xl:gap-16 min-h-[calc(100vh-6rem)]">
+
             
             {/* Left Content - MOVED SLIGHTLY LEFT & REDUCED SPACING */}
-            <div className="flex flex-col justify-center space-y-3 lg:space-y-4 xl:space-y-5 max-w-full text-center lg:text-left w-full lg:pr-8 xl:pr-12 lg:-ml-8 xl:-ml-12">
+            <div className="flex flex-col justify-center space-y-3 lg:space-y-4 xl:space-y-5 max-w-full text-center lg:text-left w-full lg:pr-8 xl:pr-12 lg:ml-4 xl:ml-30">
               
               {/* Main Heading - DECREASED FONT SIZE TO KEEP ON 2 LINES */}
               <div className="animate-smooth-entry">
@@ -132,7 +182,11 @@ const heroBooks = booksResponse?.data?.filter(book => book.hero === true) || [];
               <div className="animate-smooth-entry">
                 <div
                   className="bg-white/20 backdrop-blur-md rounded-2xl p-4 lg:p-5 xl:p-6 border border-white/30 hover:bg-white/25 transition-all duration-300 group max-w-md mx-auto lg:mx-0 cursor-pointer"
-                  onClick={navigateToLibrary}
+                  onClick={() => {
+                      if (!currentBook) return;
+                      navigate(`/product/${currentBook.id}`);
+                    }}
+
                   tabIndex={0}
                   role="button"
                   aria-label="Explore the book details"
@@ -166,7 +220,11 @@ const heroBooks = booksResponse?.data?.filter(book => book.hero === true) || [];
               {/* CTA Button - EXPLORE NOW */}
               <div className="animate-smooth-entry">
                 <button 
-                  onClick={navigateToLibrary}
+                  onClick={() => {
+                    if (!currentBook) return;
+                    navigate(`/product/${currentBook.id}`);
+                  }}
+
                   className="bg-gradient-to-r from-[#2D1B3D] to-[#4A3B5C] text-white px-6 py-3 md:px-8 md:py-4 lg:px-10 lg:py-5 rounded-2xl font-semibold text-base md:text-lg lg:text-xl hover:from-[#4A3B5C] hover:to-[#2D1B3D] transition-all duration-500 flex items-center justify-center space-x-3 group shadow-2xl hover:shadow-3xl transform hover:scale-105 hover:-translate-y-2 w-full max-w-sm mx-auto lg:w-fit lg:mx-0"
                 >
                   <span>Explore The Book</span>
@@ -176,11 +234,11 @@ const heroBooks = booksResponse?.data?.filter(book => book.hero === true) || [];
             </div>
 
             {/* Right Side - Books Carousel */}
-            <div className="flex justify-center lg:justify-end w-full">
+            <div className="flex justify-center lg:justify-end w-full scale-[0.55] sm:scale-[0.7] md:scale-[0.85] lg:scale-100 origin-top">
               <div className="relative w-full max-w-lg lg:max-w-2xl xl:max-w-4xl h-[300px] lg:h-[500px] xl:h-[600px] 2xl:h-[700px]">
 
                 {/* 3D Book Carousel */}
-                <div className="absolute inset-0 flex items-center justify-center">
+                <div className="absolute inset-0 flex items-center justify-center ">
                   {heroBooks.map((book, index) => {
                     const position = getBookPosition(index);
                     const isActive = index === activeBook;
@@ -268,155 +326,7 @@ const heroBooks = booksResponse?.data?.filter(book => book.hero === true) || [];
             </div>
           </div>
 
-          {/* MOBILE LAYOUT - INCREASED HEADING SIZE & CARD WIDTH */}
-          <div className="flex flex-col lg:hidden gap-4 items-center min-h-[calc(100vh-5rem)] justify-center px-4">
-            
-            {/* 1. Main Heading - INCREASED SIZE FOR MOBILE */}
-            <div className="animate-smooth-entry text-center w-full mb-3">
-              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold leading-tight text-[#2D1B3D] px-2">
-                Where every page
-              </h1>
-              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold leading-tight text-[#2D1B3D] px-2">
-                opens a new world
-              </h2>
-            </div>
 
-            {/* 2. Books Carousel - INCREASED WIDTH TO SHOW SIDE BOOKS */}
-            <div className="flex justify-center w-full mb-4">
-              <div className="relative w-full max-w-[600px] sm:max-w-[700px] md:max-w-[800px] h-[160px] sm:h-[180px] md:h-[220px]">
-                {/* 3D Book Carousel */}
-                <div className="absolute inset-0 flex items-center justify-center">
-                  {heroBooks.map((book, index) => {
-                    const position = getBookPosition(index);
-                    const isActive = index === activeBook;
-                    
-                    return (
-                      <div
-                        key={book.id}
-                        className={`absolute transition-all duration-700 ease-out cursor-pointer ${
-                          isActive ? 'cursor-default' : 'hover:scale-105 hover:-translate-y-1'
-                        }`}
-                        style={{
-                          transform: `translateX(${position.x * 0.4}px) translateY(${position.y * 0.4}px) scale(${position.scale}) rotate(${position.rotation * 0.3}deg)`,
-                          zIndex: position.zIndex,
-                          opacity: position.opacity
-                        }}
-                        onClick={() => handleBookClick(index)}
-                      >
-                        <div className={`relative ${isActive ? 'animate-float-slow' : ''}`}>
-                          {/* Book Container - INCREASED WIDTH FOR MOBILE */}
-                          <div className="book-card-container-mobile">
-                            <div className="book-inner-container-mobile">
-                              {/* Book Image from Library Data */}
-                              <img 
-                                src={book.image} 
-                                alt={book.title}
-                                className="book-image-uniform-mobile"
-                                onError={(e) => {
-                                  // Fallback to placeholder if image fails to load
-                                  e.target.style.display = 'none';
-                                  e.target.nextSibling.style.display = 'flex';
-                                }}
-                              />
-                              
-                              {/* Fallback Book Design */}
-                              <div className="book-fallback-uniform-mobile" style={{ display: 'none' }}>
-                                {/* Book spine effect */}
-                                <div className="absolute left-0.5 top-0.5 bottom-0.5 w-1 bg-gradient-to-b from-slate-600 to-slate-800 rounded-l-md"></div>
-                                
-                                {/* Book content */}
-                                <div className="text-white text-xs font-bold leading-tight z-10 relative text-center p-1">
-                                  {book.title?.substring(0, 8)}...
-                                </div>
-                                
-                                <div className="flex flex-col items-center z-10 relative">
-                                  <div className="text-white/70 text-xs">{book.author?.substring(0, 6)}...</div>
-                                  <div className="flex items-center space-x-0.5">
-                                    <span className="text-yellow-400 text-xs">★</span>
-                                    <span className="text-white text-xs">{book.rating}</span>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                          
-                          {/* Enhanced shadow for active book */}
-                          {isActive && (
-                            <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-purple-500/20 to-pink-500/20 blur-lg scale-110 pointer-events-none"></div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-
-            {/* 3. Featured Book Card - INCREASED WIDTH FOR MOBILE */}
-            <div className="animate-smooth-entry w-full mb-4">
-              <div
-                className="bg-white/20 backdrop-blur-md rounded-2xl p-4 sm:p-5 border border-white/30 hover:bg-white/25 transition-all duration-300 group max-w-md mx-auto cursor-pointer"
-                onClick={navigateToLibrary}
-                tabIndex={0}
-                role="button"
-                aria-label="Explore the book details"
-                style={{ outline: 'none' }}
-              >
-                <div className="flex items-center space-x-4">
-                  <div className="w-12 h-16 sm:w-14 sm:h-18 bg-gradient-to-br from-[#4A3B5C] to-[#2D1B3D] rounded-lg shadow-lg flex items-center justify-center group-hover:scale-105 transition-transform duration-300 flex-shrink-0">
-                    <Play className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-sm sm:text-base font-bold text-[#2D1B3D] group-hover:text-[#1A0F26] transition-colors duration-300 truncate">
-                      {currentBook?.title || 'Select a Book'}
-                    </h3>
-                    <p className="text-[#2D1B3D]/70 text-xs sm:text-sm group-hover:text-[#2D1B3D]/80 transition-colors duration-300 truncate">
-                      by {currentBook?.author || 'Unknown Author'}
-                    </p>
-                    <div className="flex items-center space-x-1 mt-1">
-                      <Star className="w-4 h-4 sm:w-4 sm:h-4 text-yellow-600 fill-current flex-shrink-0" />
-                      <span className="text-[#2D1B3D] text-xs sm:text-sm font-semibold">
-                        {currentBook?.rating || '0.0'}
-                      </span>
-                      <span className="text-[#2D1B3D]/60 text-xs truncate">
-                        ({currentBook?.reviews || 0})
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* 4. Description - PERFECT MOBILE SIZE */}
-            <div className="animate-smooth-entry text-center w-full mb-4">
-              <p className="text-sm sm:text-base text-[#2D1B3D]/80 leading-relaxed font-medium max-w-sm mx-auto px-2">
-                Discover endless knowledge and imagination in our curated digital library with interactive reading experience.
-              </p>
-            </div>
-            
-            {/* 5. Feature Badges - MOBILE OPTIMIZED */}
-            <div className="flex flex-wrap items-center justify-center gap-3 mb-5 animate-smooth-entry">
-              <div className="flex items-center space-x-2 bg-white/20 backdrop-blur-sm rounded-full px-4 py-2 border border-white/30 hover:bg-white/30 transition-all duration-300 group">
-                <div className="w-2 h-2 bg-[#2D1B3D] rounded-full animate-pulse"></div>
-                <span className="text-[#2D1B3D] font-semibold text-sm group-hover:text-[#1A0F26]">Premium Quality</span>
-              </div>
-              <div className="flex items-center space-x-2 bg-white/20 backdrop-blur-sm rounded-full px-4 py-2 border border-white/30 hover:bg-white/30 transition-all duration-300 group">
-                <div className="w-2 h-2 bg-[#2D1B3D] rounded-full animate-pulse animation-delay-500"></div>
-                <span className="text-[#2D1B3D] font-semibold text-sm group-hover:text-[#1A0F26]">Instant Access</span>
-              </div>
-            </div>
-                
-            {/* 6. CTA Button - PERFECT MOBILE SIZE */}
-            <div className="animate-smooth-entry w-full">
-              <button 
-                onClick={navigateToLibrary}
-                className="bg-gradient-to-r from-[#2D1B3D] to-[#4A3B5C] text-white px-8 py-4 sm:px-10 sm:py-5 rounded-2xl font-semibold text-base sm:text-lg hover:from-[#4A3B5C] hover:to-[#2D1B3D] transition-all duration-500 flex items-center justify-center space-x-3 group shadow-2xl hover:shadow-3xl transform hover:scale-105 hover:-translate-y-1 w-full max-w-sm mx-auto"
-              >
-                <span>Explore Now</span>
-                <ArrowRight className="w-5 h-5 sm:w-6 sm:h-6 group-hover:translate-x-2 transition-transform duration-300" />
-              </button>
-            </div>
-          </div>
         </div>
       </div>
 

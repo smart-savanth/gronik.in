@@ -1,22 +1,110 @@
 import React from 'react';
 import { Trash2, ShoppingBag, ArrowLeft, Heart, Star } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useSaveCartMutation, useGetCartByUserIdQuery } from '../../utils/cartService';
+import { useSaveWishlistMutation } from '../../utils/wishListService';
 
 const CartSection = ({
-  cart = [],
   removeFromCart,
   addToWishlist,
   wishlist = []
 }) => {
+  // cart = (cart || []).map(item => ({
+  //   ...item,
+  //   price: parseFloat(item.price ?? item.final_price ?? 0),
+  //   originalPrice: parseFloat(item.originalPrice ?? item.original_price ?? item.price ?? 0),
+  //   quantity: item.quantity ?? 1,
+  // }));
+  // ---- FETCH CART FOR LOGGED-IN USER ----
+const user = JSON.parse(localStorage.getItem("user"));
+const userId = user?.guid;
+
+const [saveWishlist] = useSaveWishlistMutation();
+const [localCartState, setLocalCartState] = React.useState(0);
+
+const { data: cartResponse } = useGetCartByUserIdQuery(userId, { skip: !userId });
+
+console.log("CART RESPONSE:", cartResponse);
+
+
+const [cart, setCart] = React.useState([]);
+
+// ---------------------------
+// Load Cart (backend or local)
+// ---------------------------
+React.useEffect(() => {
+  if (userId && cartResponse?.data?.product_details) {
+    // Logged-in user → backend cart
+    setCart(
+      cartResponse.data.product_details.map(item => ({
+        id: item._id,
+        title: item.title,
+        author: item.author,
+        image: item.coverImageUrl,
+        price: parseFloat(item.final_price),
+        originalPrice: parseFloat(item.original_price),
+        quantity: 1
+      }))
+    );
+  } else {
+    // Logged-out user → localStorage cart
+    const local = JSON.parse(localStorage.getItem("cart")) || [];
+    setCart(
+      local.map(item => ({
+        ...item,
+        price: parseFloat(item.price),
+        originalPrice: parseFloat(item.originalPrice),
+        quantity: item.quantity ?? 1,
+      }))
+    );
+  }
+}, [userId, cartResponse, localCartState]);
+
+// ---------------------------
+// Listen for storage updates
+// ---------------------------
+React.useEffect(() => {
+  const update = () => setLocalCartState(x => x + 1);
+  window.addEventListener("storage", update);
+  return () => window.removeEventListener("storage", update);
+}, []);
+
+
+
+const handleAddWishlist = (book) => {
+  addToWishlist(book);   // redux
+  window.dispatchEvent(new Event("wishlist-updated"));
+};
+
   const navigate = useNavigate();
 
   const handleContinueShopping = () => {
     navigate('/library');
   };
 
-  const subtotal = cart.reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0);
+   const subtotal = cart.reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0);
   const savings = cart.reduce((sum, item) => sum + ((item.originalPrice - item.price) * (item.quantity || 1)), 0);
   const total = subtotal;
+
+  const [saveCart] = useSaveCartMutation();
+
+const handleRemove = (id) => {
+  removeFromCart(id);   // redux
+  window.dispatchEvent(new Event("cart-updated"));
+};
+
+React.useEffect(() => {
+  const refresh = () => setLocalCartState(x => x + 1);
+
+  window.addEventListener("cart-updated", refresh);
+  window.addEventListener("wishlist-updated", refresh);
+
+  return () => {
+    window.removeEventListener("cart-updated", refresh);
+    window.removeEventListener("wishlist-updated", refresh);
+  };
+}, []);
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#9B7BB8] to-[#8A6AA7] pt-20">
@@ -81,14 +169,18 @@ const CartSection = ({
                     {/* Book Image */}
                     <div className="flex-shrink-0">
                       <div className="relative w-24 h-32 sm:w-28 sm:h-36 rounded-lg overflow-hidden shadow-lg group-hover:scale-105 transition-transform duration-300">
-                        <img 
-                          src={item.image} 
-                          alt={item.title}
-                          className="w-full h-full object-cover"
-                        />
+                        <img
+                            src={
+                              item.image ||
+                              item.coverImageUrl ||
+                              "https://via.placeholder.com/300x400?text=No+Image"
+                            }
+                            alt={item.title}
+                            className="w-full h-full object-cover"
+                          />
                         <div className="absolute top-2 right-2">
                           <button
-                            onClick={() => addToWishlist(item)}
+                             onClick={() => handleAddWishlist(item)}
                             className={`p-1 bg-[#2D1B3D]/80 rounded-full hover:bg-[#3D2A54]/80 transition-colors duration-200 ${wishlist.some(w => w.id === item.id) ? 'animate-pulse' : ''}`}
                           >
                             <Heart className={`w-4 h-4 ${wishlist.some(w => w.id === item.id) ? 'fill-current text-white' : 'text-white'}`} />
@@ -118,7 +210,7 @@ const CartSection = ({
                             </div>
                           </div>
                           <button 
-                            onClick={() => removeFromCart(item.id)}
+                            onClick={() => handleRemove(item.id)}
                             className="p-2 text-white/60 hover:text-red-400 hover:bg-red-400/20 rounded-lg transition-all duration-200"
                           >
                             <Trash2 className="w-5 h-5" />
@@ -130,11 +222,11 @@ const CartSection = ({
                         <div className="flex flex-col items-end">
                           {item.originalPrice !== item.price && (
                             <span className="text-sm text-white/60 line-through">
-                              ${item.originalPrice.toFixed(2)}
+                              ₹{item.originalPrice.toFixed(2)}
                             </span>
                           )}
                           <span className="text-lg font-bold text-white">
-                            ${item.price.toFixed(2)}
+                            ₹{item.price.toFixed(2)}
                           </span>
                         </div>
                       </div>
@@ -154,18 +246,18 @@ const CartSection = ({
                   <div className="space-y-4 mb-6">
                     <div className="flex justify-between text-white">
                       <span>Subtotal ({cart.length} {cart.length === 1 ? 'item' : 'items'})</span>
-                      <span>${subtotal.toFixed(2)}</span>
+                      <span>₹{subtotal.toFixed(2)}</span>
                     </div>
                     {savings > 0 && (
                       <div className="flex justify-between text-green-400">
                         <span>You Save</span>
-                        <span>-${savings.toFixed(2)}</span>
+                        <span>-₹{savings.toFixed(2)}</span>
                       </div>
                     )}
                     <div className="border-t border-white/20 pt-4">
                       <div className="flex justify-between text-lg font-bold text-white">
                         <span>Total</span>
-                        <span className="text-gray-200">${total.toFixed(2)}</span>
+                        <span className="text-gray-200">₹{total.toFixed(2)}</span>
                       </div>
                     </div>
                   </div>
@@ -208,7 +300,12 @@ const CartSection = ({
                       <div className="relative flex-shrink-0">
                         <div className="w-20 h-28 rounded-xl overflow-hidden shadow-lg bg-[#3D2A54]/20">
                           <img
-                            src={item.image}
+                            src={
+                              item.image ||
+                              item.coverImageUrl ||
+                              "https://via.placeholder.com/300x400?text=No+Image"
+                            }
+
                             alt={item.title}
                             className="w-full h-full object-cover"
                           />
@@ -253,11 +350,11 @@ const CartSection = ({
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <span className="text-lg font-bold text-white">
-                              ${item.price.toFixed(2)}
+                              ₹{item.price.toFixed(2)}
                             </span>
                             {item.originalPrice !== item.price && (
                               <span className="text-sm text-white/60 line-through">
-                                ${item.originalPrice.toFixed(2)}
+                                ₹{item.originalPrice.toFixed(2)}
                               </span>
                             )}
                           </div>
@@ -277,18 +374,18 @@ const CartSection = ({
                   <div className="space-y-4 mb-6">
                     <div className="flex justify-between text-white">
                       <span>Subtotal ({cart.length} {cart.length === 1 ? 'item' : 'items'})</span>
-                      <span>${subtotal.toFixed(2)}</span>
+                      <span>₹{subtotal.toFixed(2)}</span>
                     </div>
                     {savings > 0 && (
                       <div className="flex justify-between text-green-400">
                         <span>You Save</span>
-                        <span>-${savings.toFixed(2)}</span>
+                        <span>-₹{savings.toFixed(2)}</span>
                       </div>
                     )}
                     <div className="border-t border-white/20 pt-4">
                       <div className="flex justify-between text-base font-bold text-white">
                         <span>Total</span>
-                        <span className="text-gray-200">${total.toFixed(2)}</span>
+                        <span className="text-gray-200">₹{total.toFixed(2)}</span>
                       </div>
                     </div>
                   </div>
