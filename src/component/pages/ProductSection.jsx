@@ -645,7 +645,7 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
                   <span className="text-xl text-[#2D1B3D]/60 line-through">₹{enhancedProductData.originalPrice}</span>
                 </div>
                 <div className="bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-2 rounded-full text-sm font-bold shadow-lg">
-                  Save {calculateDiscountPercentage()}% (${enhancedProductData.originalPrice - enhancedProductData.price})
+                  Save {calculateDiscountPercentage()}% (₹{enhancedProductData.originalPrice - enhancedProductData.price})
                 </div>
               </div>
             </div>
