@@ -115,7 +115,7 @@ export const centralizedBooksData = [
     discount: "20% OFF",
     featured: false,
     hero: false,
-    inStock: false,
+    inStock: true,
     tags: ["Test", "Out of Stock", "Sample"],
     fileSize: "1.5 MB"
   },
@@ -134,7 +134,7 @@ export const centralizedBooksData = [
     discount: "15% OFF",
     featured: false,
     hero: false,
-    inStock: false,
+    inStock: true,
     tags: ["Productivity", "Time Management", "Organization", "Stress-Free"],
     fileSize: "1.0 MB"
   },
@@ -191,7 +191,7 @@ export const centralizedBooksData = [
     discount: "21% OFF",
     featured: false,
     hero: false,
-    inStock: false,
+    inStock: true,
     tags: ["History", "Anthropology", "Human Evolution", "Civilization"],
     fileSize: "2.5 MB"
   },
