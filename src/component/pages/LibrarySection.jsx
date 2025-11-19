@@ -102,7 +102,7 @@ export const centralizedBooksData = [
   },
   {
     id: 6,
-    title: "Out of Stock Book - Test",
+    title: "self development",
     author: "Test Author",
     category: "Self Development",
     price: 120,
