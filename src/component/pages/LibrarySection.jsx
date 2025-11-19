@@ -110,7 +110,7 @@ export const centralizedBooksData = [
     rating: 4.3,
     reviews: 89,
     image: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=300&h=400&fit=crop",
-    description: "This book is out of stock for testing purposes.",
+    description: "Learn how to fulfill your potential with the right mindset.",
     badge: "OUT OF STOCK",
     discount: "20% OFF",
     featured: false,
