@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../../utils/api';
 
 const LoginPage = () => {
-  const [currentStep, setCurrentStep] = useState('choice'); // 'choice', 'signup', 'login', 'otp', 'forgot', 'reset'
+  const [currentStep, setCurrentStep] = useState('login'); // 'choice', 'signup', 'login', 'otp', 'forgot', 'reset'
   const [loginMethod, setLoginMethod] = useState('email'); // 'email' or 'mobile'
   const [formData, setFormData] = useState({
     email: '',
@@ -34,6 +34,10 @@ const LoginPage = () => {
   const [otpError, setOtpError] = useState('');
   const isAuthenticated = useSelector(state => state.userAuth.isAuthenticated);
   const [showAuthSuccess, setShowAuthSuccess] = useState(false);
+  const [signupOtpSent, setSignupOtpSent] = useState(false);
+  const [signupOtpVerified, setSignupOtpVerified] = useState(false);
+  const [signupOtpInput, setSignupOtpInput] = useState("");
+
 
   const dispatch = useDispatch();
   const user = useSelector(state => state.userAuth.user);
@@ -169,6 +173,12 @@ const handleSignup = async () => {
 
   if (!formData.fullName) newErrors.fullName = 'Full name is required';
 
+  if (!signupOtpVerified) {
+  setErrors({ mobile: "Phone not verified!" });
+  return;
+  }
+
+
   setErrors(newErrors);
 
   if (Object.keys(newErrors).length === 0) {
@@ -210,90 +220,112 @@ const handleSignup = async () => {
 };
 
 
-  // Handle login
 const handleLogin = async () => {
+  const identifier = formData.email.trim();
   const newErrors = {};
 
-
-  if (loginMethod === 'email') {
-    if (!formData.email) {
-      newErrors.email = 'Email is required';
-    } else if (!validateEmail(formData.email)) {
-      newErrors.email = 'Please enter a valid email address';
-    }
-  } else {
-    const code = formData.countryCode === 'other' ? formData.customCountryCode : formData.countryCode;
-    if (!formData.mobile) {
-      newErrors.mobile = 'Mobile number is required';
-    } else if (!validateMobile(formData.mobile, code)) {
-      newErrors.mobile = 'Invalid mobile number for selected country code';
-    }
-  }
-
-  if (!formData.password) {
-    newErrors.password = 'Password is required';
-  }
+  if (!identifier) newErrors.email = "Enter email or phone";
+  if (!formData.password) newErrors.password = "Password required";
 
   setErrors(newErrors);
+  if (Object.keys(newErrors).length > 0) return;
 
+  const isEmail = validateEmail(identifier);
+  let payload = { password: formData.password };
 
-  if (Object.keys(newErrors).length === 0) {
-    try {
-      const response = await api.post('/auth/login', {
-        email: loginMethod === 'email' ? formData.email : undefined,
-        mobile: loginMethod === 'mobile' ? formData.mobile : undefined,
-        country_code:
-          loginMethod === 'mobile'
-            ? formData.countryCode === 'other'
-              ? formData.customCountryCode
-              : formData.countryCode
-            : undefined,
-        password: formData.password,
-      });
+  if (isEmail) {
+    payload.email = identifier;
+  } else {
+    let digits = identifier.replace(/\D/g, ""); // remove spaces, +, etc.
 
-      const userData = response.data.data.user; 
-      const token = response.data.data.access_token; 
-      dispatch(login({ token, user: userData }));
-
-      setShowAuthSuccess(true);
-
-      setTimeout(() => {
-        navigate('/');
-      }, 500);
-    } catch (error) {
-      setErrors({
-        api: error.response?.data?.message || 'Login failed. Please try again.',
-      });
+    if (digits.length < 10) {
+      setErrors({ email: "Invalid phone number" });
+      return;
     }
+
+    const mobile = digits.slice(-10);        // last 10 digits = number
+    const countryDigits = digits.slice(0, -10); // remaining = country code
+
+    if (!countryDigits) {
+      setErrors({ email: "Country code missing (e.g., +91)" });
+      return;
+    }
+
+    const country_code = `+${countryDigits}`;
+
+    payload.mobile = mobile;
+    payload.country_code = country_code;
+  }
+
+  try {
+    setIsLoading(true);
+    const response = await api.post("/auth/login", payload);
+
+    dispatch(
+      login({
+        token: response.data.data.access_token,
+        user: response.data.data.user,
+      })
+    );
+
+    setShowAuthSuccess(true);
+    setTimeout(() => navigate("/"), 500);
+  } catch (err) {
+    setErrors({ api: err.response?.data?.message || "Login failed" });
+  } finally {
+    setIsLoading(false);
   }
 };
 
 
 
-  const handleForgotSubmit = () => {
-    const newErrors = {};
-    if (loginMethod === 'email') {
-      if (!formData.email) {
-        newErrors.email = 'Email is required';
-      } else if (!validateEmail(formData.email)) {
-        newErrors.email = 'Please enter a valid email address';
-      }
-    } else {
-      if (!formData.mobile) {
-        newErrors.mobile = 'Mobile number is required';
-      } else if (!validateMobile(formData.mobile)) {
-        newErrors.mobile = 'Please enter a valid 10-digit mobile number';
-      }
-    }
+
+
+const handleForgotSubmit = () => {
+  const newErrors = {};
+  const identifier = (formData.email || '').trim();
+
+  if (!identifier) {
+    newErrors.email = 'Email or phone is required';
     setErrors(newErrors);
-    if (Object.keys(newErrors).length === 0) {
-      setIsLoading(true);
-      setTimeout(() => {
-        setIsLoading(false);
-        setCurrentStep('reset');
-      }, 1000);
+    return;
+  }
+
+  const isEmail = validateEmail(identifier);
+
+  // parse phone if not email (support +country)
+  let parsedCountryCode = formData.countryCode;
+  let digitsOnly = identifier.replace(/\D/g, '');
+  if (!isEmail) {
+    const plusMatch = identifier.match(/^\+(\d{1,4})/);
+    if (plusMatch) {
+      parsedCountryCode = `+${plusMatch[1]}`;
+      const rest = identifier.slice(plusMatch[0].length);
+      digitsOnly = rest.replace(/\D/g, '');
     }
-  };
+  }
+
+  if (isEmail) {
+    if (!validateEmail(identifier)) {
+      newErrors.email = 'Please enter a valid email address';
+    }
+  } else {
+    if (!digitsOnly || !validateMobile(digitsOnly, parsedCountryCode)) {
+      newErrors.email = 'Please enter a valid phone number';
+    }
+  }
+
+  setErrors(newErrors);
+  if (Object.keys(newErrors).length === 0) {
+    // proceed — your current flow simply goes to reset step after "verification"
+    setIsLoading(true);
+    setTimeout(() => {
+      setIsLoading(false);
+      setCurrentStep('reset');
+    }, 1000);
+  }
+};
+
 
   const handleResetPassword = () => {
     const newErrors = {};
@@ -354,6 +386,33 @@ const handleLogin = async () => {
     );
   };
 
+
+  const sendSignupOtp = async () => {
+  if (!formData.mobile) {
+    setErrors({ mobile: "Enter mobile first" });
+    return;
+  }
+
+  setSignupOtpSent(true);
+  setSignupOtpVerified(false);
+
+  console.log("📩 OTP SENT TO:", formData.mobile);
+  alert("Dummy OTP sent! Use 123456 to test.");
+};
+
+const verifySignupOtp = () => {
+  if (signupOtpInput === "123456") {
+    setSignupOtpVerified(true);
+    alert("OTP Verified Successfully!");
+  } else {
+    alert("Invalid OTP, Try 123456");
+  }
+};
+
+
+
+
+
   useEffect(() => {
     if (currentStep === 'choice' || currentStep === 'login' || currentStep === 'signup') {
       setShowAuthSuccess(false);
@@ -374,6 +433,37 @@ const handleLogin = async () => {
         <div className="bg-[#2D1B3D]/90 backdrop-blur-xl rounded-3xl border border-[#2D1B3D]/50 shadow-2xl shadow-[#2D1B3D]/20 overflow-hidden mt-8 mb-8">
           <div className="p-6 sm:p-10">
             <div className="text-center mb-8">
+
+       <div className="flex justify-center mb-6 gap-4">
+          <button
+            onClick={() => setCurrentStep("login")}
+            className={`
+              px-6 py-2 rounded-xl font-semibold text-sm transition-all duration-300
+              ${currentStep === "login"
+                ? "bg-gradient-to-r from-gronik-accent to-gronik-secondary text-white px-4 py-2 rounded-lg font-medium text-sm text-center"
+                : "border border-white/30 text-white/70 hover:text-white hover:border-white/60"
+              }
+            `}
+          >
+            Login
+          </button>
+
+          <button
+            onClick={() => setCurrentStep("signup")}
+            className={`
+              px-6 py-2 rounded-xl font-semibold text-sm transition-all duration-300
+              ${currentStep === "signup"
+                ? "bg-gradient-to-r from-gronik-accent to-gronik-secondary text-white px-4 py-2 rounded-lg font-medium text-sm text-center"
+                : "border border-white/30 text-white/70 hover:text-white hover:border-white/60"
+              }
+            `}
+          >
+            Sign Up
+          </button>
+        </div>
+
+
+
               <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2 drop-shadow-lg">
                 {currentStep === 'choice' ? 'Login' : 
                  currentStep === 'signup' ? 'Sign Up' : 'Login'}
@@ -384,53 +474,7 @@ const handleLogin = async () => {
               </p>
             </div>
 
-            {currentStep === 'choice' && (
-              <div className="space-y-6">
-                <div>
-                  <div className="grid grid-cols-2 gap-3 mb-6">
-                    <button
-                      onClick={() => setLoginMethod('email')}
-                      className={`p-3 rounded-xl border-2 transition-all duration-200 login-gold-glow ${
-                        loginMethod === 'email'
-                          ? 'border-white bg-white/10 text-white shadow-lg shadow-white/20'
-                          : 'border-white/30 bg-white/5 text-white/70 hover:border-white/50 hover:shadow-lg hover:shadow-white/10'
-                      }`}
-                    >
-                      <Mail className="w-5 h-5 mx-auto mb-1" />
-                      <span className="text-xs font-medium">Email</span>
-                    </button>
-                    <button
-                      onClick={() => setLoginMethod('mobile')}
-                      className={`p-3 rounded-xl border-2 transition-all duration-200 login-gold-glow ${
-                        loginMethod === 'mobile'
-                          ? 'border-white bg-white/10 text-white shadow-lg shadow-white/20'
-                          : 'border-white/30 bg-white/5 text-white/70 hover:border-white/50 hover:shadow-lg hover:shadow-white/10'
-                      }`}
-                    >
-                      <Phone className="w-5 h-5 mx-auto mb-1" />
-                      <span className="text-xs font-medium">Mobile</span>
-                    </button>
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <button
-                    onClick={() => setCurrentStep('signup')}
-                    className="w-full bg-gradient-to-r from-[#FFD700]/90 to-[#9B7BB8]/80 text-[#2D1B3D] font-semibold py-3 px-6 rounded-xl transition-all duration-200 flex items-center justify-center space-x-2 gold-glow-cta"
-                  >
-                    <span>Create Account</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => setCurrentStep('login')}
-                    className="w-full bg-white/10 hover:bg-white/15 text-white py-3 px-6 rounded-xl font-semibold transition-all duration-200 border border-white/20 hover:border-white/40 login-gold-glow"
-                  >
-                    Sign In
-                  </button>
-                </div>
-              </div>
-            )}
-
+      
             {currentStep === 'signup' && (
               <div className="space-y-4">
                 <div>
@@ -450,8 +494,28 @@ const handleLogin = async () => {
                   )}
                 </div>
 
-                {/* >>> Only ONE identifier shown based on loginMethod <<< */}
-                {loginMethod === 'mobile' && (
+          
+ 
+
+               
+                  <div>
+                    <label className="block text-xs font-medium text-white/80 mb-2">EMAIL</label>
+                    <input
+                      type="email"
+                      value={formData.email || ''}
+                      onChange={e => handleInputChange('email', e.target.value)}
+                      className="w-full bg-transparent border-b-2 border-white/30 text-white pl-2 pr-4 py-3 focus:outline-none focus:border-white focus:shadow-lg focus:shadow-white/20 transition-all duration-300 placeholder-white/40 text-sm"
+                      placeholder="Enter your email address"
+                    />
+                    {errors.email && (
+                      <p className="text-red-400 text-xs mt-1 flex items-center space-x-1">
+                        <X className="w-3 h-3" />
+                        <span>{errors.email}</span>
+                      </p>
+                    )}
+                  </div>
+
+
                   <div>
                     <label className="block text-xs font-medium text-white/80 mb-2">PHONE NUMBER</label>
                     <div className="flex items-center gap-2">
@@ -484,33 +548,58 @@ const handleLogin = async () => {
                         placeholder="Enter your mobile number"
                       />
                     </div>
-                    {(errors.countryCode || errors.mobile) && (
-                      <p className="text-red-400 text-xs mt-1 flex items-center space-x-1">
-                        <X className="w-3 h-3" />
-                        <span>{errors.countryCode || errors.mobile}</span>
-                      </p>
-                    )}
-                  </div>
-                )}
+                    {/* ERROR if any */}
+                      {(errors.countryCode || errors.mobile) && (
+                        <p className="text-red-400 text-xs mt-1 flex items-center space-x-1">
+                          <X className="w-3 h-3" />
+                          <span>{errors.countryCode || errors.mobile}</span>
+                        </p>
+                      )}
 
-                {loginMethod === 'email' && (
-                  <div>
-                    <label className="block text-xs font-medium text-white/80 mb-2">EMAIL</label>
-                    <input
-                      type="email"
-                      value={formData.email || ''}
-                      onChange={e => handleInputChange('email', e.target.value)}
-                      className="w-full bg-transparent border-b-2 border-white/30 text-white pl-2 pr-4 py-3 focus:outline-none focus:border-white focus:shadow-lg focus:shadow-white/20 transition-all duration-300 placeholder-white/40 text-sm"
-                      placeholder="Enter your email address"
-                    />
-                    {errors.email && (
-                      <p className="text-red-400 text-xs mt-1 flex items-center space-x-1">
-                        <X className="w-3 h-3" />
-                        <span>{errors.email}</span>
-                      </p>
-                    )}
+                      {/* VERIFY OTP BUTTON */}
+                      {!signupOtpSent && (
+                        <button
+                          type="button"
+                          onClick={sendSignupOtp}
+                          className="mt-3 bg-[#FFD700] text-[#2D1B3D] px-4 py-2 rounded-lg text-xs font-semibold hover:bg-yellow-400 transition-all"
+                        >
+                          Verify Phone
+                        </button>
+                      )}
+
+                      {/* OTP INPUT FIELD */}
+                      {signupOtpSent && !signupOtpVerified && (
+                        <div className="mt-3">
+                          <label className="block text-xs font-medium text-white/90 mb-1">
+                            Enter OTP
+                          </label>
+                          <input
+                            type="text"
+                            maxLength={6}
+                            value={signupOtpInput}
+                            onChange={e => setSignupOtpInput(e.target.value)}
+                            className="w-full bg-transparent border-b-2 border-white/40 text-white py-2 text-sm focus:border-white"
+                          />
+
+                          <button
+                            onClick={verifySignupOtp}
+                            className="mt-2 bg-green-400 text-[#2D1B3D] px-4 py-2 rounded-lg text-xs font-semibold hover:bg-green-300 transition-all"
+                          >
+                            Verify OTP
+                          </button>
+                        </div>
+                      )}
+
+                      {/* SUCCESS BADGE */}
+                      {signupOtpVerified && (
+                        <p className="text-green-400 text-xs mt-2 font-semibold">
+                          ✔ Phone Verified Successfully!
+                        </p>
+                      )}
+
                   </div>
-                )}
+                
+           
                 {/* >>> END conditional identifier <<< */}
 
                 <div>
@@ -522,8 +611,11 @@ const handleLogin = async () => {
                     <input
                       type={showPassword ? 'text' : 'password'}
                       value={formData.password}
+                      disabled={!signupOtpVerified}
+                      className={`w-full bg-transparent border-b-2 ${
+                        signupOtpVerified ? "border-white/30" : "opacity-40 border-white/10"
+                      } text-white pl-6 pr-10 py-3`}
                       onChange={(e) => handleInputChange('password', e.target.value)}
-                      className="w-full bg-transparent border-b-2 border-white/30 text-white pl-6 pr-10 py-3 focus:outline-none focus:border-white focus:shadow-lg focus:shadow-white/20 transition-all duration-300 placeholder-white/40 text-sm"
                     />
                     <button
                       type="button"
@@ -588,80 +680,39 @@ const handleLogin = async () => {
                   )}
                 </button>
 
-                <button
-                  onClick={() => setCurrentStep('choice')}
-                  className="w-full text-white/70 hover:text-white py-2 transition-colors duration-300 text-xs"
-                >
-                  ← Back
-                </button>
+                
               </div>
             )}
 
             {currentStep === 'login' && (
               <div className="space-y-4">
                 <div>
-                  {loginMethod === 'email' ? (
-                    <>
-                      <label className="block text-xs font-medium text-white/80 mb-2 uppercase tracking-wider">Email</label>
-                      <div className="relative">
-                        <div className="absolute top-0 left-0 flex items-center">
-                          <Mail className="w-4 h-4 text-white/60" />
-                        </div>
-                        <input
-                          type="email"
-                          value={formData.email}
-                          onChange={(e) => handleInputChange('email', e.target.value)}
-                          className="w-full bg-transparent border-b-2 border-white/30 text-white pl-6 pr-4 py-3 focus:outline-none focus:border-white focus:shadow-lg focus:shadow-white/20 transition-all duration-300 placeholder-white/40 text-sm"
-                        />
-                      </div>
-                      {errors.email && (
-                        <p className="text-red-400 text-xs mt-1 flex items-center space-x-1">
-                          <X className="w-3 h-3" />
-                          <span>{errors.email}</span>
-                        </p>
-                      )}
-                    </>
-                  ) : (
-                    <>
-                      <label className="block text-xs font-medium text-white/80 mb-2 uppercase tracking-wider">Mobile</label>
-                      <div className="flex items-center gap-2">
-                        <select
-                          value={formData.countryCode}
-                          onChange={e => handleInputChange('countryCode', e.target.value)}
-                          className="w-32 bg-transparent border-b-2 border-white/30 text-white py-3 focus:outline-none focus:border-white focus:shadow-lg focus:shadow-white/20 transition-all duration-300 text-sm"
-                        >
-                          <option className="bg-[#2D1B3D]" value="+91">+91 (IN)</option>
-                          <option className="bg-[#2D1B3D]" value="+1">+1 (US)</option>
-                          <option className="bg-[#2D1B3D]" value="+44">+44 (UK)</option>
-                          <option className="bg-[#2D1B3D]" value="+61">+61 (AU)</option>
-                          <option className="bg-[#2D1B3D]" value="+971">+971 (UAE)</option>
-                          <option className="bg-[#2D1B3D]" value="other">Other</option>
-                        </select>
-                        {formData.countryCode === 'other' && (
-                          <input
-                            type="text"
-                            value={formData.customCountryCode}
-                            onChange={e => handleInputChange('customCountryCode', e.target.value)}
-                            className="w-24 bg-transparent border-b-2 border-white/30 text-white pl-2 pr-2 py-3 focus:outline-none focus:border-white focus:shadow-lg focus:shadow-white/20 transition-all duration-300 text-sm"
-                            placeholder="+XX"
-                          />
-                        )}
-                        <input
-                          type="tel"
-                          value={formData.mobile}
-                          onChange={(e) => handleInputChange('mobile', e.target.value)}
-                          className="flex-1 bg-transparent border-b-2 border-white/30 text-white pl-2 pr-4 py-3 focus:outline-none focus:border-white focus:shadow-lg focus:shadow-white/20 transition-all duration-300 placeholder-white/40 text-sm"
-                          placeholder="Enter your mobile number"
-                        />
-                      </div>
-                      {(errors.countryCode || errors.mobile) && (
-                        <p className="text-red-400 text-xs mt-1 flex items-center space-x-1">
-                          <X className="w-3 h-3" />
-                          <span>{errors.countryCode || errors.mobile}</span>
-                        </p>
-                      )}
-                    </>
+                  <label className="block text-xs font-medium text-white/80 mb-2 uppercase tracking-wider">
+                    Email or Phone
+                  </label>
+
+                  <div className="relative">
+                    <div className="absolute top-0 left-0 flex items-center">
+                      <Mail className="w-4 h-4 text-white/60" />
+                    </div>
+
+                    <input
+                      type="text"
+                      value={formData.email}
+                      onChange={(e) => handleInputChange("email", e.target.value)}
+                      placeholder="Email or Phone (e.g., +91 9876543210)"
+                      className="w-full bg-transparent border-b-2 border-white/30 text-white pl-6 pr-10 py-3 focus:outline-none focus:border-white focus:shadow-lg focus:shadow-white/20 -white/40 text-sm"
+                    />
+
+                  </div>
+
+                  {errors.email && (
+                    <p className="text-red-400 text-xs mt-1 flex items-center space-x-1">
+                      <X className="w-3 h-3" />
+                      <span>{errors.email}</span>
+                    </p>
                   )}
+
                 </div>
 
                 <div>
@@ -675,7 +726,7 @@ const handleLogin = async () => {
                       value={formData.password}
                       onChange={(e) => handleInputChange('password', e.target.value)}
                       placeholder=""
-                      className="w-full bg-transparent border-b-2 border-white/30 text-white pl-6 pr-10 py-3 focus:outline-none focus:border-white focus:shadow-lg focus:shadow-white/20 transition-all duration-300 placeholder-white/40 text-sm"
+                      className="w-full bg-transparent border-b-2 border-white/30 text-white pl-6 pr-10 py-3 focus:outline-none focus:border-white focus:shadow-lg focus:shadow-white/20 -white/40 text-sm"
                     />
                     <button
                       type="button"
@@ -701,6 +752,7 @@ const handleLogin = async () => {
                   >
                     Forgot Password?
                   </button>
+
                 </div>
 
                 <button
@@ -718,12 +770,7 @@ const handleLogin = async () => {
                   )}
                 </button>
 
-                <button
-                  onClick={() => setCurrentStep('choice')}
-                  className="w-full text-white/70 hover:text-orange-400 py-2 transition-colors duration-300 text-xs"
-                >
-                  ← Back
-                </button>
+               
               </div>
             )}
 
@@ -802,16 +849,7 @@ const handleLogin = async () => {
                   </button>
                 </div>
 
-                <button
-                  onClick={() => {
-                    setCurrentStep('choice');
-                    setFormData(prev => ({ ...prev, otp: ['', '', '', '', '', ''] }));
-                    setOtpError('');
-                  }}
-                  className="w-full text-white/70 hover:text-white py-2 transition-colors duration-300 text-xs"
-                >
-                  ← Back
-                </button>
+               
               </div>
             )}
 
@@ -860,12 +898,7 @@ const handleLogin = async () => {
                     <span>Continue</span>
                   )}
                 </button>
-                <button
-                  onClick={() => setCurrentStep('login')}
-                  className="w-full text-white/70 hover:text-white py-2 transition-colors duration-300 text-xs"
-                >
-                  ← Back to Login
-                </button>
+             
               </div>
             )}
 
@@ -944,12 +977,7 @@ const handleLogin = async () => {
                     <span>Reset Password</span>
                   )}
                 </button>
-                <button
-                  onClick={() => setCurrentStep('login')}
-                  className="w-full text-white/70 hover:text-white py-2 transition-colors duration-300 text-xs"
-                >
-                  ← Back to Login
-                </button>
+          
                 {resetSuccess && (
                   <div className="text-green-400 text-center mt-2 font-semibold">Password reset successful!</div>
                 )}

@@ -95,7 +95,7 @@ const navigateToLibrary = () => {
 
   if (!heroBooks || heroBooks.length === 0) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#9B7BB8] via-[#A67FC4] to-[#B894D1]">
+      <div className="pt-24 pb-24 flex items-center justify-center bg-gradient-to-br from-[#9B7BB8] via-[#A67FC4] to-[#B894D1]">
         <div className="text-center text-white">
           <h2 className="text-2xl font-bold mb-4">No Hero Books Available</h2>
           <p>Please mark some books as hero in your library.</p>
@@ -300,8 +300,9 @@ if (heroBooks.length === 0) {
                           
                           {/* Enhanced shadow for active book */}
                           {isActive && (
-                            <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 blur-2xl scale-110 pointer-events-none"></div>
-                          )}
+                              <div className="absolute inset-0 rounded-xl bg-white/10 blur-2xl scale-110 pointer-events-none"></div>
+                            )}
+
                         </div>
                       </div>
                     );

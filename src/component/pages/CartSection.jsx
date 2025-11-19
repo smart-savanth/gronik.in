@@ -2,7 +2,6 @@ import React from 'react';
 import { Trash2, ShoppingBag, ArrowLeft, Heart, Star } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSaveCartMutation, useGetCartByUserIdQuery } from '../../utils/cartService';
-import { useSaveWishlistMutation } from '../../utils/wishListService';
 
 const CartSection = ({
   removeFromCart,
@@ -19,7 +18,6 @@ const CartSection = ({
 const user = JSON.parse(localStorage.getItem("user"));
 const userId = user?.guid;
 
-const [saveWishlist] = useSaveWishlistMutation();
 const [localCartState, setLocalCartState] = React.useState(0);
 
 const { data: cartResponse } = useGetCartByUserIdQuery(userId, { skip: !userId });

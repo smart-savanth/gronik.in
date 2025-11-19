@@ -1,207 +1,255 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
-import { User, Star, Quote, Plus, X, Send, ChevronLeft, ChevronRight } from 'lucide-react';
+import React, { useState, useEffect, useRef } from "react";
+import { useSelector } from "react-redux";
+import { Star, Quote, Plus, X, Send } from "lucide-react";
+import { saveReview, getAllReviews } from "../../utils/reviewservice";
 
-// Redux actions (add these to your reviews slice)
-const addReview = (review) => ({
-  type: 'reviews/addReview',
-  payload: review
-});
-
-const setReviews = (reviews) => ({
-  type: 'reviews/setReviews',
-  payload: reviews
-});
+const FALLBACK_REVIEWS = [
+  { id: "fallback-1", rating: 5, review: "Hands down the most immersive reading experience I have ever had online. The curation is on point!", name: "Sahana Devi" },
+  { id: "fallback-2", rating: 4, review: "The library loads instantly and purchasing was seamless. Looking forward to more regional titles.", name: "Rahul N." },
+  { id: "fallback-3", rating: 5, review: "I moved all my study material to Gronik. The annotations and downloads make learning super easy.", name: "Aanya P." },
+];
 
 const ReviewsSection = () => {
-  // Redux state
-  const dispatch = useDispatch();
-  const reviews = useSelector(state => state.reviews?.items || [
-    { 
-      id: 1,
-      rating: 5, 
-      text: "Books are easy to get and the quality is amazing! The reading experience is seamless and the collection is vast.",
-      name: "Aarav Sharma"
-    },
-    { 
-      id: 2,
-      rating: 5, 
-      text: "Great collection and smooth reading experience. Love the variety and user interface. Perfect for daily reading.",
-      name: "Priya Patel"
-    },
-    { 
-      id: 3,
-      rating: 4, 
-      text: "Love the variety of books available here. Perfect for my daily reading routine and the quality is top-notch.",
-      name: "Rahul Verma"
-    },
-    { 
-      id: 4,
-      rating: 5, 
-      text: "Outstanding platform with incredible book selection. The reading experience is smooth and enjoyable.",
-      name: "Sneha Reddy"
-    },
-    { 
-      id: 5,
-      rating: 4, 
-      text: "Fantastic digital library with great features. Love how easy it is to find and read books on any device.",
-      name: "Vikram Singh"
-    },
-    { 
-      id: 6,
-      rating: 5, 
-      text: "Best e-book platform I've used! Great selection, amazing quality, and the interface is beautifully designed.",
-      name: "Ananya Iyer"
-    }
-  ]);
+  const user = useSelector((state) => state.userAuth?.user);
 
+  const [reviews, setReviews] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [notice, setNotice] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
-  const [newReview, setNewReview] = useState({
-    rating: 5,
-    text: '',
-    name: ''
-  });
+  const [newReview, setNewReview] = useState({ rating: 5, text: "", name: "" });
 
-  const scrollContainerRef = useRef(null);
-  const currentTransformRef = useRef(0);
-  
-  // Touch/Swipe state
-  const touchStartRef = useRef(0);
-  const touchEndRef = useRef(0);
-  const isDraggingRef = useRef(false);
-  const lastTouchXRef = useRef(0);
-  const velocityRef = useRef(0);
+  const scrollRef = useRef(null);
+  const transformRef = useRef(0);
+  const rafRef = useRef(null);
+  const lastTSRef = useRef(0);
 
-  // Duplicate reviews for seamless infinite scroll
-  const duplicatedReviews = [...reviews, ...reviews, ...reviews];
+  // drag + momentum refs
+  const draggingRef = useRef(false);
+  const lastXRef = useRef(0);
+  const lastDeltaRef = useRef(0);
 
-  // Smooth animation control
+  // show fallback when real reviews empty so the loop always has nodes
+  const sourceReviews = (reviews && reviews.length) ? reviews : FALLBACK_REVIEWS;
+  const duplicatedReviews = [...sourceReviews, ...sourceReviews, ...sourceReviews];
+  const hasReviews = sourceReviews.length > 0;
+
+  // fetch
   useEffect(() => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
-
-    let intervalId;
-    const speed = 1; // pixels per interval
-
-    if (!isPaused && !isDraggingRef.current) {
-      intervalId = setInterval(() => {
-        currentTransformRef.current -= speed;
-        
-        // Reset position when we've scrolled through one full set
-        const resetPoint = -(container.scrollWidth / 3);
-        if (currentTransformRef.current <= resetPoint) {
-          currentTransformRef.current = 0;
+    const fetchReviews = async () => {
+      setLoading(true);
+      setError(null);
+      setNotice(null);
+      try {
+        const params = { page: 1, pageSize: 100 };
+        const res = await getAllReviews(params);
+        const list = res?.data?.data?.list || res?.data?.data || [];
+        const normalized = (list || []).map((r) => ({
+          id: r._id || r.id || r.guid || `${r.user_id}-${r.created_at}`,
+          rating: Number(r.rating) || 5,
+          review: r.review || r.text || "",
+          name: r.user_name || r.name || r.full_name || "Anonymous",
+        }));
+        setReviews(normalized);
+      } catch (err) {
+        console.error("Failed to load reviews:", err);
+        const status = err?.response?.status;
+        if (status === 503) {
+          setNotice("Live reviews are temporarily unavailable. Showing a few community highlights meanwhile.");
+          // keep reviews empty -> fallback will be used
+        } else {
+          setError("Unable to load reviews right now. Please try again later.");
         }
-        
-        container.style.transform = `translateX(${currentTransformRef.current}px)`;
-      }, 16); // ~60fps
-    }
-
-    return () => {
-      if (intervalId) {
-        clearInterval(intervalId);
+      } finally {
+        setLoading(false);
       }
     };
-  }, [isPaused]);
 
-  // Mouse handlers (desktop)
-  const handleMouseEnter = () => {
-    setIsPaused(true);
-  };
+    fetchReviews();
+  }, []);
 
-  const handleMouseLeave = () => {
-    setIsPaused(false);
-  };
+  // measure and center in the middle copy when reviews (or fallback) are present
+  useEffect(() => {
+    const container = scrollRef.current;
+    if (!container || !hasReviews) return;
 
-  // Touch handlers (mobile)
-  const handleTouchStart = (e) => {
-    isDraggingRef.current = true;
-    touchStartRef.current = e.touches[0].clientX;
-    lastTouchXRef.current = e.touches[0].clientX;
-    velocityRef.current = 0;
-    setIsPaused(true);
-  };
+    // Allow layout to settle then compute
+    requestAnimationFrame(() => {
+      const totalWidth = container.scrollWidth; // width of 3 copies
+      const chunk = totalWidth / 3 || 0;
+      // set transform so we're looking at the middle copy
+      transformRef.current = -chunk;
+      container.style.transform = `translateX(${transformRef.current}px)`;
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sourceReviews.length]);
 
-  const handleTouchMove = (e) => {
-    if (!isDraggingRef.current) return;
-    
-    const container = scrollContainerRef.current;
+  // animation loop (continuous leftward movement)
+  useEffect(() => {
+    const container = scrollRef.current;
+    if (!container || !hasReviews) return;
+
+    const speedPxPerSecond = 36; // tune this for pacing
+    lastTSRef.current = 0;
+
+    const tick = (ts) => {
+      if (!lastTSRef.current) lastTSRef.current = ts;
+      const dt = ts - lastTSRef.current;
+      lastTSRef.current = ts;
+
+      if (!isPaused && !draggingRef.current) {
+        // move left
+        transformRef.current -= (dt / 1000) * speedPxPerSecond;
+
+        // loop correction using 3-copy math
+        const totalWidth = container.scrollWidth;
+        const chunk = totalWidth / 3 || 0;
+
+        // if we've moved into the 3rd copy leftwards, shift back into middle copy seamlessly
+        if (transformRef.current <= -(chunk * 1)) {
+          transformRef.current += chunk;
+        } else if (transformRef.current >= 0) {
+          // if moved too far right, bring into middle
+          transformRef.current -= chunk;
+        }
+
+        container.style.transform = `translateX(${transformRef.current}px)`;
+      }
+
+      rafRef.current = requestAnimationFrame(tick);
+    };
+
+    rafRef.current = requestAnimationFrame(tick);
+
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+      lastTSRef.current = 0;
+    };
+  }, [isPaused, hasReviews]);
+
+  // pointer / touch handlers (drag + momentum)
+  const onPointerDown = (e) => {
+    const container = scrollRef.current;
     if (!container) return;
 
-    const currentTouch = e.touches[0].clientX;
-    const diff = currentTouch - lastTouchXRef.current;
-    
-    // Calculate velocity for momentum
-    velocityRef.current = diff;
-    
-    // Update position
-    currentTransformRef.current += diff;
-    
-    // Handle infinite loop boundaries
-    const resetPoint = -(container.scrollWidth / 3);
-    const maxPoint = 0;
-    
-    if (currentTransformRef.current <= resetPoint) {
-      currentTransformRef.current = 0;
-    } else if (currentTransformRef.current >= maxPoint) {
-      currentTransformRef.current = resetPoint + 50; // Small offset to prevent jarring
+    draggingRef.current = true;
+    lastXRef.current = e.clientX ?? (e.touches && e.touches[0]?.clientX) ?? 0;
+    lastDeltaRef.current = 0;
+    setIsPaused(true);
+
+    // prevent native drag
+    if (e.pointerId && container.setPointerCapture) {
+      try { container.setPointerCapture(e.pointerId); } catch (_) {}
     }
-    
-    container.style.transform = `translateX(${currentTransformRef.current}px)`;
-    lastTouchXRef.current = currentTouch;
   };
 
-  const handleTouchEnd = () => {
-    isDraggingRef.current = false;
-    
-    // Apply momentum/inertia effect
-    const container = scrollContainerRef.current;
-    if (!container || Math.abs(velocityRef.current) < 2) {
+  const onPointerMove = (e) => {
+    if (!draggingRef.current) return;
+    const container = scrollRef.current;
+    if (!container) return;
+
+    const clientX = e.clientX ?? (e.touches && e.touches[0]?.clientX) ?? lastXRef.current;
+    const delta = clientX - lastXRef.current;
+
+    // pointer right => content moves right (increase translateX)
+    transformRef.current += delta;
+    lastXRef.current = clientX;
+    lastDeltaRef.current = delta;
+
+    // boundary loop correction (3-copy math)
+    const totalWidth = container.scrollWidth;
+    const chunk = totalWidth / 3 || 0;
+    if (transformRef.current <= -(chunk * 1)) {
+      transformRef.current += chunk;
+    } else if (transformRef.current >= 0) {
+      transformRef.current -= chunk;
+    }
+
+    container.style.transform = `translateX(${transformRef.current}px)`;
+  };
+
+  const onPointerUp = (e) => {
+    const container = scrollRef.current;
+    if (!container) {
+      setIsPaused(false);
+      draggingRef.current = false;
+      return;
+    }
+
+    // release pointer capture if applied
+    if (e?.pointerId && container.releasePointerCapture) {
+      try { container.releasePointerCapture(e.pointerId); } catch (_) {}
+    }
+
+    if (!draggingRef.current) {
       setIsPaused(false);
       return;
     }
 
-    let momentum = velocityRef.current * 10; // Amplify for smooth deceleration
-    const deceleration = 0.95; // Friction factor
+    draggingRef.current = false;
 
-    const applyMomentum = () => {
-      if (Math.abs(momentum) < 0.5) {
+    // momentum based on lastDeltaRef
+    let velocity = lastDeltaRef.current * 35; // multiplier to taste
+    const friction = 0.92;
+
+    const step = () => {
+      if (Math.abs(velocity) < 0.5) {
         setIsPaused(false);
         return;
       }
 
-      currentTransformRef.current += momentum;
-      momentum *= deceleration;
+      transformRef.current += velocity;
+      velocity *= friction;
 
-      // Handle boundaries during momentum
-      const resetPoint = -(container.scrollWidth / 3);
-      if (currentTransformRef.current <= resetPoint) {
-        currentTransformRef.current = 0;
-      } else if (currentTransformRef.current >= 0) {
-        currentTransformRef.current = resetPoint;
-      }
+      // loop correction (3-copy math)
+      const totalWidth = container.scrollWidth;
+      const chunk = totalWidth / 3 || 0;
+      if (transformRef.current <= -(chunk * 2)) transformRef.current += chunk;
+      else if (transformRef.current >= 0) transformRef.current -= chunk;
 
-      container.style.transform = `translateX(${currentTransformRef.current}px)`;
-      requestAnimationFrame(applyMomentum);
+      container.style.transform = `translateX(${transformRef.current}px)`;
+      requestAnimationFrame(step);
     };
 
-    requestAnimationFrame(applyMomentum);
+    requestAnimationFrame(step);
   };
 
-  const handleSubmitReview = () => {
-    if (newReview.text) {
-      const review = {
-        id: Date.now(),
-        ...newReview,
-        name: "Anonymous",
-        timestamp: new Date().toISOString()
-      };
-      dispatch(addReview(review));
-      setNewReview({ rating: 5, text: '', name: '' });
+  // convenience wrappers for touch (older browsers)
+  const handleTouchStart = (e) => onPointerDown(e);
+  const handleTouchMove = (e) => onPointerMove(e);
+  const handleTouchEnd = (e) => onPointerUp({ pointerId: 1 });
+
+  // submit review (unchanged)
+  const handleSubmitReview = async () => {
+    if (!newReview.text.trim()) return;
+    if (!user?.guid) {
+      alert("Please log in to submit a review.");
+      return;
+    }
+
+    try {
+      const payload = { type: "site", product: null, user_id: user.guid, rating: newReview.rating, review: newReview.text.trim() };
+      const res = await saveReview(payload);
+      const saved = res?.data?.data;
+      if (saved) {
+        const formatted = {
+          id: saved._id || saved.id || saved.guid || Date.now().toString(),
+          rating: Number(saved.rating) || newReview.rating,
+          review: saved.review || newReview.text,
+          name: saved.user_name || saved.name || saved.full_name || user?.full_name || "You",
+        };
+        setReviews((prev) => [formatted, ...prev]);
+      }
       setShowForm(false);
+      setNewReview({ rating: 5, text: "", name: "" });
+    } catch (err) {
+      console.log("Error saving review:", err);
+      alert("Something went wrong while submitting your review. Please try again.");
     }
   };
+
 
   return (
     <section className="py-8 sm:py-12 md:py-16 lg:py-20 relative overflow-hidden bg-[#9B7BB8]">
@@ -212,7 +260,7 @@ const ReviewsSection = () => {
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-24 h-24 sm:w-32 sm:h-32 md:w-60 md:h-60 bg-[#2D1B3D] rounded-full blur-2xl sm:blur-3xl"></div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 relative z-10">
+      <div className="max-w-7xl mx-auto  relative z-10">
         {/* Header */}
         <div className="text-center mb-6 sm:mb-8 md:mb-12 lg:mb-16">
           <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold mb-2 sm:mb-3 md:mb-4 text-[#2D1B3D] px-2 sm:px-4">
@@ -221,6 +269,11 @@ const ReviewsSection = () => {
           <p className="text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl text-[#2D1B3D]/80 max-w-xl lg:max-w-2xl xl:max-w-3xl mx-auto mb-3 sm:mb-4 md:mb-6 font-medium px-2 sm:px-4 leading-relaxed">
             Join thousands of satisfied readers who have transformed their reading experience
           </p>
+          {notice && (
+            <div className="bg-white/70 border border-white rounded-full px-4 py-2 text-sm text-[#2D1B3D] font-medium inline-flex items-center justify-center shadow-md">
+              {notice}
+            </div>
+          )}
           
           {/* Add Review Button */}
           <button
@@ -232,61 +285,85 @@ const ReviewsSection = () => {
           </button>
         </div>
 
-        {/* Continuous Scrolling Reviews Container */}
-        <div 
-          className="relative overflow-hidden touch-pan-y" 
-          style={{ height: '280px', paddingTop: '20px', paddingBottom: '20px' }}
-        >
+        {loading ? (
+          <div className="flex justify-center items-center h-40">
+            <div className="w-12 h-12 border-4 border-[#2D1B3D]/20 border-t-[#2D1B3D] rounded-full animate-spin"></div>
+          </div>
+        ) : error ? (
+          <div className="text-center bg-white/30 border border-white/60 rounded-2xl py-8 px-6 text-[#2D1B3D] font-medium">
+            {error}
+          </div>
+        ) : !hasReviews ? (
+          <div className="text-center bg-white/40 border border-white/70 rounded-2xl py-8 px-6 text-[#2D1B3D]">
+            <p className="text-lg font-semibold mb-2">Be the first to share your experience!</p>
+            <p className="text-sm mb-4">Your review helps other readers discover Gronik.</p>
+            <button
+              onClick={() => setShowForm(true)}
+              className="inline-flex items-center space-x-2 bg-[#2D1B3D] text-white px-4 py-2 rounded-full hover:bg-[#3D2A54] transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95 font-semibold text-sm"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Add Your Review</span>
+            </button>
+          </div>
+        ) : (
           <div 
-            ref={scrollContainerRef}
-            className="flex gap-4 sm:gap-8 w-max transition-all duration-500 ease-out"
-            onMouseEnter={handleMouseEnter}
-            onMouseLeave={handleMouseLeave}
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
-            style={{
-              transform: 'translateX(0px)',
-              willChange: 'transform',
-              cursor: isDraggingRef.current ? 'grabbing' : 'grab'
-            }}
+            className="relative overflow-hidden touch-pan-y" 
+            style={{ height: '280px', paddingTop: '20px', paddingBottom: '20px' }}
           >
-            {duplicatedReviews.map((review, index) => (
-              <div 
-                key={`${review.id}-${index}`}
-                className="bg-[#2D1B3D]/70 backdrop-blur-md border-[#2D1B3D]/30 shadow-xl rounded-2xl p-4 sm:p-8 transition-all duration-300 relative group border w-64 sm:w-80 flex-shrink-0"
-              >
-                {/* Quote Icon */}
-                <div className="absolute top-3 right-3 sm:top-4 sm:right-4 opacity-30 group-hover:opacity-50 text-white/80 transition-opacity duration-300">
-                  <Quote className="w-6 h-6 sm:w-8 sm:h-8" />
-                </div>
-                
-                {/* Rating */}
-                <div className="flex justify-center mb-4 sm:mb-6">
-                  <div className="flex">
-                    {[...Array(5)].map((_, i) => (
-                      <Star 
-                        key={i} 
-                        className={`w-4 h-4 sm:w-6 sm:h-6 ${i < review.rating ? 'text-yellow-400 fill-current' : 'text-white/40'}`} 
-                      />
-                    ))}
+            <div
+        ref={scrollRef}
+        className="flex gap-4 sm:gap-8 w-max"
+        onMouseEnter={() => setIsPaused(true)}
+        onMouseLeave={() => setIsPaused(false)}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        style={{
+          willChange: "transform",
+          userSelect: "none",
+          WebkitUserSelect: "none",
+          cursor: draggingRef.current ? "grabbing" : "grab",
+        }}
+      >
+
+              {duplicatedReviews.map((review, index) => (
+                <div 
+                  key={`${review.id}-${index}`}
+                  className="bg-[#2D1B3D]/70 backdrop-blur-md border-[#2D1B3D]/30 shadow-xl rounded-2xl p-4 sm:p-8 transition-all duration-300 relative group border w-64 sm:w-80 flex-shrink-0"
+                >
+                  <div className="absolute top-3 right-3 sm:top-4 sm:right-4 opacity-30 group-hover:opacity-50 text-white/80 transition-opacity duration-300">
+                    <Quote className="w-6 h-6 sm:w-8 sm:h-8" />
+                  </div>
+                  
+                  <div className="flex justify-center mb-4 sm:mb-6">
+                    <div className="flex">
+                      {[...Array(5)].map((_, i) => (
+                        <Star 
+                          key={i} 
+                          className={`w-4 h-4 sm:w-6 sm:h-6 ${i < review.rating ? 'text-yellow-400 fill-current' : 'text-white/40'}`} 
+                        />
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <p className="italic leading-relaxed text-sm sm:text-base text-white/90 text-center">
+                    "{review.review || review.text}"
+                  </p>
+
+                  <div className="flex justify-center mt-3">
+                    <span className="text-xs sm:text-sm text-[#FFD700] font-semibold opacity-80 rounded-full px-2 py-0.5 bg-[#2D1B3D]/30" style={{fontFamily: 'cursive'}}>
+                      {review.name || review.user_name || "Anonymous"}
+                    </span>
                   </div>
                 </div>
-                
-                {/* Review Text */}
-                <p className="italic leading-relaxed text-sm sm:text-base text-white/90 text-center">
-                  "{review.review || review.text}"
-                </p>
-
-                <div className="flex justify-center mt-3">
-                  <span className="text-xs sm:text-sm text-[#FFD700] font-semibold opacity-80 rounded-full px-2 py-0.5 bg-[#2D1B3D]/30" style={{fontFamily: 'cursive'}}>
-                    {review.name || review.user_name || "Anonymous"}
-                  </span>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Review Form Modal */}

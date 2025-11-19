@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { Routes, Route, useLocation } from 'react-router-dom';
 import './index.css';
 import Navbar from './component/layout/Navbar';
 import Notification from './component/layout/Notification';
@@ -31,18 +31,178 @@ import NotFound from './component/pages/NotFound';
 import LoadingSpinner from './component/layout/LoadingSpinner';
 import SkeletonLoader from './component/layout/SkeletonLoader';
 import AccessDenied from './component/pages/AccessDenied';
-import { useSelector, useDispatch } from 'react-redux';
-import { addToCart, removeFromCart, updateCartItemQuantity } from './slices/cartSlice';
-import { addToWishlist, removeFromWishlist } from './slices/wishlistSlice';
+import { useSelector } from 'react-redux';
 import { useNotification } from './hooks/useNotification';
+import { useGetAllBooksQuery } from './utils/booksService';
+import { fetchWishlistProductIds, updateWishlistItems } from './utils/wishListService';
 import TermsAndConditions from './component/pages/TermsAndConditions';
 import PrivacyPolicy from './component/pages/PrivacyPolicy';
 
 function App() {
   const [cart, setCart] = useState([]);
-const [wishlist, setWishlist] = useState([]);
-  const dispatch = useDispatch();
+  const [wishlist, setWishlist] = useState(() => JSON.parse(localStorage.getItem('wishlist')) || []);
+  const [serverWishlistItems, setServerWishlistItems] = useState([]);
+  const [isWishlistLoading, setIsWishlistLoading] = useState(false);
   const notification = useNotification();
+  const user = useSelector(state => state.userAuth.user);
+  const userId = user?.guid;
+  const { data: booksResponse } = useGetAllBooksQuery({ page: 1, pageSize: 1000 });
+
+  const booksIndex = useMemo(() => {
+    const index = new Map();
+    if (booksResponse?.data) {
+      booksResponse.data.forEach(book => {
+        const keys = [
+          book?._id,
+          book?.id,
+          book?.productId,
+          book?.product_id,
+          book?.guid,
+        ];
+        keys
+          .filter(key => key !== undefined && key !== null)
+          .forEach(key => index.set(String(key), book));
+      });
+    }
+    return index;
+  }, [booksResponse]);
+
+  const formatBookForWishlist = useCallback((book, fallbackId, fallbackData = null) => {
+    const mergedSource = book
+      ? { ...(fallbackData || {}), ...book }
+      : (fallbackData ? { ...fallbackData } : null);
+
+    const resolvedId =
+      mergedSource?._id ||
+      mergedSource?.id ||
+      mergedSource?.productId ||
+      mergedSource?.product_id ||
+      fallbackId;
+
+    if (!mergedSource && !resolvedId) return null;
+
+    const parseNumber = (value, defaultValue = 0) => {
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : defaultValue;
+    };
+
+    const price = parseNumber(
+      mergedSource?.final_price ??
+        mergedSource?.price ??
+        mergedSource?.sellingPrice ??
+        mergedSource?.discountedPrice,
+      parseNumber(fallbackData?.price, 0)
+    );
+
+    const originalPrice = parseNumber(
+      mergedSource?.original_price ??
+        mergedSource?.originalPrice ??
+        mergedSource?.mrp,
+      price > 0 ? price : parseNumber(fallbackData?.originalPrice, price)
+    );
+
+    return {
+      id: resolvedId,
+      title:
+        mergedSource?.title ||
+        mergedSource?.book_name ||
+        mergedSource?.productTitle ||
+        fallbackData?.title ||
+        'Book unavailable',
+      image:
+        mergedSource?.coverImageUrl ||
+        mergedSource?.image ||
+        mergedSource?.productImage ||
+        fallbackData?.image ||
+        '/images/book1.jpg',
+      price,
+      originalPrice,
+      author:
+        mergedSource?.author ||
+        mergedSource?.author_name ||
+        mergedSource?.writer ||
+        fallbackData?.author ||
+        'Unknown Author',
+      rating: parseNumber(
+        mergedSource?.rating ?? mergedSource?.avgRating ?? fallbackData?.rating,
+        4.5
+      ),
+      category:
+        mergedSource?.category ||
+        mergedSource?.genre ||
+        fallbackData?.category ||
+        'General',
+      inStock:
+        mergedSource?.inStock ??
+        mergedSource?.isActive ??
+        mergedSource?.stock_status ??
+        fallbackData?.inStock ??
+        true,
+    };
+  }, []);
+
+  const refreshWishlistFromServer = useCallback(async () => {
+    if (!userId) return [];
+    setIsWishlistLoading(true);
+    try {
+      const products = await fetchWishlistProductIds(userId);
+      setServerWishlistItems(products || []);
+      return products;
+    } catch (error) {
+      console.error('Failed to fetch wishlist from server', error);
+      throw error;
+    } finally {
+      setIsWishlistLoading(false);
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    if (!userId) {
+      setIsWishlistLoading(false);
+      setServerWishlistItems([]);
+      const localWishlist = JSON.parse(localStorage.getItem('wishlist')) || [];
+      setWishlist(localWishlist);
+      return;
+    }
+
+    let cancelled = false;
+
+    const syncWishlist = async () => {
+      try {
+        await refreshWishlistFromServer();
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Unable to synchronize wishlist on login', error);
+        }
+      }
+    };
+
+    syncWishlist();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [userId, refreshWishlistFromServer]);
+
+  useEffect(() => {
+    if (!userId) return;
+    const mapped = serverWishlistItems
+      .map(entry => {
+        const normalizedId =
+          typeof entry === 'object'
+            ? entry?.productId || entry?._id || entry?.id || entry?.product_id
+            : entry;
+        const key = normalizedId !== undefined && normalizedId !== null ? String(normalizedId) : undefined;
+        const bookMatch = key ? booksIndex.get(key) : undefined;
+        return formatBookForWishlist(bookMatch, key, typeof entry === 'object' ? entry : null);
+      })
+      .filter(Boolean);
+    setWishlist(mapped);
+  }, [userId, serverWishlistItems, booksIndex, formatBookForWishlist]);
+
+  useEffect(() => {
+    localStorage.setItem('wishlist', JSON.stringify(wishlist));
+  }, [wishlist]);
 
   // ENHANCED HANDLERS WITH NOTIFICATIONS
   const handleAddToCart = (book) => {
@@ -91,29 +251,81 @@ const handleRemoveFromCart = (id) => {
     }
   };
 
-const handleAddToWishlist = (book) => {
-  let local = JSON.parse(localStorage.getItem("wishlist")) || [];
-  if (!local.some(item => item.id === book.id || item.id === book._id)) {
-    local.push({
-      id: book._id || book.id,
-      title: book.title,
-      image: book.coverImageUrl,
-      price: book.final_price,
-      author: book.author
-    });
-    localStorage.setItem("wishlist", JSON.stringify(local));
-    setWishlist(local);
+const handleAddToWishlist = async (book) => {
+  const formatted = formatBookForWishlist(book, book?._id || book?.id);
+  if (!formatted?.id) return;
+
+  if (!userId) {
+    const local = JSON.parse(localStorage.getItem("wishlist")) || [];
+    if (local.some(item => item.id === formatted.id)) {
+      notification.custom('This book is already in your wishlist.', 'info');
+      return;
+    }
+    const priceValue = Number(book?.final_price ?? book?.price ?? formatted.price ?? 0) || 0;
+    const originalPriceValue = Number(
+      book?.original_price ?? book?.final_price ?? book?.price ?? formatted.originalPrice ?? priceValue
+    ) || priceValue;
+    const updated = [
+      ...local,
+      {
+        ...formatted,
+        price: priceValue,
+        originalPrice: originalPriceValue,
+        category: book?.category || formatted.category || 'General',
+        rating: Number(book?.rating ?? formatted.rating ?? 4.5) || 4.5,
+        inStock: book?.inStock ?? book?.isActive ?? formatted.inStock ?? true,
+      }
+    ];
+    localStorage.setItem("wishlist", JSON.stringify(updated));
+    setWishlist(updated);
+    window.dispatchEvent(new Event("wishlist-updated"));
+    notification.addToWishlist(formatted.title);
+    return;
   }
 
-  window.dispatchEvent(new Event("wishlist-updated"));
-  notification.addToWishlist(book.title);
+  try {
+    await updateWishlistItems({
+      userId,
+      productIds: [formatted.id],
+      action: 'save',
+    });
+    await refreshWishlistFromServer();
+    window.dispatchEvent(new Event("wishlist-updated"));
+    notification.addToWishlist(formatted.title);
+  } catch (error) {
+    console.error('Unable to add book to wishlist', error);
+    notification.serverError();
+  }
 };
 
 
-  const handleRemoveFromWishlist = (id) => {
-    const bookToRemove = wishlist.find(item => item.id === id);
-    
-    notification.removeFromWishlist(bookToRemove?.title);
+  const handleRemoveFromWishlist = async (id) => {
+    const normalizedId = typeof id === 'string' ? id : id?._id || id?.id;
+    if (!normalizedId) return;
+    const bookToRemove = wishlist.find(item => item.id === normalizedId);
+
+    if (!userId) {
+      const updated = wishlist.filter(item => item.id !== normalizedId);
+      localStorage.setItem("wishlist", JSON.stringify(updated));
+      setWishlist(updated);
+      window.dispatchEvent(new Event("wishlist-updated"));
+      notification.removeFromWishlist(bookToRemove?.title);
+      return;
+    }
+
+    try {
+      await updateWishlistItems({
+        userId,
+        productIds: [normalizedId],
+        action: 'remove',
+      });
+      await refreshWishlistFromServer();
+      window.dispatchEvent(new Event("wishlist-updated"));
+      notification.removeFromWishlist(bookToRemove?.title);
+    } catch (error) {
+      console.error('Unable to remove book from wishlist', error);
+      notification.serverError();
+    }
   };
 
 
@@ -175,6 +387,7 @@ const handleAddToWishlist = (book) => {
             removeFromWishlist={handleRemoveFromWishlist}
             addToCart={handleAddToCart}
             cart={cart}
+            isLoading={isWishlistLoading}
           />
         } />
         <Route path="/cart" element={

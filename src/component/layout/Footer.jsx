@@ -19,7 +19,7 @@ const Footer = () => {
     if (window.location.pathname !== '/') {
       navigate('/');
       setTimeout(() => {
-        const aboutSection = document.getElementById('about-section');
+        const aboutSection = document.getElementById('about');
         if (aboutSection) {
           aboutSection.scrollIntoView({ behavior: 'smooth' });
         } else {
@@ -27,7 +27,7 @@ const Footer = () => {
         }
       }, 300);
     } else {
-      const aboutSection = document.getElementById('about-section');
+      const aboutSection = document.getElementById('about');
       if (aboutSection) {
         aboutSection.scrollIntoView({ behavior: 'smooth' });
       } else {
@@ -124,7 +124,7 @@ const Footer = () => {
                     <Mail className="w-4 h-4 sm:w-5 sm:h-5 transition-all duration-300 ease-in-out" />
                   </div>
                   <div>
-                    <p className="text-xs sm:text-sm transition-all duration-300 ease-in-out">Connect@elysium.online</p>
+                    <p className="text-xs sm:text-sm transition-all duration-300 ease-in-out">Gronikonline@gmail.com</p>
                   </div>
                 </div>
                 <div className="flex items-center space-x-2 sm:space-x-3 text-gronik-light/70 hover:text-gronik-accent transition-all duration-300 ease-in-out group cursor-pointer">

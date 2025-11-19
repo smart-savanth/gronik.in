@@ -613,10 +613,7 @@ const books = booksResponse?.data?.map(book => ({
                     <BookOpen className="w-10 h-10 text-white book-shake" />
                   </div>
                   {/* Floating Particles */}
-                  <div className="particle particle-1 absolute w-2 h-2 bg-[#9B7BB8] rounded-full"></div>
-                  <div className="particle particle-2 absolute w-1.5 h-1.5 bg-[#A67FC4] rounded-full"></div>
-                  <div className="particle particle-3 absolute w-2.5 h-2.5 bg-[#B894D1] rounded-full"></div>
-                  <div className="particle particle-4 absolute w-1 h-1 bg-[#9B7BB8] rounded-full"></div>
+                  
                 </div>
               </div>
               
@@ -636,17 +633,13 @@ const books = booksResponse?.data?.map(book => ({
       {/* Enhanced Animations + Gold Glow Effect */}
       <style jsx>{`
         /* Book Not Found Animations */
-        .book-not-found-icon {
-          animation: pulseGlow 2s ease-in-out infinite alternate;
-        }
+       
         
         .book-shake {
           animation: gentleShake 3s ease-in-out infinite;
         }
         
-        .particle {
-          animation: floatAround 4s ease-in-out infinite;
-        }
+        
         
         .particle-1 {
           top: -5px;
@@ -672,16 +665,7 @@ const books = booksResponse?.data?.map(book => ({
           animation-delay: 3s;
         }
         
-        @keyframes pulseGlow {
-          0% {
-            box-shadow: 0 0 20px #9B7BB8, 0 0 30px #A67FC4, 0 0 40px #B894D1;
-            transform: scale(1);
-          }
-          100% {
-            box-shadow: 0 0 30px #9B7BB8, 0 0 50px #A67FC4, 0 0 70px #B894D1;
-            transform: scale(1.05);
-          }
-        }
+      
         
         @keyframes gentleShake {
           0%, 100% { transform: rotate(0deg); }
@@ -689,24 +673,7 @@ const books = booksResponse?.data?.map(book => ({
           75% { transform: rotate(3deg); }
         }
         
-        @keyframes floatAround {
-          0%, 100% {
-            transform: translateY(0px) translateX(0px);
-            opacity: 0.7;
-          }
-          25% {
-            transform: translateY(-10px) translateX(5px);
-            opacity: 1;
-          }
-          50% {
-            transform: translateY(-5px) translateX(-5px);
-            opacity: 0.8;
-          }
-          75% {
-            transform: translateY(-15px) translateX(3px);
-            opacity: 0.9;
-          }
-        }
+        
 
         .card-hover-gold:hover, .card-hover-gold.gold-glow {
           box-shadow: 0 0 0 2px #ffe9b3, 0 4px 24px 0 #ffe9b3cc, 0 1.5px 8px 0 #fff7c1;

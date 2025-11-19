@@ -52,7 +52,7 @@ const handleSubmit = async (e) => {
     {
       icon: Mail,
       title: "Email Us",
-      info: "connect@gronik.online",
+      info: "Gronikonline@gmail.com",
       description: "Send us an email anytime",
       color: "from-blue-500 to-blue-600"
     },
