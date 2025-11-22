@@ -164,7 +164,7 @@ const WishlistPage = ({
                     </div>
                     <button 
                       onClick={() => removeFromWishlist(item.id)}
-                      className="absolute top-2 right-2 p-2 bg-gronik-primary/80 hover:bg-red-500 rounded-full transition-colors duration-200"
+                      className="absolute top-2 right-2 w-8 h-8 bg-gronik-primary/80 hover:bg-red-500 rounded-full transition-colors duration-200 flex items-center justify-center shadow-md"
                     >
                       <Heart className="w-4 h-4 text-gronik-accent fill-current hover:text-white" />
                     </button>
@@ -253,13 +253,13 @@ const WishlistPage = ({
                 )}
                 <div 
                   ref={scrollContainerRef}
-                  className="flex gap-3 overflow-x-auto scrollbar-hide px-8 py-4"
+                  className="flex gap-4 overflow-x-auto scrollbar-hide px-4 sm:px-8 py-4 justify-center"
                   style={{ scrollSnapType: 'x mandatory' }}
                 >
                   {normalizedWishlist.map(item => (
                     <div 
                       key={item.id} 
-                      className="flex-none w-40 bg-[#2D1B3D]/95 backdrop-blur-sm rounded-xl p-3 border border-gronik-accent/20 hover:border-gronik-accent/40 transition-all duration-300"
+                      className="flex-none w-56 max-w-[15rem] bg-[#2D1B3D]/95 backdrop-blur-sm rounded-2xl p-4 border border-gronik-accent/20 hover:border-gronik-accent/40 transition-all duration-300 shadow-lg mx-auto"
                       style={{ scrollSnapAlign: 'start' }}
                     >
                       {/* Compact Book Image */}
@@ -280,9 +280,9 @@ const WishlistPage = ({
                         </div>
                         <button 
                           onClick={() => removeFromWishlist(item.id)}
-                          className="absolute -top-1 -right-1 p-1.5 bg-gronik-primary/90 hover:bg-red-500 rounded-full transition-colors duration-200 shadow-lg"
+                          className="absolute -top-1 -right-1 w-7 h-7 bg-gronik-primary/90 hover:bg-red-500 rounded-full transition-colors duration-200 shadow-lg flex items-center justify-center"
                         >
-                          <Heart className="w-3 h-3 text-gronik-accent fill-current hover:text-white" />
+                          <Heart className="w-3.5 h-3.5 text-gronik-accent fill-current hover:text-white" />
                         </button>
                       </div>
                       {/* Compact Details */}
@@ -302,22 +302,22 @@ const WishlistPage = ({
                         </div>
                         <div className="flex items-center space-x-1">
                           {Number.isFinite(item.originalPrice) && Number.isFinite(item.price) && item.originalPrice > item.price && (
-                            <span className="text-xs text-gronik-light/60 line-through">
-                              ${item.originalPrice.toFixed(2)}
+                          <span className="text-xs text-gronik-light/60 line-through">
+                              ₹{item.originalPrice.toFixed(2)}
                             </span>
                           )}
                           <span className="text-sm font-bold text-gronik-accent">
-                            ${item.price.toFixed(2)}
+                            ₹{item.price.toFixed(2)}
                           </span>
                         </div>
                         <span className="text-xs bg-gronik-accent/20 text-gronik-accent px-1.5 py-0.5 rounded-full">
                           {item.category}
                         </span>
-                        <div className="flex flex-col gap-1.5 pt-1">
+                        <div className="flex gap-1.5 pt-1">
                           <button 
                             onClick={() => handleAddToCart(item)}
                             disabled={!item.inStock}
-                            className={`w-full flex items-center justify-center py-1.5 px-2 rounded-lg font-medium text-xs transition-all duration-200 ${
+                            className={`flex-1 flex items-center justify-center py-1.5 px-2 rounded-lg font-medium text-xs transition-all duration-200 ${
                               item.inStock 
                                 ? 'bg-gronik-accent hover:bg-gronik-secondary text-white' 
                                 : 'bg-gronik-light/20 text-gronik-light/50 cursor-not-allowed'
@@ -328,7 +328,7 @@ const WishlistPage = ({
                           </button>
                           <button 
                             onClick={() => removeFromWishlist(item.id)}
-                            className="w-full py-1.5 px-2 text-gronik-light/60 hover:text-red-400 hover:bg-red-400/20 rounded-lg transition-all duration-200 text-xs font-medium"
+                            className="flex-1 py-1.5 px-2 text-gronik-light/60 hover:text-red-400 hover:bg-red-400/20 rounded-lg transition-all duration-200 text-xs font-medium"
                           >
                             Remove
                           </button>

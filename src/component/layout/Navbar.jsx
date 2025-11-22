@@ -426,14 +426,14 @@ const finalCartCount = localCartCount || cartCount;
 
   return (
     <>
-      {/* Mobile Navbar - CART INSTEAD OF WISHLIST */}
+      {/* Mobile Navbar */}
       {isMobile && (
         <nav className="fixed top-0 left-0 right-0 z-50 bg-gronik-primary/95 backdrop-blur-md shadow-lg border-b border-gronik-secondary/20">
           <div className="flex items-center justify-between h-16 px-3 gap-2">
             {/* Logo - Left */}
             <div className="flex-shrink-0">
               <Link to="/" className="flex items-center">
-                <div className="w-20 h-8">
+                <div className="w-auto h-10 ">
                   <img
                     src="/images/logo.png"
                     alt="Gronik Logo"
@@ -458,14 +458,33 @@ const finalCartCount = localCartCount || cartCount;
               </Link>
             </div> */}
 
-            {/* Menu Button - Right */}
-            <div className="flex-shrink-0">
-              <button
-                className="p-2 text-gronik-light hover:text-gronik-accent transition-colors duration-200"
+            {/* Quick Actions */}
+            <div className="flex items-center gap-1">
+              <Link
+                to="/cart"
+                className="p-2 rounded-lg relative flex-shrink-0 text-gronik-light hover:text-gronik-accent transition-colors duration-200"
+                onClick={() => setIsMenuOpen(false)}
+                aria-label="Open cart"
+              >
+                <ShoppingCart className="w-5 h-5" />
+                {finalCartCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-gronik-accent text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center font-bold leading-none">
+                    {finalCartCount}
+                  </span>
+                )}
+              </Link>
+              <div className="flex justify-center items-center">
+             <button
+                className="p-2 flex items-center justify-center text-gronik-light hover:text-gronik-accent transition-colors duration-200"
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
+                aria-label="Toggle navigation menu"
               >
                 {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
               </button>
+
+
+            </div>
+
             </div>
           </div>
 
@@ -502,14 +521,35 @@ const finalCartCount = localCartCount || cartCount;
                 </Link>
 
                 {/* Actions Section */}
-                <div className="pt-3 border-t border-gronik-secondary/20 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <Link to="/wishlist" className="flex items-center gap-2 text-gronik-light hover:text-gronik-accent">
-                      <Heart className="w-5 h-5" />
-                      <span className="font-medium">Wishlist</span>
+                <div className="pt-3 border-t border-gronik-secondary/20 space-y-4">
+                  <div className="space-y-3">
+                    <Link
+                      to="/wishlist"
+                      onClick={() => setIsMenuOpen(false)}
+                      className="flex items-center justify-between text-gronik-light hover:text-gronik-accent"
+                    >
+                      <span className="flex items-center gap-2">
+                        <Heart className="w-5 h-5" />
+                        <span className="font-medium">Wishlist</span>
+                      </span>
                       {wishlistCount > 0 && (
                         <span className="bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
                           {wishlistCount}
+                        </span>
+                      )}
+                    </Link>
+                    <Link
+                      to="/cart"
+                      onClick={() => setIsMenuOpen(false)}
+                      className="flex items-center justify-between text-gronik-light hover:text-gronik-accent"
+                    >
+                      <span className="flex items-center gap-2">
+                        <ShoppingCart className="w-5 h-5" />
+                        <span className="font-medium">Cart</span>
+                      </span>
+                      {finalCartCount > 0 && (
+                        <span className="bg-gronik-accent text-white text-xs rounded-full px-2 py-0.5">
+                          {finalCartCount} item{finalCartCount > 1 ? 's' : ''}
                         </span>
                       )}
                     </Link>

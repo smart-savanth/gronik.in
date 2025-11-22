@@ -205,31 +205,33 @@ function App() {
   }, [wishlist]);
 
   // ENHANCED HANDLERS WITH NOTIFICATIONS
-  const handleAddToCart = (book) => {
+const handleAddToCart = (book) => {
   let local = JSON.parse(localStorage.getItem("cart")) || [];
 
-  const exists = local.some(item => item.id === book._id || item.id === book.id);
+  const exists = local.some(
+    item => item.id === book._id || item.id === book.id
+  );
 
   if (!exists) {
     local.push({
       id: book._id || book.id,
       title: book.title,
-      image: book.coverImageUrl,
-      price: book.final_price,
-      originalPrice: book.original_price,
+      image: book.image || book.coverImageUrl,
+      price: book.price || book.final_price,
+      originalPrice: book.originalPrice || book.original_price,
       author: book.author,
-      quantity: 1
+      quantity: 1,
     });
 
     localStorage.setItem("cart", JSON.stringify(local));
     setCart(local);
 
-    // notify navbar
     window.dispatchEvent(new Event("cart-updated"));
   }
 
   notification.addToCart(book.title);
 };
+
 
 
 const handleRemoveFromCart = (id) => {

@@ -76,6 +76,19 @@ const getBookPosition = (index) => {
     "1":  { x: 100,  y: 25, scale: 0.75, zIndex: 3, opacity: 1, rotation: 10 },
     "2":  { x: 180,  y: 40, scale: 0.6, zIndex: 1, opacity: 0.6, rotation: 20 }
   };
+  // 🔥 Mobile-only reduced spacing
+if (window.innerWidth <= 640) {
+  const mobilePositions = {
+    "-2": { x: -70, y: 15, scale: 0.45, zIndex: 1, opacity: 0.5, rotation: -8 },
+    "-1": { x: -35, y: 7,  scale: 0.65, zIndex: 3, opacity: 1, rotation: -4 },
+     "0": { x: 0,   y: 0,  scale: 0.85, zIndex: 5, opacity: 1, rotation: 0 },
+     "1": { x: 35,  y: 7,  scale: 0.65, zIndex: 3, opacity: 1, rotation: 4 },
+     "2": { x: 70,  y: 15, scale: 0.45, zIndex: 1, opacity: 0.5, rotation: 8 }
+  };
+
+  return mobilePositions[diff] || mobilePositions["0"];
+}
+
 
   return positions[diff] || { x: 0, y: 0, scale: 0, zIndex: 0, opacity: 0, rotation: 0 };
 };
@@ -139,15 +152,23 @@ if (heroBooks.length === 0) {
       </div>
 
       {/* Main Content Container - REDUCED TOP PADDING */}
-     <div className="relative z-10 min-h-screen flex flex-col justify-center items-center pt-8 sm:pt-12 lg:pt-16 px-4 sm:px-6 lg:px-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+    <div className="
+  relative z-10 min-h-screen flex flex-col justify-center items-center
+  pt-4        /* mobile: much smaller top space */
+  sm:pt-10    /* tablets */
+  lg:pt-16    /* desktop */
+  pb-16 px-4 sm:px-6 lg:px-8
+">
+        <div className="max-w-7xl mx-auto w-full">
           
           {/* DESKTOP LAYOUT - IMPROVED SPACING & MOVED SLIGHTLY LEFT */}
-          <div className="flex flex-col-reverse lg:grid lg:grid-cols-2 items-center gap-6 md:gap-8 lg:gap-12 xl:gap-16 min-h-[calc(100vh-6rem)]">
+          <div className="flex flex-col-reverse lg:grid lg:grid-cols-2 items-center 
+gap-4 sm:gap-6 lg:gap-12 xl:gap-16 
+lg:min-h-[calc(100vh-6rem)]">
 
             
             {/* Left Content - MOVED SLIGHTLY LEFT & REDUCED SPACING */}
-            <div className="flex flex-col justify-center space-y-3 lg:space-y-4 xl:space-y-5 max-w-full text-center lg:text-left w-full lg:pr-8 xl:pr-12 lg:ml-4 xl:ml-30">
+            <div className="flex flex-col justify-center space-y-4 lg:space-y-5 max-w-full text-center lg:text-left w-full lg:pr-8 xl:pr-12 lg:ml-4">
               
               {/* Main Heading - DECREASED FONT SIZE TO KEEP ON 2 LINES */}
               <div className="animate-smooth-entry">
@@ -224,21 +245,21 @@ if (heroBooks.length === 0) {
                     if (!currentBook) return;
                     navigate(`/product/${currentBook.id}`);
                   }}
-
                   className="bg-gradient-to-r from-[#2D1B3D] to-[#4A3B5C] text-white px-6 py-3 md:px-8 md:py-4 lg:px-10 lg:py-5 rounded-2xl font-semibold text-base md:text-lg lg:text-xl hover:from-[#4A3B5C] hover:to-[#2D1B3D] transition-all duration-500 flex items-center justify-center space-x-3 group shadow-2xl hover:shadow-3xl transform hover:scale-105 hover:-translate-y-2 w-full max-w-sm mx-auto lg:w-fit lg:mx-0"
                 >
                   <span>Explore The Book</span>
                   <ArrowRight className="w-5 h-5 lg:w-6 lg:h-6 group-hover:translate-x-2 transition-transform duration-300" />
                 </button>
               </div>
+
             </div>
 
             {/* Right Side - Books Carousel */}
-            <div className="flex justify-center lg:justify-end w-full scale-[0.55] sm:scale-[0.7] md:scale-[0.85] lg:scale-100 origin-top">
-              <div className="relative w-full max-w-lg lg:max-w-2xl xl:max-w-4xl h-[300px] lg:h-[500px] xl:h-[600px] 2xl:h-[700px]">
+            <div className="flex justify-center lg:justify-end w-full origin-top">
+              <div className="relative w-full max-w-[180px] sm:max-w-md lg:max-w-2xl xl:max-w-4xl h-[160px] sm:h-[360px] lg:h-[500px] xl:h-[600px] 2xl:h-[700px]">
 
                 {/* 3D Book Carousel */}
-                <div className="absolute inset-0 flex items-center justify-center ">
+                <div className="absolute inset-0 flex items-center justify-center">
                   {heroBooks.map((book, index) => {
                     const position = getBookPosition(index);
                     const isActive = index === activeBook;
@@ -310,16 +331,21 @@ if (heroBooks.length === 0) {
                 </div>
 
                 {/* Book Indicators */}
-                <div className="absolute bottom-4 lg:bottom-8 left-1/2 -translate-x-1/2 flex space-x-2 sm:space-x-3 z-20">
+                <div className="hidden sm:flex absolute bottom-4 left-1/2 -translate-x-1/2 space-x-3 z-20">
+
                   {heroBooks.map((_, index) => (
                     <button
                       key={index}
                       onClick={() => handleBookClick(index)}
-                      className={`h-2 sm:h-2.5 md:h-3 rounded-full transition-all duration-500 hover:scale-125 ${
-                        index === activeBook 
-                          ? 'bg-white w-6 sm:w-6 md:w-8 shadow-lg' 
-                          : 'bg-white/50 hover:bg-white/70 w-2 sm:w-2.5 md:w-3'
-                      }`}
+                     className={`h-1 w-1        /* VERY small on mobile */
+            sm:h-1 sm:w-1   /* small on tablets */
+            md:h-2.5 md:w-2.5  /* normal on desktop */
+            rounded-full transition-all duration-500 hover:scale-110 ${
+  index === activeBook 
+    ? 'bg-white sm:w-3 md:w-4 shadow-md'   // active dot
+    : 'bg-white/50 hover:bg-white/70'      // inactive dot
+}`}
+
                     />
                   ))}
                 </div>
@@ -602,6 +628,21 @@ if (heroBooks.length === 0) {
             background: linear-gradient(135deg, #1A202C 0%, #2D3748 50%, #4A5568 100%);
           }
         }
+          /* 🔥 MOBILE — make books smaller */
+          @media (max-width: 640px) {
+            .book-card-container {
+              width: 140px !important;
+              height: 200px !important;
+              padding: 10px !important;
+            }
+
+            .book-image-uniform {
+              border-radius: 10px !important;
+            }
+          }
+
+          
+
       `}</style>
     </div>
   );

@@ -3,6 +3,41 @@ import { Trash2, ShoppingBag, ArrowLeft, Heart, Star } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSaveCartMutation, useGetCartByUserIdQuery } from '../../utils/cartService';
 
+const toNumber = (raw) => {
+  if (raw === null || raw === undefined) return NaN;
+  if (typeof raw === 'number') return raw;
+  if (typeof raw === 'string') {
+    const cleaned = raw.replace(/[^0-9.-]+/g, '');
+    if (!cleaned) return NaN;
+    return Number(cleaned);
+  }
+  return Number(raw);
+};
+
+const normalizeCurrency = (...values) => {
+  for (const value of values) {
+    const num = toNumber(value);
+    if (Number.isFinite(num)) return num;
+  }
+  return 0;
+};
+
+const resolvePrice = (item) =>
+  normalizeCurrency(
+    item?.price,
+    item?.final_price,
+    item?.product_details?.final_price,
+    item?.product?.final_price
+  );
+
+const resolveOriginalPrice = (item) =>
+   normalizeCurrency(
+    item?.original_price,
+    item?.originalPrice,
+    item?.product_details?.original_price,
+    item?.product?.original_price,
+    item?.price
+  );
 const CartSection = ({
   removeFromCart,
   addToWishlist,
@@ -31,27 +66,45 @@ const [cart, setCart] = React.useState([]);
 // Load Cart (backend or local)
 // ---------------------------
 React.useEffect(() => {
-  if (userId && cartResponse?.data?.product_details) {
-    // Logged-in user → backend cart
-    setCart(
-      cartResponse.data.product_details.map(item => ({
-        id: item._id,
-        title: item.title,
-        author: item.author,
-        image: item.coverImageUrl,
-        price: parseFloat(item.final_price),
-        originalPrice: parseFloat(item.original_price),
-        quantity: 1
-      }))
-    );
+  if (userId && Array.isArray(cartResponse?.data)) {
+    // Logged-in user → backend cart (already normalized in service, but ensure fallback)
+setCart(
+  cartResponse.data.map(item => {
+    const p = item.product_details || item.product || {}; // fallback
+
+    return {
+      id: item._id || item.id || item.productId,
+
+      // Correct product fields
+      title: p.title,
+      author: p.author,
+      image: p.coverImageUrl || p.image,
+
+      // Correct price fields
+      price: normalizeCurrency(
+        p.final_price,
+        p.price
+      ),
+
+      originalPrice: normalizeCurrency(
+        p.original_price,
+        p.mrp,
+        p.price
+      ),
+
+      quantity: item.quantity ?? 1
+    };
+  })
+);
+
   } else {
     // Logged-out user → localStorage cart
     const local = JSON.parse(localStorage.getItem("cart")) || [];
     setCart(
       local.map(item => ({
         ...item,
-        price: parseFloat(item.price),
-        originalPrice: parseFloat(item.originalPrice),
+        price: normalizeCurrency(item.price, item.final_price, item.finalPrice, item.salePrice, item.originalPrice),
+        originalPrice: normalizeCurrency(item.originalPrice, item.mrp, item.price),
         quantity: item.quantity ?? 1,
       }))
     );
@@ -80,8 +133,15 @@ const handleAddWishlist = (book) => {
     navigate('/library');
   };
 
-   const subtotal = cart.reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0);
-  const savings = cart.reduce((sum, item) => sum + ((item.originalPrice - item.price) * (item.quantity || 1)), 0);
+  const subtotal = cart.reduce(
+    (sum, item) => sum + resolvePrice(item) * (item.quantity || 1),
+    0
+  );
+  const savings = cart.reduce((sum, item) => {
+    const original = resolveOriginalPrice(item);
+    const current = resolvePrice(item);
+    return sum + Math.max(original - current, 0) * (item.quantity || 1);
+  }, 0);
   const total = subtotal;
 
   const [saveCart] = useSaveCartMutation();
@@ -162,7 +222,10 @@ React.useEffect(() => {
                   </button>
                 </div>
               ) : (
-                cart.map(item => (
+                cart.map(item => {
+                  const displayPrice = resolvePrice(item);
+                  const displayOriginal = resolveOriginalPrice(item);
+                  return (
                   <div key={item.id} className="flex flex-col sm:flex-row gap-6 bg-[#2D1B3D]/95 rounded-2xl p-6 border border-white/10 hover:border-white/30 transition-all duration-300 group hover:scale-105">
                     {/* Book Image */}
                     <div className="flex-shrink-0">
@@ -218,19 +281,19 @@ React.useEffect(() => {
                       {/* Price Section - REMOVED QUANTITY */}
                       <div className="flex items-center justify-end">
                         <div className="flex flex-col items-end">
-                          {item.originalPrice !== item.price && (
+                          {displayOriginal > displayPrice && (
                             <span className="text-sm text-white/60 line-through">
-                              ₹{item.originalPrice.toFixed(2)}
+                              ₹{displayOriginal.toFixed(2)}
                             </span>
                           )}
                           <span className="text-lg font-bold text-white">
-                            ₹{item.price.toFixed(2)}
+                            ₹{displayPrice.toFixed(2)}
                           </span>
                         </div>
                       </div>
                     </div>
                   </div>
-                ))
+                )})
               )}
             </div>
             {/* Order Summary */}
@@ -288,7 +351,10 @@ React.useEffect(() => {
           ) : (
             <>
               <div className="flex flex-col gap-4 pb-4">
-                {cart.map(item => (
+                {cart.map(item => {
+                  const displayPrice = resolvePrice(item);
+                  const displayOriginal = resolveOriginalPrice(item);
+                  return (
                   <div
                     key={item.id}
                     className="bg-[#2D1B3D]/95 backdrop-blur-sm rounded-2xl p-4 border border-white/10 hover:border-white/30 transition-all duration-300"
@@ -346,13 +412,13 @@ React.useEffect(() => {
 
                         {/* Price Section - REMOVED QUANTITY */}
                         <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2">
                             <span className="text-lg font-bold text-white">
-                              ₹{item.price.toFixed(2)}
+                              ₹{displayPrice.toFixed(2)}
                             </span>
-                            {item.originalPrice !== item.price && (
+                            {displayOriginal > displayPrice && (
                               <span className="text-sm text-white/60 line-through">
-                                ₹{item.originalPrice.toFixed(2)}
+                                ₹{displayOriginal.toFixed(2)}
                               </span>
                             )}
                           </div>
@@ -360,7 +426,7 @@ React.useEffect(() => {
                       </div>
                     </div>
                   </div>
-                ))}
+                )})}
               </div>
               {/* Mobile Order Summary */}
               <div className="mt-6 mb-4">

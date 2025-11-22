@@ -55,12 +55,12 @@ const ReviewsSection = () => {
       } catch (err) {
         console.error("Failed to load reviews:", err);
         const status = err?.response?.status;
-        if (status === 503) {
-          setNotice("Live reviews are temporarily unavailable. Showing a few community highlights meanwhile.");
-          // keep reviews empty -> fallback will be used
-        } else {
-          setError("Unable to load reviews right now. Please try again later.");
-        }
+        // if (status === 503) {
+        //   setNotice("Live reviews are temporarily unavailable. Showing a few community highlights meanwhile.");
+        //   // keep reviews empty -> fallback will be used
+        // } else {
+        //   setError("Unable to load reviews right now. Please try again later.");
+        // }
       } finally {
         setLoading(false);
       }

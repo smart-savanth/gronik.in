@@ -485,18 +485,18 @@ const books = booksResponse?.data?.map(book => ({
                       <button
                         onClick={e => handleCartAction(e, book)}
                         disabled={animatingCart[book.id]}
-                        className={`cart-button-animated ${cartButtonClicked[book.id] ? 'clicked' : ''} flex-1 py-3 px-4 rounded-xl font-semibold text-base flex items-center justify-center gap-2 transition-all duration-300 hover:scale-105 shadow-xl hover:shadow-2xl ${
+                        className={`cart-button-animated ${cartButtonClicked[book.id] ? 'clicked' : ''} flex-1 py-3 rounded-xl font-semibold text-base flex items-center justify-center gap-2 transition-all duration-300 hover:scale-105 shadow-xl hover:shadow-2xl ${
                           isInCart(book)
                             ? 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white'
                             : 'bg-gradient-to-r from-white to-gray-100 hover:from-gray-100 hover:to-white text-[#2D1B3D] shadow-xl'
                         }`}
                       >
                         {isInCart(book) ? (
-                          <ExternalLink className="w-5 h-5" />
+                          <ExternalLink className="hidden sm:inline w-5 h-5" />
                         ) : (
                           <>
-                            <ShoppingCart className="cart-icon w-5 h-5" />
-                            <div className="box-icon w-3 h-3 bg-current rounded-sm"></div>
+                            <ShoppingCart className="hidden sm:inline cart-icon w-5 h-5" />
+                            <div className="hidden sm:inline box-icon w-3 h-3 bg-current rounded-sm"></div>
                           </>
                         )}
 
