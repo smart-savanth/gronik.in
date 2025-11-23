@@ -594,101 +594,102 @@ const finalCartCount = localCartCount || cartCount;
       )}
 
       {/* Desktop Navbar */}
-      {!isMobile && (
-        <nav
-          className={`fixed top-0 left-0 right-0 z-50 bg-gronik-primary/95 backdrop-blur-md shadow-lg border-b border-gronik-secondary/20 
-           ${(!isScrolled || isHovering) ? 'translate-y-0' : '-translate-y-full'}
-               transition-transform duration-500 ease-in-out`}
-          onMouseEnter={() => isScrolled && setIsHovering(true)}
-          onMouseLeave={() => setIsHovering(false)}
-        >
-        <div className="px-8 max-w-[1400px] mx-auto">
-            <div className="flex items-center justify-between h-24 w-full">
-              {/* LOGO LEFT SIDE */}
-                <Link to="/" className="flex items-center">
-                  <img
-                    src="/images/logo.png"
-                    alt="Gronik Logo"
-                    className="w-24 h-24 object-contain"
-                  />
-                </Link>
+      {/* Desktop Navbar */}
+{!isMobile && (
+  <div
+    className={`
+      fixed top-0 left-0 right-0 z-50
+      transition-transform duration-500 ease-in-out
+      ${(!isScrolled || isHovering) ? "translate-y-0" : "-translate-y-full"}
+    `}
+    onMouseEnter={() => isScrolled && setIsHovering(true)}
+    onMouseLeave={() => setIsHovering(false)}
+  >
+    <nav className="bg-gronik-primary/95 backdrop-blur-md shadow-lg border-b border-gronik-secondary/20">
+      <div className="px-8 max-w-[1400px] mx-auto">
+        <div className="flex items-center justify-between h-24 w-full">
+          
+          {/* Logo */}
+          <Link to="/" className="flex items-center">
+            <img
+              src="/images/logo.png"
+              alt="Gronik Logo"
+              className="w-24 h-24 object-contain"
+            />
+          </Link>
 
-              <div className="flex items-center space-x-10">
-                <Link
-                  to="/"
-                  className="text-gronik-light hover:text-gronik-accent transition-colors duration-200 font-medium hover:scale-105 transform"
-                >
-                  Home
-                </Link>
-                <Link
-                  to="/library"
-                  className="text-gronik-light hover:text-gronik-accent transition-colors duration-200 font-medium hover:scale-105 transform"
-                >
-                  Library
-                </Link>
-                <button
-                  onClick={() => scrollToSection('about')}
-                  className="text-gronik-light hover:text-gronik-accent transition-colors duration-200 font-medium hover:scale-105 transform"
-                >
-                  About
-                </button>
-                <Link
-                  to="/contact"
-                  className="text-gronik-light hover:text-gronik-accent transition-colors duration-200 font-medium hover:scale-105 transform"
-                >
-                  Contact
-                </Link>
-              </div>
-              <div className="flex items-center space-x-5">
-                              {!isMobile && (
-                    <div className="w-[350px]">
-                      {renderSearchInput(false)}
-                    </div>
-                  )}
+          {/* Menu Items */}
+          <div className="flex items-center space-x-10">
+            <Link to="/" className="text-gronik-light hover:text-gronik-accent font-medium hover:scale-105 transform transition">
+              Home
+            </Link>
 
-                <Link to="/wishlist" className="p-2 hover:bg-gronik-secondary/20 rounded-lg transition-colors duration-200 relative group">
-                  <Heart className="w-5 h-5 text-gronik-light group-hover:text-gronik-accent transition-colors duration-200" />
-                  {wishlistCount > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
-                      {wishlistCount}
-                    </span>
-                  )}
-                </Link>
-                <Link to="/cart" className="p-2 hover:bg-gronik-secondary/20 rounded-lg transition-colors duration-200 relative group">
-                  <ShoppingCart className="w-5 h-5 text-gronik-light group-hover:text-gronik-accent transition-colors duration-200" />
-                  {finalCartCount > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-gronik-accent text-white text-xs rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
-                      {finalCartCount}
-                    </span>
-                  )}
-                </Link>
-                <Link
-                  to={user ? "/profile" : "/login"}  
-                  className="p-2 hover:bg-gronik-secondary/20 rounded-lg transition-colors duration-200 group"
-                >
-                  <User className="w-5 h-5 text-gronik-light group-hover:text-gronik-accent transition-colors duration-200" />
-                </Link>
-                {!user && (
-                  <button
-                    onClick={() => navigate('/login')}
-                    className="bg-gradient-to-r from-gronik-accent to-gronik-secondary hover:from-gronik-secondary hover:to-gronik-accent text-white px-6 py-2 rounded-lg transition-all duration-200 transform hover:scale-105 font-medium shadow-lg"
-                  >
-                    Login
-                  </button>
-                )}
-                {user && (
-                  <Link
-                    to="/admin"
-                    className="bg-gradient-to-r from-gronik-accent to-gronik-secondary hover:from-gronik-secondary hover:to-gronik-accent text-white px-6 py-2 rounded-lg transition-all duration-200 transform hover:scale-105 font-medium shadow-lg"
-                  >
-                    Admin
-                  </Link>
-                )}
-              </div>
-            </div>
+            <Link to="/library" className="text-gronik-light hover:text-gronik-accent font-medium hover:scale-105 transform transition">
+              Library
+            </Link>
+
+            <button
+              onClick={() => scrollToSection("about")}
+              className="text-gronik-light hover:text-gronik-accent font-medium hover:scale-105 transform transition"
+            >
+              About
+            </button>
+
+            <Link to="/contact" className="text-gronik-light hover:text-gronik-accent font-medium hover:scale-105 transform transition">
+              Contact
+            </Link>
           </div>
-        </nav>
-      )}
+
+          {/* Right Side */}
+          <div className="flex items-center space-x-5">
+            <div className="w-[350px]">
+              {renderSearchInput(false)}
+            </div>
+
+            <Link to="/wishlist" className="relative p-2 hover:bg-gronik-secondary/20 rounded-lg transition group">
+              <Heart className="w-5 h-5 text-gronik-light group-hover:text-gronik-accent" />
+              {wishlistCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                  {wishlistCount}
+                </span>
+              )}
+            </Link>
+
+            <Link to="/cart" className="relative p-2 hover:bg-gronik-secondary/20 rounded-lg transition group">
+              <ShoppingCart className="w-5 h-5 text-gronik-light group-hover:text-gronik-accent" />
+              {finalCartCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-gronik-accent text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                  {finalCartCount}
+                </span>
+              )}
+            </Link>
+
+            <Link to={user ? "/profile" : "/login"} className="p-2 hover:bg-gronik-secondary/20 rounded-lg transition group">
+              <User className="w-5 h-5 text-gronik-light group-hover:text-gronik-accent" />
+            </Link>
+
+            {!user ? (
+              <button
+                onClick={() => navigate("/login")}
+                className="px-6 py-2 bg-gradient-to-r from-gronik-accent to-gronik-secondary text-white rounded-lg shadow-lg hover:scale-105 transform transition"
+              >
+                Login
+              </button>
+            ) : (
+              <Link
+                to="/admin"
+                className="px-6 py-2 bg-gradient-to-r from-gronik-accent to-gronik-secondary text-white rounded-lg shadow-lg hover:scale-105 transform transition"
+              >
+                Admin
+              </Link>
+            )}
+          </div>
+        </div>
+      </div>
+    </nav>
+  </div>
+)}
+
 
       {/* Floating G Logo - Desktop Only */}
       {!isMobile && (
