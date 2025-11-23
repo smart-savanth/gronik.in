@@ -595,6 +595,7 @@ const finalCartCount = localCartCount || cartCount;
 
       {/* Desktop Navbar */}
       {/* Desktop Navbar */}
+
 {!isMobile && (
   <div
     className={`
@@ -621,7 +622,7 @@ const finalCartCount = localCartCount || cartCount;
           {/* Menu Items */}
           <div className="flex items-center space-x-10">
             <Link to="/" className="text-gronik-light hover:text-gronik-accent font-medium hover:scale-105 transform transition">
-              house
+              House
             </Link>
 
             <Link to="/library" className="text-gronik-light hover:text-gronik-accent font-medium hover:scale-105 transform transition">
@@ -684,11 +685,14 @@ const finalCartCount = localCartCount || cartCount;
               </Link>
             )}
           </div>
+
         </div>
       </div>
     </nav>
   </div>
 )}
+
+
 
 
       {/* Floating G Logo - Desktop Only */}
