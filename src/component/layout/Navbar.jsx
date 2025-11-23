@@ -621,7 +621,7 @@ const finalCartCount = localCartCount || cartCount;
           {/* Menu Items */}
           <div className="flex items-center space-x-10">
             <Link to="/" className="text-gronik-light hover:text-gronik-accent font-medium hover:scale-105 transform transition">
-              Home
+              house
             </Link>
 
             <Link to="/library" className="text-gronik-light hover:text-gronik-accent font-medium hover:scale-105 transform transition">
