@@ -1,6 +1,77 @@
-import React, { useRef } from 'react';
+import React, { useRef, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Trash2, ShoppingBag, ArrowLeft, Heart, Star, ShoppingCart, ChevronLeft, ChevronRight } from 'lucide-react';
+
+const WishlistCard = React.memo(function WishlistCard({ item, onAddToCart, onRemove }) {
+  return (
+    <div className="bg-[#2D1B3D]/95 backdrop-blur-sm rounded-2xl p-6 border border-gronik-accent/20 hover:border-gronik-accent/40 transition-all duration-300 group hover:transform hover:scale-105">
+      <div className="relative mb-4">
+        <div className="w-full aspect-[3/4] rounded-lg overflow-hidden shadow-lg bg-[#2D1B3D]/80">
+          <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
+        </div>
+        <button
+          onClick={() => onRemove(item.id)}
+          className="absolute top-2 right-2 w-8 h-8 bg-gronik-primary/80 hover:bg-red-500 rounded-full transition-colors duration-200 flex items-center justify-center shadow-md"
+          aria-label="Remove from wishlist"
+          type="button"
+        >
+          <Heart className="w-4 h-4 text-gronik-accent fill-current hover:text-white" />
+        </button>
+      </div>
+
+      <div className="space-y-3">
+        <div>
+          <h3 className="font-bold text-lg text-white group-hover:text-gronik-accent transition-colors duration-200 line-clamp-2">
+            {item.title}
+          </h3>
+          <p className="text-gronik-light/80 text-sm">by {item.author}</p>
+          <div className="flex items-center mt-1">
+            <div className="flex items-center">
+              {[...Array(5)].map((_, i) => (
+                <Star
+                  key={i}
+                  className={`w-3 h-3 ${i < Math.floor(item.rating) ? 'text-yellow-400 fill-current' : 'text-gronik-light/30'}`}
+                />
+              ))}
+            </div>
+            <span className="text-xs text-gronik-light/60 ml-2">({item.rating})</span>
+          </div>
+        </div>
+
+        <div className="flex items-center space-x-2">
+          {Number.isFinite(item.originalPrice) && Number.isFinite(item.price) && item.originalPrice > item.price && (
+            <span className="text-sm text-gronik-light/60 line-through">₹{item.originalPrice.toFixed(2)}</span>
+          )}
+          <span className="text-lg font-bold text-gronik-accent">₹{item.price.toFixed(2)}</span>
+        </div>
+
+        <div className="flex space-x-2 pt-2">
+          <button
+            onClick={() => onAddToCart(item)}
+            disabled={!item.inStock}
+            className={`flex-1 flex items-center justify-center py-2 px-3 rounded-lg font-medium text-sm transition-all duration-200 ${
+              item.inStock ? 'bg-gronik-accent hover:bg-gronik-secondary text-white transform hover:scale-105' : 'bg-gronik-light/20 text-gronik-light/50 cursor-not-allowed'
+            }`}
+            type="button"
+          >
+            <ShoppingCart className="w-4 h-4 mr-2" />
+            {item.inStock ? 'Add to Cart' : 'Out of Stock'}
+          </button>
+
+          <button
+            onClick={() => onRemove(item.id)}
+            type="button"
+            className="p-2 text-gronik-light/60 hover:text-red-400 hover:bg-red-400/20 rounded-lg transition-all duration-200"
+            aria-label="Delete"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+});
+
 
 const WishlistPage = ({
   wishlist = [],
@@ -9,8 +80,11 @@ const WishlistPage = ({
   cart = [],
   isLoading = false
 }) => {
+  const [localWishlist, setLocalWishlist] = React.useState([]);
   const scrollContainerRef = useRef(null);
   const navigate = useNavigate();
+  // show a full-page loader only when server says loading AND we have no local items
+  const showFullPageLoader = isLoading && localWishlist.length === 0;
 
   const normalizePrice = (value, fallback = 0) => {
     const parsed = Number(value);
@@ -19,18 +93,39 @@ const WishlistPage = ({
     return Number.isFinite(fallbackParsed) ? fallbackParsed : 0;
   };
 
-  const normalizedWishlist = wishlist.map(item => {
-    const price = normalizePrice(item.price ?? item.final_price, 0);
-    const originalPrice = normalizePrice(
-      item.originalPrice ?? item.original_price,
-      price
-    );
-    return {
-      ...item,
-      price,
-      originalPrice,
-    };
-  });
+// Sync internal wishlist with props
+React.useEffect(() => {
+  if (Array.isArray(wishlist)) setLocalWishlist(wishlist);
+}, [wishlist]);
+
+// Listen for storage + wishlist updates
+React.useEffect(() => {
+  const refresh = () => {
+    const stored = JSON.parse(localStorage.getItem("wishlist")) || [];
+    setLocalWishlist(stored);
+  };
+
+  window.addEventListener("wishlist-updated", refresh);
+  window.addEventListener("storage", refresh);
+
+  return () => {
+    window.removeEventListener("wishlist-updated", refresh);
+    window.removeEventListener("storage", refresh);
+  };
+}, []);
+
+// NORMALIZED LIST
+const normalizedWishlist = useMemo(() => {
+  return localWishlist.map(item => ({
+    ...item,
+    price: Number(item.price) || 0,
+    originalPrice: Number(item.originalPrice) || Number(item.price) || 0,
+    inStock: item.inStock ?? true,
+    rating: Number(item.rating) || 4.5,
+  }));
+}, [localWishlist]);
+
+
 
   const handleContinueShopping = () => {
     navigate('/library');
@@ -59,14 +154,19 @@ const WishlistPage = ({
     }
   };
 
-  const handleAddToCart = (item) => {
-    addToCart(item);
-    removeFromWishlist(item.id);
-  };
+const handleAddToCart = useCallback((item) => {
+  addToCart(item);
+  removeFromWishlist(item.id);
+}, [addToCart, removeFromWishlist]);
+
+const handleRemoveFromWishlist = useCallback((id) => {
+  removeFromWishlist(id);
+}, [removeFromWishlist]);
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#9B7BB8] to-[#8A6AA7] pt-20">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 lg:py-8 sm:py-2 py-1">
         {/* Desktop Header */}
         <div className="hidden sm:flex items-center justify-between mb-8">
           <div className="flex items-center">
@@ -85,10 +185,19 @@ const WishlistPage = ({
               </span>
             </div>
           </div>
+          {isLoading && (
+            <div
+              role="status"
+              aria-label="Syncing wishlist"
+              className="ml-3 w-4 h-4 rounded-full border-2 border-white/20 border-t-white animate-spin"
+              title="Syncing wishlist..."
+            />
+          )}
+
           {normalizedWishlist.length > 0 && (
             <button 
               onClick={() => normalizedWishlist.forEach(item => removeFromWishlist(item.id))}
-              className="text-gronik-light hover:text-red-400 transition-colors duration-200 font-medium"
+              className="text-gronik-light hover:text-white-400 transition-colors duration-200 font-medium"
             >
               Clear All
             </button>
@@ -108,7 +217,7 @@ const WishlistPage = ({
             {normalizedWishlist.length > 0 && (
               <button 
                 onClick={() => normalizedWishlist.forEach(item => removeFromWishlist(item.id))}
-                className="text-xs text-gronik-light hover:text-red-400 transition-colors duration-200 bg-gronik-shadow/40 px-3 py-1.5 rounded-full backdrop-blur-sm border border-gronik-accent/20"
+                 className="text-xs text-white font-semibold transition-colors duration-200"
               >
                 Clear All
               </button>
@@ -126,221 +235,57 @@ const WishlistPage = ({
         </div>
 
         {/* Wishlist Content */}
-        {isLoading ? (
-          <div className="text-center py-16 bg-[#2D1B3D]/80 backdrop-blur-sm rounded-2xl border border-gronik-accent/20">
-            <div className="w-16 h-16 rounded-full border-4 border-white/20 border-t-gronik-accent mx-auto mb-6 animate-spin"></div>
-            <h3 className="text-xl font-semibold text-white mb-2">Loading your wishlist…</h3>
-            <p className="text-gronik-light/70">Hang tight while we sync your saved books.</p>
-          </div>
-        ) : normalizedWishlist.length === 0 ? (
-          <div className="text-center py-16 bg-[#2D1B3D]/80 backdrop-blur-sm rounded-2xl border border-gronik-accent/20">
-            <Heart className="w-16 h-16 text-gronik-light/50 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gronik-light mb-2">Your wishlist is empty</h3>
-            <p className="text-gronik-light/60 mb-6">Save your favorite books for later!</p>
-            <button 
-              onClick={handleExploreBooks}
-              className="bg-gradient-to-r from-gronik-accent to-gronik-secondary hover:from-gronik-secondary hover:to-gronik-accent text-white px-8 py-3 rounded-xl font-medium transition-all duration-300 transform hover:scale-105"
-            >
-              Explore Books
-            </button>
-          </div>
-        ) : (
-          <>
-            {/* Desktop Grid View */}
-            {/* Desktop Grid View */}
-      {normalizedWishlist.length > 0 && (
-          <div className="hidden sm:grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {normalizedWishlist.map(item => (
-                <div key={item.id} className="bg-[#2D1B3D]/95 backdrop-blur-sm rounded-2xl p-6 border border-gronik-accent/20 hover:border-gronik-accent/40 transition-all duration-300 group hover:transform hover:scale-105">
-                  {/* Book Image */}
-                  <div className="relative mb-4">
-                    <div className="w-full aspect-[3/4] rounded-lg overflow-hidden shadow-lg bg-[#2D1B3D]/80">
-                      <img 
-                        src={item.image} 
-                        alt={item.title}
-                        className="w-full h-full object-cover"
-                      />
-                      
-                    </div>
-                    <button 
-                      onClick={() => removeFromWishlist(item.id)}
-                      className="absolute top-2 right-2 w-8 h-8 bg-gronik-primary/80 hover:bg-red-500 rounded-full transition-colors duration-200 flex items-center justify-center shadow-md"
-                    >
-                      <Heart className="w-4 h-4 text-gronik-accent fill-current hover:text-white" />
-                    </button>
-                  </div>
-                  {/* Book Details */}
-                  <div className="space-y-3">
-                    <div>
-                      <h3 className="font-bold text-lg text-white group-hover:text-gronik-accent transition-colors duration-200 line-clamp-2">
-                        {item.title}
-                      </h3>
-                      <p className="text-gronik-light/80 text-sm">by {item.author}</p>
-                      <div className="flex items-center mt-1">
-                        <div className="flex items-center">
-                          {[...Array(5)].map((_, i) => (
-                            <Star 
-                              key={i} 
-                              className={`w-3 h-3 ${i < Math.floor(item.rating) ? 'text-yellow-400 fill-current' : 'text-gronik-light/30'}`} 
-                            />
-                          ))}
-                        </div>
-                        <span className="text-xs text-gronik-light/60 ml-2">({item.rating})</span>
-                      </div>
-                    </div>
-                    {/* Price */}
-                    <div className="flex items-center space-x-2">
-                      {Number.isFinite(item.originalPrice) && Number.isFinite(item.price) && item.originalPrice > item.price && (
-                        <span className="text-sm text-gronik-light/60 line-through">
-                          ₹{item.originalPrice.toFixed(2)}
-                        </span>
-                      )}
-                      <span className="text-lg font-bold text-gronik-accent">
-                        ₹{item.price.toFixed(2)}
-                      </span>
-                    </div>
-                    {/* Category */}
-                    <div className="flex items-center">
-                      <span className="text-xs bg-gronik-accent/20 text-gronik-accent px-2 py-1 rounded-full">
-                        {item.category}
-                      </span>
-                    </div>
-                    {/* Actions */}
-                    <div className="flex space-x-2 pt-2">
-                      <button 
-                        onClick={() => handleAddToCart(item)}
-                        disabled={!item.inStock}
-                        className={`flex-1 flex items-center justify-center py-2 px-3 rounded-lg font-medium text-sm transition-all duration-200 ${
-                          item.inStock 
-                            ? 'bg-gronik-accent hover:bg-gronik-secondary text-white transform hover:scale-105' 
-                            : 'bg-gronik-light/20 text-gronik-light/50 cursor-not-allowed'
-                        }`}
-                      >
-                        <ShoppingCart className="w-4 h-4 mr-2" />
-                        {item.inStock ? 'Add to Cart' : 'Out of Stock'}
-                      </button>
-                      <button 
-                        onClick={() => removeFromWishlist(item.id)}
-                        className="p-2 text-gronik-light/60 hover:text-red-400 hover:bg-red-400/20 rounded-lg transition-all duration-200"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-              </div>
-                )}
+        {/* Wishlist Content */}
+{showFullPageLoader ? (
+  // full-page loader only when we truly have nothing yet
+  <div className="text-center py-16 bg-[#2D1B3D]/80 backdrop-blur-sm rounded-2xl border border-gronik-accent/20">
+    <div className="w-16 h-16 rounded-full border-4 border-white/20 border-t-gronik-accent mx-auto mb-6 animate-spin" />
+    <h3 className="text-xl font-semibold text-white mb-2">Loading your wishlist…</h3>
+    <p className="text-gronik-light/70">Hang tight while we sync your saved books.</p>
+  </div>
+) : normalizedWishlist.length === 0 ? (
+  <div className="text-center py-16 bg-[#2D1B3D]/80 backdrop-blur-sm rounded-2xl border border-gronik-accent/20">
+    <Heart className="w-16 h-16 text-gronik-light/50 mx-auto mb-4" />
+    <h3 className="text-xl font-semibold text-gronik-light mb-2">Your wishlist is empty</h3>
+    <p className="text-gronik-light/60 mb-6">Save your favorite books for later!</p>
+    <button 
+      onClick={handleExploreBooks}
+      className="bg-gradient-to-r from-gronik-accent to-gronik-secondary hover:from-gronik-secondary hover:to-gronik-accent text-white px-8 py-3 rounded-xl font-medium transition-all duration-300 transform hover:scale-105"
+    >
+      Explore Books
+    </button>
+  </div>
+) : (
+  <>
+    {/* Desktop Grid View */}
+    {normalizedWishlist.length > 0 && (
+      <div className="hidden sm:grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {normalizedWishlist.map(item => (
+          <WishlistCard
+            key={item.id}
+            item={item}
+            onAddToCart={handleAddToCart}
+            onRemove={handleRemoveFromWishlist}
+          />
+        ))}
+      </div>
+    )}
 
-            {/* Mobile Carousel View */}
-            <div className="sm:hidden">
-              <div className="relative">
-                {wishlist.length > 2 && (
-                  <>
-                    <button 
-                      onClick={scrollToPrev}
-                      className="absolute left-0 top-1/2 -translate-y-1/2 z-10 p-2 bg-gronik-shadow/80 backdrop-blur-sm rounded-full border border-gronik-accent/30 text-gronik-light hover:text-gronik-accent hover:bg-gronik-accent/20 transition-all duration-200"
-                    >
-                      <ChevronLeft className="w-4 h-4" />
-                    </button>
-                    <button 
-                      onClick={scrollToNext}
-                      className="absolute right-0 top-1/2 -translate-y-1/2 z-10 p-2 bg-gronik-shadow/80 backdrop-blur-sm rounded-full border border-gronik-accent/30 text-gronik-light hover:text-gronik-accent hover:bg-gronik-accent/20 transition-all duration-200"
-                    >
-                      <ChevronRight className="w-4 h-4" />
-                    </button>
-                  </>
-                )}
-                <div 
-                  ref={scrollContainerRef}
-                  className="flex gap-4 overflow-x-auto scrollbar-hide px-4 sm:px-8 py-4 justify-center"
-                  style={{ scrollSnapType: 'x mandatory' }}
-                >
-                  {normalizedWishlist.map(item => (
-                    <div 
-                      key={item.id} 
-                      className="flex-none w-56 max-w-[15rem] bg-[#2D1B3D]/95 backdrop-blur-sm rounded-2xl p-4 border border-gronik-accent/20 hover:border-gronik-accent/40 transition-all duration-300 shadow-lg mx-auto"
-                      style={{ scrollSnapAlign: 'start' }}
-                    >
-                      {/* Compact Book Image */}
-                      <div className="relative mb-3">
-                        <div className="w-full aspect-[3/4] rounded-lg overflow-hidden shadow-md bg-[#2D1B3D]/80">
-                          <img 
-                            src={item.image} 
-                            alt={item.title}
-                            className="w-full h-full object-cover"
-                          />
-                          {!item.inStock && (
-                            <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                              <span className="text-white font-medium bg-red-500 px-2 py-0.5 rounded-full text-xs">
-                                Out of Stock
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                        <button 
-                          onClick={() => removeFromWishlist(item.id)}
-                          className="absolute -top-1 -right-1 w-7 h-7 bg-gronik-primary/90 hover:bg-red-500 rounded-full transition-colors duration-200 shadow-lg flex items-center justify-center"
-                        >
-                          <Heart className="w-3.5 h-3.5 text-gronik-accent fill-current hover:text-white" />
-                        </button>
-                      </div>
-                      {/* Compact Details */}
-                      <div className="space-y-2">
-                        <h3 className="font-bold text-xs text-white line-clamp-2">{item.title}</h3>
-                        <p className="text-gronik-light/80 text-xs">{item.author}</p>
-                        <div className="flex items-center mt-1">
-                          <div className="flex items-center">
-                            {[...Array(5)].map((_, i) => (
-                              <Star 
-                                key={i} 
-                                className={`w-3 h-3 ${i < Math.floor(item.rating) ? 'text-yellow-400 fill-current' : 'text-gronik-light/30'}`} 
-                              />
-                            ))}
-                          </div>
-                          <span className="text-xs text-gronik-light/60 ml-2">({item.rating})</span>
-                        </div>
-                        <div className="flex items-center space-x-1">
-                          {Number.isFinite(item.originalPrice) && Number.isFinite(item.price) && item.originalPrice > item.price && (
-                          <span className="text-xs text-gronik-light/60 line-through">
-                              ₹{item.originalPrice.toFixed(2)}
-                            </span>
-                          )}
-                          <span className="text-sm font-bold text-gronik-accent">
-                            ₹{item.price.toFixed(2)}
-                          </span>
-                        </div>
-                        <span className="text-xs bg-gronik-accent/20 text-gronik-accent px-1.5 py-0.5 rounded-full">
-                          {item.category}
-                        </span>
-                        <div className="flex gap-1.5 pt-1">
-                          <button 
-                            onClick={() => handleAddToCart(item)}
-                            disabled={!item.inStock}
-                            className={`flex-1 flex items-center justify-center py-1.5 px-2 rounded-lg font-medium text-xs transition-all duration-200 ${
-                              item.inStock 
-                                ? 'bg-gronik-accent hover:bg-gronik-secondary text-white' 
-                                : 'bg-gronik-light/20 text-gronik-light/50 cursor-not-allowed'
-                            }`}
-                          >
-                            <ShoppingCart className="w-3 h-3 mr-1" />
-                            {item.inStock ? 'Add to Cart' : 'Out of Stock'}
-                          </button>
-                          <button 
-                            onClick={() => removeFromWishlist(item.id)}
-                            className="flex-1 py-1.5 px-2 text-gronik-light/60 hover:text-red-400 hover:bg-red-400/20 rounded-lg transition-all duration-200 text-xs font-medium"
-                          >
-                            Remove
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </>
-        )}
+    {/* Mobile Grid */}
+    <div className="sm:hidden grid grid-cols-2 gap-1 px-4">
+      {normalizedWishlist.map(item => (
+        <div key={item.id} className="p-0">
+          <WishlistCard
+            item={item}
+            onAddToCart={handleAddToCart}
+            onRemove={handleRemoveFromWishlist}
+          />
+        </div>
+      ))}
+    </div>
+  </>
+)}
+
       </div>
       {/* Custom Styles */}
       <style jsx>{`
@@ -378,4 +323,4 @@ const WishlistPage = ({
   );
 };
 
-export default WishlistPage;
+export default React.memo(WishlistPage);

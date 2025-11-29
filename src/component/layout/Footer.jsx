@@ -119,14 +119,18 @@ const Footer = () => {
             <div>
               <h4 className="font-bold text-gronik-light mb-4 sm:mb-6 text-base sm:text-lg">Connect With Us</h4>
               <div className="space-y-3 sm:space-y-4">
-                <div className="flex items-center space-x-2 sm:space-x-3 text-gronik-light/70 hover:text-gronik-accent transition-all duration-300 ease-in-out group cursor-pointer">
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gronik-secondary/20 group-hover:bg-gronik-accent/20 rounded-lg flex items-center justify-center border border-gronik-secondary/30 group-hover:border-gronik-accent/50 transition-all duration-300 ease-in-out transform group-hover:scale-105">
-                    <Mail className="w-4 h-4 sm:w-5 sm:h-5 transition-all duration-300 ease-in-out" />
-                  </div>
-                  <div>
-                    <p className="text-xs sm:text-sm transition-all duration-300 ease-in-out">Gronikonline@gmail.com</p>
-                  </div>
-                </div>
+                <a 
+  href="mailto:Gronikonline@gmail.com"
+  className="flex items-center space-x-2 sm:space-x-3 text-gronik-light/70 hover:text-gronik-accent transition-all duration-300 ease-in-out group cursor-pointer"
+>
+  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gronik-secondary/20 group-hover:bg-gronik-accent/20 rounded-lg flex items-center justify-center border border-gronik-secondary/30 group-hover:border-gronik-accent/50 transition-all duration-300 ease-in-out transform group-hover:scale-105">
+    <Mail className="w-4 h-4 sm:w-5 sm:h-5 transition-all duration-300 ease-in-out" />
+  </div>
+  <div>
+    <p className="text-xs sm:text-sm transition-all duration-300 ease-in-out">Gronikonline@gmail.com</p>
+  </div>
+</a>
+
                 <div className="flex items-center space-x-2 sm:space-x-3 text-gronik-light/70 hover:text-gronik-accent transition-all duration-300 ease-in-out group cursor-pointer">
                   <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gronik-secondary/20 group-hover:bg-gronik-accent/20 rounded-lg flex items-center justify-center border border-gronik-secondary/30 group-hover:border-gronik-accent/50 transition-all duration-300 ease-in-out transform group-hover:scale-105">
                     <Phone className="w-4 h-4 sm:w-5 sm:h-5 transition-all duration-300 ease-in-out" />

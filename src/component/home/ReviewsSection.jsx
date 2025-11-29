@@ -17,7 +17,6 @@ const ReviewsSection = () => {
   const [error, setError] = useState(null);
   const [notice, setNotice] = useState(null);
   const [showForm, setShowForm] = useState(false);
-  const [isPaused, setIsPaused] = useState(false);
   const [newReview, setNewReview] = useState({ rating: 5, text: "", name: "" });
 
   const scrollRef = useRef(null);
@@ -86,64 +85,87 @@ const ReviewsSection = () => {
   }, [sourceReviews.length]);
 
   // animation loop (continuous leftward movement)
-  useEffect(() => {
-    const container = scrollRef.current;
-    if (!container || !hasReviews) return;
+// animation loop (continuous leftward movement) — REPLACE your current useEffect with this
+useEffect(() => {
+  const container = scrollRef.current;
+  if (!container || !hasReviews) return;
 
-    const speedPxPerSecond = 36; // tune this for pacing
-    lastTSRef.current = 0;
+  // compute initial center (ensure layout is stable first)
+  const init = () => {
+    const totalWidth = container.scrollWidth;
+    const chunk = totalWidth / 3 || 0;
+    transformRef.current = -chunk;
+    container.style.transform = `translateX(${transformRef.current}px)`;
+  };
 
-    const tick = (ts) => {
-      if (!lastTSRef.current) lastTSRef.current = ts;
-      const dt = ts - lastTSRef.current;
-      lastTSRef.current = ts;
+  // give layout one tick then initialize
+  requestAnimationFrame(init);
 
-      if (!isPaused && !draggingRef.current) {
-        // move left
-        transformRef.current -= (dt / 1000) * speedPxPerSecond;
+  const speedPxPerSecond = 36; // adjust to taste
+  let prevTs = null;
+  let rafId = null;
 
-        // loop correction using 3-copy math
-        const totalWidth = container.scrollWidth;
-        const chunk = totalWidth / 3 || 0;
+  // ensure any stray dragging state is cleared when the loop starts
+  draggingRef.current = false;
 
-        // if we've moved into the 3rd copy leftwards, shift back into middle copy seamlessly
-        if (transformRef.current <= -(chunk * 1)) {
-          transformRef.current += chunk;
-        } else if (transformRef.current >= 0) {
-          // if moved too far right, bring into middle
-          transformRef.current -= chunk;
-        }
+  const tick = (ts) => {
+    if (!prevTs) prevTs = ts;
+    const dt = ts - prevTs;
+    prevTs = ts;
 
-        container.style.transform = `translateX(${transformRef.current}px)`;
+    if (!draggingRef.current) {
+      // move left
+      transformRef.current -= (dt / 1000) * speedPxPerSecond;
+
+      // 3-copy loop correction
+      const totalWidth = container.scrollWidth;
+      const chunk = totalWidth / 3 || 0;
+
+      if (transformRef.current <= -chunk * 2) {
+        transformRef.current += chunk;
+      } else if (transformRef.current >= 0) {
+        transformRef.current -= chunk;
       }
 
-      rafRef.current = requestAnimationFrame(tick);
-    };
+      container.style.transform = `translateX(${transformRef.current}px)`;
+    }
 
-    rafRef.current = requestAnimationFrame(tick);
+    rafId = requestAnimationFrame(tick);
+  };
 
-    return () => {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-      rafRef.current = null;
-      lastTSRef.current = 0;
-    };
-  }, [isPaused, hasReviews]);
+  rafId = requestAnimationFrame(tick);
+
+  // Document-level up/end listeners to guarantee we clear draggingRef
+  const clearDragging = () => {
+    draggingRef.current = false;
+    lastDeltaRef.current = 0;
+  };
+  document.addEventListener("pointerup", clearDragging, { passive: true });
+  document.addEventListener("touchend", clearDragging, { passive: true });
+
+  return () => {
+    if (rafId) cancelAnimationFrame(rafId);
+    prevTs = null;
+    document.removeEventListener("pointerup", clearDragging);
+    document.removeEventListener("touchend", clearDragging);
+  };
+}, [hasReviews, sourceReviews.length]); // re-run when reviews change
+
 
   // pointer / touch handlers (drag + momentum)
-  const onPointerDown = (e) => {
-    const container = scrollRef.current;
-    if (!container) return;
+const onPointerDown = (e) => {
+  const container = scrollRef.current;
+  if (!container) return;
 
-    draggingRef.current = true;
-    lastXRef.current = e.clientX ?? (e.touches && e.touches[0]?.clientX) ?? 0;
-    lastDeltaRef.current = 0;
-    setIsPaused(true);
+  draggingRef.current = true;
+  lastXRef.current = e.clientX ?? (e.touches && e.touches[0]?.clientX) ?? 0;
+  lastDeltaRef.current = 0;
 
-    // prevent native drag
-    if (e.pointerId && container.setPointerCapture) {
-      try { container.setPointerCapture(e.pointerId); } catch (_) {}
-    }
-  };
+  if (e.pointerId && container.setPointerCapture) {
+    try { container.setPointerCapture(e.pointerId); } catch (_) {}
+  }
+};
+
 
   const onPointerMove = (e) => {
     if (!draggingRef.current) return;
@@ -170,51 +192,44 @@ const ReviewsSection = () => {
     container.style.transform = `translateX(${transformRef.current}px)`;
   };
 
-  const onPointerUp = (e) => {
-    const container = scrollRef.current;
-    if (!container) {
-      setIsPaused(false);
-      draggingRef.current = false;
-      return;
-    }
-
-    // release pointer capture if applied
-    if (e?.pointerId && container.releasePointerCapture) {
-      try { container.releasePointerCapture(e.pointerId); } catch (_) {}
-    }
-
-    if (!draggingRef.current) {
-      setIsPaused(false);
-      return;
-    }
-
+const onPointerUp = (e) => {
+  const container = scrollRef.current;
+  if (!container) {
     draggingRef.current = false;
+    return;
+  }
 
-    // momentum based on lastDeltaRef
-    let velocity = lastDeltaRef.current * 35; // multiplier to taste
-    const friction = 0.92;
+  if (e?.pointerId && container.releasePointerCapture) {
+    try { container.releasePointerCapture(e.pointerId); } catch (_) {}
+  }
 
-    const step = () => {
-      if (Math.abs(velocity) < 0.5) {
-        setIsPaused(false);
-        return;
-      }
+  if (!draggingRef.current) return;
 
-      transformRef.current += velocity;
-      velocity *= friction;
+  draggingRef.current = false;
 
-      // loop correction (3-copy math)
-      const totalWidth = container.scrollWidth;
-      const chunk = totalWidth / 3 || 0;
-      if (transformRef.current <= -(chunk * 2)) transformRef.current += chunk;
-      else if (transformRef.current >= 0) transformRef.current -= chunk;
+  // momentum animation
+  let velocity = lastDeltaRef.current ;
+  const friction = 0.92;
 
-      container.style.transform = `translateX(${transformRef.current}px)`;
-      requestAnimationFrame(step);
-    };
+  const step = () => {
+    if (Math.abs(velocity) < 0.5) return;
 
+    transformRef.current += velocity;
+    velocity *= friction;
+
+    const totalWidth = container.scrollWidth;
+    const chunk = totalWidth / 3 || 0;
+
+    if (transformRef.current <= -(chunk * 2)) transformRef.current += chunk;
+    else if (transformRef.current >= 0) transformRef.current -= chunk;
+
+    container.style.transform = `translateX(${transformRef.current}px)`;
     requestAnimationFrame(step);
   };
+
+  requestAnimationFrame(step);
+};
+
 
   // convenience wrappers for touch (older browsers)
   const handleTouchStart = (e) => onPointerDown(e);
@@ -313,8 +328,6 @@ const ReviewsSection = () => {
             <div
         ref={scrollRef}
         className="flex gap-4 sm:gap-8 w-max"
-        onMouseEnter={() => setIsPaused(true)}
-        onMouseLeave={() => setIsPaused(false)}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}

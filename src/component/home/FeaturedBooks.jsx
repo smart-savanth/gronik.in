@@ -1,8 +1,156 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { ShoppingCart, Heart, Star, ArrowRight, Sparkles, BookOpen, Check, ExternalLink } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { centralizedBooksData } from '../pages/LibrarySection';
 import { useGetAllBooksQuery } from '../../utils/booksService';
+
+const BookCard = React.memo(function BookCard({
+  book,
+  isInCart,
+  isInWishlist,
+  localCartItem,
+  animatingCart,
+  animatingWishlist,
+  cartButtonClicked,
+  wishlistButtonClicked,
+  onCartClick,
+  onWishlistClick,
+  onCardClick,
+  hovered,
+  setHoveredBook
+}) {
+  return (
+    <div
+      className="group relative flex justify-center"
+      onMouseEnter={() => setHoveredBook(book.id)}
+      onMouseLeave={() => setHoveredBook(null)}
+      style={{ cursor: 'pointer' }}
+    >
+      <div
+        className={`relative bg-[#1A0F2E]/80 backdrop-blur-md rounded-2xl p-3 sm:p-3 md:p-4 lg:p-4 border border-white/10 transition-all duration-500 transform hover:scale-105 hover:-translate-y-2 shadow-2xl w-full max-w-[260px] flex flex-col card-hover-gold ${hovered ? 'gold-glow' : ''}`}
+        onClick={(e) => {
+          if (e.target.closest('.add-to-cart-btn') || e.target.closest('.wishlist-btn')) return;
+          onCardClick(book);
+        }}
+      >
+        {/* Image */}
+        <div className="relative mb-2 sm:mb-3 lg:mb-3 flex justify-center mt-2 sm:mt-6">
+          <div className="relative w-[70%] sm:w-[75%] md:w-[80%] aspect-[3/4] rounded-xl overflow-hidden shadow-xl transition-transform duration-500 mx-auto">
+            <img
+              src={book.coverImageUrl || book.image || "https://via.placeholder.com/300x400?text=No+Image"}
+              alt={book.title}
+              className="w-full h-full object-cover"
+            />
+          </div>
+        </div>
+
+        {/* Details */}
+        <div className="text-center space-y-2 sm:space-y-3 lg:space-y-3 flex-1 flex flex-col">
+          <div className="mb-2 sm:mb-3">
+            <h3 className="text-xs sm:text-sm md:text-base font-bold text-white mb-1 sm:mb-2 group-hover:text-white/90 transition-colors duration-300 leading-snug break-words line-clamp-2">
+              {book.title}
+            </h3>
+            <p className="text-white/70 font-medium text-xs sm:text-sm lg:text-sm">by {book.author}</p>
+          </div>
+
+          {/* Rating */}
+          <div className="flex items-center justify-center space-x-1 sm:space-x-2 mb-2 sm:mb-3">
+            <div className="flex items-center">
+              {[...Array(5)].map((_, i) => (
+                <Star key={i} className={`w-3 h-3 sm:w-3 sm:h-3 lg:w-4 lg:h-4 ${i < Math.floor(book.rating || 0) ? 'text-yellow-400 fill-current' : 'text-white/30'}`} />
+              ))}
+            </div>
+            <span className="text-white/80 text-xs sm:text-sm font-medium">{book.rating}</span>
+          </div>
+
+          {/* Price */}
+          <div className="text-center mb-3 sm:mb-4">
+            <div className="flex items-center justify-center space-x-1 sm:space-x-2 mb-1">
+              <span className="text-lg sm:text-xl lg:text-2xl font-bold text-white">₹{book.original_price ?? book.originalPrice ?? book.price}</span>
+              <span className="text-xs sm:text-sm text-white/50 line-through">₹{book.final_price ?? book.price ?? ''}</span>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex flex-row gap-2 w-full mb-4">
+            <button
+              onClick={(e) => onCartClick(e, book)}
+              disabled={animatingCart}
+              className={`add-to-cart-btn cart-button-animated ${cartButtonClicked ? 'clicked' : ''} flex-1 py-3 px-4 rounded-xl font-semibold text-base flex items-center justify-center gap-2 transition-all duration-300 hover:scale-105 shadow-xl hover:shadow-2xl ${isInCart ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white' : 'bg-gradient-to-r from-white to-gray-100 text-[#2D1B3D]'}`}
+            >
+              {/* ICONS — show ONLY on desktop (sm and above) */}
+{isInCart ? (
+  <ExternalLink className="w-5 h-5 hidden sm:inline" />
+) : (
+  <>
+    <ShoppingCart className="cart-icon w-5 h-5 hidden sm:inline" />
+    <div className="box-icon w-3 h-3 bg-current rounded-sm hidden sm:inline"></div>
+  </>
+)}
+
+{/* TEXT (handles mobile + desktop separately) */}
+<span className="cart-text" aria-live="polite" aria-atomic="true">
+
+  {animatingCart ? (
+    <>
+      {/* Mobile text while adding */}
+      <span className="sm:hidden">Adding…</span>
+
+      {/* Desktop text while adding */}
+      <span className="hidden sm:inline">Adding</span>
+    </>
+  ) : isInCart ? (
+    <>
+      {/* Mobile text → Go Cart */}
+      <span className="sm:hidden">Go&nbsp;Cart</span>
+
+      {/* Desktop text → Go to Cart */}
+      <span className="hidden sm:inline">Go to Cart</span>
+    </>
+  ) : (
+    <>
+      {/* Mobile text → Cart */}
+      <span className="sm:hidden">Cart</span>
+
+      {/* Desktop text → Add to Cart */}
+      <span className="hidden sm:inline">Add to Cart</span>
+    </>
+  )}
+
+</span>
+
+<span className="added-text">
+  <Check className="w-5 h-5 mr-2 inline" />Added!
+</span>
+
+            </button>
+
+            <button
+              onClick={(e) => onWishlistClick(e, book)}
+              disabled={animatingWishlist}
+              className={`wishlist-btn wishlist-button-animated ${wishlistButtonClicked ? 'clicked' : ''} p-3 rounded-xl transition-all duration-200 hover:scale-105 shadow-lg hover:shadow-xl ${isInWishlist ? 'bg-gradient-to-r from-red-500 to-red-600 text-white' : 'bg-[#9B7BB8] text-[#2D1B3D] hover:bg-[#8A6AA7]'}`}
+              style={{ minWidth: 0 }}
+            >
+              <Heart className={`heart-static w-5 h-5 ${isInWishlist ? 'fill-current' : ''}`} />
+            </button>
+          </div>
+
+          <div className="h-2 sm:h-4"></div>
+        </div>
+      </div>
+    </div>
+  );
+}, (prev, next) => {
+  // only re-render when these props change for the card
+  return prev.isInCart === next.isInCart
+    && prev.isInWishlist === next.isInWishlist
+    && prev.animatingCart === next.animatingCart
+    && prev.animatingWishlist === next.animatingWishlist
+    && prev.cartButtonClicked === next.cartButtonClicked
+    && prev.wishlistButtonClicked === next.wishlistButtonClicked
+    && prev.hovered === next.hovered;
+});
+
 
 const FeaturedBooksSection = ({
   cart = [],
@@ -26,88 +174,80 @@ const FeaturedBooksSection = ({
       page: 1,
       pageSize: 10,
     });
-const featuredBooks = booksResponse?.data
-  ?.filter(book => book.featured)
-  ?.map(book => ({
-    ...book,
-    id: book._id   
-  })) ?? [];
-
-const [localCart, setLocalCart] = useState([]);
-
-React.useEffect(() => {
-  const stored = JSON.parse(localStorage.getItem("cart")) || [];
-  setLocalCart(stored);
-}, []);
-
-React.useEffect(() => {
-  const update = () => {
-    const stored = JSON.parse(localStorage.getItem("cart")) || [];
-    setLocalCart(stored);
-  };
-  window.addEventListener("storage", update);
-  return () => window.removeEventListener("storage", update);
-}, []);
+const featuredBooks = useMemo(() => {
+  return booksResponse?.data
+    ?.filter(book => book.featured)
+    ?.map(book => ({ ...book, id: book._id })) ?? [];
+}, [booksResponse]);
 
 
   
   // Helper functions to check if a book is in cart/wishlist
   const isInCart = (book) =>
-  localCart.some(item => item.id === book.id);
+     cart.some(item => item.id === book.id);
   const isInWishlist = (book) => wishlist.some(item => item.id === book.id);
-
-  // FIXED: Digital platform - all books are always available, no stock check needed
-const handleCartAction = (e, book) => {
-  
-
+const handleCartAction = useCallback((e, book) => {
   e.stopPropagation();
   e.preventDefault();
 
-  let localCart = JSON.parse(localStorage.getItem("cart")) || [];
+  // guard
+  if (animatingCart[book.id]) return;
 
-  const exists = localCart.some(item => item.id === book.id);
-
-  if (!exists) {
-    const newItem = {
-  id: book.id,
-  title: book.title,
-  author: book.author,
-  image:
-  book.coverImageUrl ||
-  book.image ||
-  "https://via.placeholder.com/300x400?text=No+Image",
-  price: Number(book.final_price),
-  originalPrice: Number(book.original_price),
-  quantity: 1
-};
+  if (isInCart(book)) {
+  navigate('/cart');
+  return;
+}
 
 
-    localStorage.setItem("cart", JSON.stringify([...localCart, newItem]));
-    window.dispatchEvent(new Event("storage"));
-  }
-
+  // start animations
+  setAnimatingCart(prev => ({ ...prev, [book.id]: true }));
   setCartButtonClicked(prev => ({ ...prev, [book.id]: true }));
-  setTimeout(() => {
-    setCartButtonClicked(prev => ({ ...prev, [book.id]: false }));
-  }, 800);
-};
 
-
-
-  const handleToggleWishlist = (e, book) => {
-    e.stopPropagation();
-    e.preventDefault();
-    
-    if (animatingWishlist[book.id]) return;
-    setAnimatingWishlist(prev => ({ ...prev, [book.id]: true }));
-    setWishlistButtonClicked(prev => ({ ...prev, [book.id]: true }));
-    setTimeout(() => {
-      if (isInWishlist(book)) onRemoveFromWishlist && onRemoveFromWishlist(book.id);
-      else onAddToWishlist && onAddToWishlist(book);
-      setAnimatingWishlist(prev => ({ ...prev, [book.id]: false }));
-      setWishlistButtonClicked(prev => ({ ...prev, [book.id]: false }));
-    }, 250);
+  // Build a normalized payload for the global handler (App expects fields like _id)
+  const payloadForApp = {
+    // prefer backend-style _id plus id to cover all checks
+    _id: book._id ?? book.id,
+    id: book.id ?? book._id,
+    title: book.title,
+    author: book.author,
+    // keep both possible price keys so App's handler can pick what it needs
+    final_price: book.final_price ?? book.price,
+    original_price: book.original_price ?? book.originalPrice,
+    coverImageUrl: book.coverImageUrl ?? book.image,
   };
+
+  // call the single source-of-truth handler in App
+  onAddToCart && onAddToCart(payloadForApp);
+
+  // sync local state (read from localStorage which App handler writes) after a small delay
+  // this keeps featured section's immediate UI consistent
+  setTimeout(() => {
+  setAnimatingCart(prev => ({ ...prev, [book.id]: false }));
+  setCartButtonClicked(prev => ({ ...prev, [book.id]: false }));
+}, 120);
+}, [animatingCart, navigate, onAddToCart, cart]);
+
+
+
+const handleToggleWishlist = useCallback((e, book) => {
+  e.stopPropagation();
+  e.preventDefault();
+
+  if (animatingWishlist[book.id]) return;
+
+  setAnimatingWishlist(prev => ({ ...prev, [book.id]: true }));
+  setWishlistButtonClicked(prev => ({ ...prev, [book.id]: true }));
+
+  setTimeout(() => {
+    if (isInWishlist(book)) {
+      onRemoveFromWishlist && onRemoveFromWishlist(book.id);
+    } else {
+      onAddToWishlist && onAddToWishlist(book);
+    }
+    setAnimatingWishlist(prev => ({ ...prev, [book.id]: false }));
+    setWishlistButtonClicked(prev => ({ ...prev, [book.id]: false }));
+  }, 250);
+}, [animatingWishlist, onAddToWishlist, onRemoveFromWishlist, wishlist]);
 
   const handleCardClick = (book) => {
     navigate(`/product/${book.id}`, { state: { from: 'featured' } });
@@ -135,135 +275,34 @@ const handleCartAction = (e, book) => {
 
         {/* Grid */}
         <div className="flex justify-center mb-16">
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(250px,1fr))] gap-2 sm:gap-2 lg:gap-2 w-full max-w-7xl mx-auto px-2 sm:px-4 lg:px-0">
+        <div className="
+              grid 
+              grid-cols-2         /* 🔥 mobile = 2 columns */
+              sm:grid-cols-[repeat(auto-fit,minmax(250px,1fr))]  /* 🔥 desktop/tablet unchanged */
+              gap-2 sm:gap-2 lg:gap-2 
+              w-full max-w-7xl mx-auto px-2 sm:px-4 lg:px-0
+            ">
             {featuredBooks.map((book, index) => (
-              <div
-                key={book.id}
-                className="group relative flex justify-center"
-                onMouseEnter={() => setHoveredBook(book.id)}
-                onMouseLeave={() => setHoveredBook(null)}
-                style={{ animationDelay: `${index * 200}ms` }}
-              >
-                <div
-                  className={`relative bg-[#1A0F2E]/80 backdrop-blur-md rounded-2xl p-3 sm:p-3 md:p-4 lg:p-4 border border-white/10 transition-all duration-500 transform hover:scale-105 hover:-translate-y-2 shadow-2xl w-full max-w-[260px] flex flex-col card-hover-gold ${hoveredBook === book.id ? 'gold-glow' : ''}`}
-                  onClick={(e) => {
-                    if (e.target.closest('.add-to-cart-btn') || e.target.closest('.wishlist-btn')) return;
-                    handleCardClick(book);
-                  }}
-                  style={{ cursor: 'pointer' }}
-                >
-                  {/* Image */}
-                  <div className="relative mb-2 sm:mb-3 lg:mb-3 flex justify-center mt-2 sm:mt-6">
-                    <div className="relative w-[70%] sm:w-[75%] md:w-[80%] aspect-[3/4] rounded-xl overflow-hidden shadow-xl transition-transform duration-500 mx-auto">
-                      <img
-                            src={
-                              book.coverImageUrl ||
-                              book.image ||
-                              "https://via.placeholder.com/300x400?text=No+Image"
-                            }
-                            alt={book.title}
-                            className="w-full h-full object-cover"
-                          />
+<div style={{ animationDelay: `${index * 200}ms` }}>
+  <BookCard
+    key={book.id}
+    book={book}
+    isInCart={isInCart(book)}
+    isInWishlist={wishlist.some(item => item.id === book.id)}
+    animatingCart={!!animatingCart[book.id]}
+    animatingWishlist={!!animatingWishlist[book.id]}
+    cartButtonClicked={!!cartButtonClicked[book.id]}
+    wishlistButtonClicked={!!wishlistButtonClicked[book.id]}
+    onCartClick={handleCartAction}
+    onWishlistClick={handleToggleWishlist}
+    onCardClick={handleCardClick}
+    hovered={hoveredBook === book.id}
+    setHoveredBook={setHoveredBook}
+  />
+</div>
 
-                    </div>
-                  </div>
+))}
 
-                  {/* Details */}
-                  <div className="text-center space-y-2 sm:space-y-3 lg:space-y-3 flex-1 flex flex-col">
-                    <div className="mb-2 sm:mb-3">
-                      <h3 className="text-xs sm:text-sm md:text-base font-bold text-white mb-1 sm:mb-2 group-hover:text-white/90 transition-colors duration-300 leading-snug break-words line-clamp-2">
-                        {book.title}
-                      </h3>
-                      <p className="text-white/70 font-medium text-xs sm:text-sm lg:text-sm">by {book.author}</p>
-                    </div>
-
-                    {/* Rating */}
-                    <div className="flex items-center justify-center space-x-1 sm:space-x-2 mb-2 sm:mb-3">
-                      <div className="flex items-center">
-                        {[...Array(5)].map((_, i) => (
-                          <Star key={i} className={`w-3 h-3 sm:w-3 sm:h-3 lg:w-4 lg:h-4 ${i < Math.floor(book.rating) ? 'text-yellow-400 fill-current' : 'text-white/30'}`} />
-                        ))}
-                      </div>
-                      <span className="text-white/80 text-xs sm:text-sm font-medium">{book.rating}</span>
-                    </div>
-
-                    {/* Price */}
-                    <div className="text-center mb-3 sm:mb-4">
-                      <div className="flex items-center justify-center space-x-1 sm:space-x-2 mb-1">
-                        <span className="text-lg sm:text-xl lg:text-2xl font-bold text-white">₹{book.original_price}</span>
-                        <span className="text-xs sm:text-sm text-white/50 line-through">₹{book.final_price}</span>
-                      </div>
-                      <div className="text-xs sm:text-sm text-green-400 font-medium">
-                        {Math.round(((book.original_price - book.final_price) / book.original_price) * 100)}% OFF
-                      </div>
-                    </div>
-
-                    {/* Actions - All books are available in digital platform */}
-                   <div className="flex flex-row gap-2 w-full mb-4">
-
-                      <button
-                        onClick={(e) => handleCartAction(e, book)}
-                        disabled={animatingCart[book.id]}
-                        className={`add-to-cart-btn cart-button-animated ${cartButtonClicked[book.id] ? 'clicked' : ''} flex-1 py-3 px-4 rounded-xl font-semibold text-base flex items-center justify-center gap-2 transition-all duration-300 hover:scale-105 shadow-xl hover:shadow-2xl ${
-                          isInCart(book)
-                            ? 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white'
-                            : 'bg-gradient-to-r from-white to-gray-100 hover:from-gray-100 hover:to-white text-[#2D1B3D] shadow-xl'
-                        }`}
-                      >
-                        {isInCart(book) ? (
-                          <ExternalLink className="w-5 h-5" />
-                        ) : (
-                          <>
-                            <ShoppingCart className="cart-icon w-5 h-5" />
-                            <div className="box-icon w-3 h-3 bg-current rounded-sm"></div>
-                          </>
-                        )}
-
-                        {/* Button Labels */}
-                        <span className="cart-text" aria-live="polite" aria-atomic="true">
-                          {animatingCart[book.id] ? (
-                            <>
-                              <span className="sm:hidden">Adding…</span>
-                              <span className="hidden sm:inline">Adding to Cart…</span>
-                            </>
-                          ) : isInCart(book) ? (
-                            <>
-                              <span className="sm:hidden">Go&nbsp;Cart</span>
-                              <span className="hidden sm:inline">Go to Cart</span>
-                            </>
-                          ) : (
-                            <>
-                              <span className="sm:hidden">Cart</span>
-                              <span className="hidden sm:inline">Add to Cart</span>
-                            </>
-                          )}
-                        </span>
-
-                        <span className="added-text">
-                          <Check className="w-5 h-5 mr-2 inline" />
-                          Added!
-                        </span>
-                      </button>
-
-                      <button
-                        onClick={(e) => handleToggleWishlist(e, book)}
-                        disabled={animatingWishlist[book.id]}
-                        className={`wishlist-btn wishlist-button-animated ${wishlistButtonClicked[book.id] ? 'clicked' : ''} p-3 rounded-xl transition-all duration-200 hover:scale-105 shadow-lg hover:shadow-xl ${
-                          isInWishlist(book)
-                            ? 'bg-gradient-to-r from-red-500 to-red-600 text-white'
-                            : 'bg-[#9B7BB8] text-[#2D1B3D] hover:bg-[#8A6AA7]'
-                        }`}
-                        style={{ minWidth: 0 }}
-                      >
-                        <Heart className={`heart-static w-5 h-5 ${isInWishlist(book) ? 'fill-current' : ''}`} />
-                      </button>
-                    </div>
-
-                    <div className="h-2 sm:h-4"></div>
-                  </div>
-                </div>
-              </div>
-            ))}
           </div>
         </div>
 

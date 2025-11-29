@@ -432,7 +432,15 @@ const finalCartCount = localCartCount || cartCount;
           <div className="flex items-center justify-between h-16 px-3 gap-2">
             {/* Logo - Left */}
             <div className="flex-shrink-0">
-              <Link to="/" className="flex items-center">
+              <a
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (location.pathname !== "/") navigate("/");
+                    // If already on "/", do nothing → no refresh
+                  }}
+                  className="flex items-center"
+                >
                 <div className="w-auto h-10 ">
                   <img
                     src="/images/logo.png"
@@ -440,23 +448,16 @@ const finalCartCount = localCartCount || cartCount;
                     className="w-full h-full object-contain"
                   />
                 </div>
-              </Link>
+              </a>
             </div>
 
             {/* Search Bar & Cart - Center */}
-            {/* <div className="flex-1 flex items-center gap-2 max-w-md">
-              <div className="flex-1">
-                {renderSearchInput(true)}
-              </div>
-              <Link to="/cart" className="p-2 rounded-lg relative flex-shrink-0">
-                <ShoppingCart className="w-5 h-5 text-gronik-light" />
-                {finalCartCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-gronik-accent text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold">
-                   {finalCartCount}
-                  </span>
-                )}
-              </Link>
-            </div> */}
+          <div className="flex-1 flex items-center gap-2 mx-2">
+  <div className="flex-1">
+    {renderSearchInput(true)}
+  </div>
+</div>
+
 
             {/* Quick Actions */}
             <div className="flex items-center gap-1">
@@ -597,46 +598,57 @@ const finalCartCount = localCartCount || cartCount;
       {/* Desktop Navbar */}
 
 {!isMobile && (
-  <div
-    className={`
-      fixed top-0 left-0 right-0 z-50
-      transition-transform duration-500 ease-in-out
-      ${(!isScrolled || isHovering) ? "translate-y-0" : "-translate-y-full"}
-    `}
-    onMouseEnter={() => isScrolled && setIsHovering(true)}
-    onMouseLeave={() => setIsHovering(false)}
-  >
-    <nav className="bg-gronik-primary/95 backdrop-blur-md shadow-lg border-b border-gronik-secondary/20">
+ <div
+  className={`
+    fixed top-0 left-0 right-0 z-[9999]
+    transition-transform duration-500 ease-in-out
+    ${(!isScrolled || isHovering) ? "translate-y-0" : "-translate-y-full"}
+  `}
+  onMouseEnter={() => setIsHovering(true)}
+  onMouseLeave={() => setIsHovering(false)}
+  style={{ pointerEvents: "auto" }}
+>
+
+    <nav className="bg-gronik-primary/95 backdrop-blur-md shadow-lg border-b border-gronik-secondary/20 pointer-events-auto">
       <div className="px-8 max-w-[1400px] mx-auto">
-        <div className="flex items-center justify-between h-24 w-full">
+        <div className="flex items-center justify-between h-20   w-full">
           
           {/* Logo */}
-          <Link to="/" className="flex items-center">
+          <a
+  href="#"
+  onClick={(e) => {
+    e.preventDefault();
+    if (location.pathname !== "/") navigate("/");
+    // If already on "/", do nothing → no refresh
+  }}
+  className="flex items-center"
+>
+
             <img
               src="/images/logo.png"
               alt="Gronik Logo"
-              className="w-24 h-24 object-contain"
+              className="w-auto h-14 object-contain"
             />
-          </Link>
+          </a>
 
           {/* Menu Items */}
           <div className="flex items-center space-x-10">
-            <Link to="/" className="text-gronik-light hover:text-gronik-accent font-medium hover:scale-105 transform transition">
+            <Link to="/" className="text-gronik-light hover:text-gronik-accent font-medium transition-transform hover:scale-110">
               House
             </Link>
 
-            <Link to="/library" className="text-gronik-light hover:text-gronik-accent font-medium hover:scale-105 transform transition">
+            <Link to="/library" className="text-gronik-light hover:text-gronik-accent font-medium transition-transform hover:scale-110">
               Library
             </Link>
 
             <button
               onClick={() => scrollToSection("about")}
-              className="text-gronik-light hover:text-gronik-accent font-medium hover:scale-105 transform transition"
+              className="text-gronik-light hover:text-gronik-accent font-medium transition-transform hover:scale-110"
             >
               About
             </button>
 
-            <Link to="/contact" className="text-gronik-light hover:text-gronik-accent font-medium hover:scale-105 transform transition">
+            <Link to="/contact" className="text-gronik-light hover:text-gronik-accent font-medium transition-transform hover:scale-110">
               Contact
             </Link>
           </div>
@@ -647,16 +659,29 @@ const finalCartCount = localCartCount || cartCount;
               {renderSearchInput(false)}
             </div>
 
-            <Link to="/wishlist" className="relative p-2 hover:bg-gronik-secondary/20 rounded-lg transition group">
+           <Link 
+                to="/wishlist" 
+                className="relative p-2 rounded-lg transition 
+                          hover:bg-gronik-secondary/20 
+                          hover:-translate-y-2
+                          transform duration-200 group"
+              >
               <Heart className="w-5 h-5 text-gronik-light group-hover:text-gronik-accent" />
               {wishlistCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 bg-gronik-accent text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
                   {wishlistCount}
                 </span>
               )}
             </Link>
 
-            <Link to="/cart" className="relative p-2 hover:bg-gronik-secondary/20 rounded-lg transition group">
+           <Link 
+                to="/cart" 
+                className="relative p-2 rounded-lg transition 
+                          hover:bg-gronik-secondary/20 
+                          hover:-translate-y-2 
+                          transform duration-200 group"
+              >
+
               <ShoppingCart className="w-5 h-5 text-gronik-light group-hover:text-gronik-accent" />
               {finalCartCount > 0 && (
                 <span className="absolute -top-1 -right-1 bg-gronik-accent text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
@@ -665,21 +690,27 @@ const finalCartCount = localCartCount || cartCount;
               )}
             </Link>
 
-            <Link to={user ? "/profile" : "/login"} className="p-2 hover:bg-gronik-secondary/20 rounded-lg transition group">
+           <Link 
+              to={user ? "/profile" : "/login"} 
+              className="p-2 rounded-lg transition 
+                        hover:bg-gronik-secondary/20 
+                        hover:-translate-y-2 
+                        transform duration-200 group"
+            >
               <User className="w-5 h-5 text-gronik-light group-hover:text-gronik-accent" />
             </Link>
 
             {!user ? (
               <button
                 onClick={() => navigate("/login")}
-                className="px-6 py-2 bg-gradient-to-r from-gronik-accent to-gronik-secondary text-white rounded-lg shadow-lg hover:scale-105 transform transition"
+                className="px-6 py-2 bg-gradient-to-r from-gronik-accent to-gronik-secondary text-white rounded-lg shadow-lg transition-transform hover:scale-110"
               >
                 Login
               </button>
             ) : (
               <Link
                 to="/admin"
-                className="px-6 py-2 bg-gradient-to-r from-gronik-accent to-gronik-secondary text-white rounded-lg shadow-lg hover:scale-105 transform transition"
+                className="px-6 py-2 bg-gradient-to-r from-gronik-accent to-gronik-secondary text-white rounded-lg shadow-lg transition-transform hover:scale-110"
               >
                 Admin
               </Link>
@@ -727,11 +758,12 @@ const finalCartCount = localCartCount || cartCount;
       {/* Extended Hover Area - Desktop only */}
       {isScrolled && !isMobile && (
         <div 
-          className="fixed top-0 left-0 w-full h-32 z-40"
+          className="fixed top-0 left-0 w-full h-24 z-[9998] pointer-events-auto"
           onMouseEnter={() => setIsHovering(true)}
           onMouseLeave={() => setIsHovering(false)}
         ></div>
       )}
+     
     </>
   );
 };

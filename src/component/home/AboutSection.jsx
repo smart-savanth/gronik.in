@@ -2,7 +2,7 @@ import React from 'react';
 
 const AboutSection = () => {
   return (
-    <section id="about" className="py-12 sm:py-16 lg:py-24 bg-gradient-to-b from-gronik-bg to-gronik-primary relative overflow-hidden">
+    <section id="about" className="scroll-mt-16 lg:scroll-mt-1 sm:scroll-mt-1 py-12 sm:py-16 lg:py-24 bg-gradient-to-b from-gronik-bg to-gronik-primary relative overflow-hidden">
       {/* Background Elements */}
       <div className="absolute inset-0 opacity-10">
         <div className="absolute top-20 right-10 w-32 h-32 sm:w-64 sm:h-64 bg-gronik-accent rounded-full blur-3xl animate-pulse"></div>

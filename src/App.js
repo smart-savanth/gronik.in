@@ -39,7 +39,15 @@ import TermsAndConditions from './component/pages/TermsAndConditions';
 import PrivacyPolicy from './component/pages/PrivacyPolicy';
 
 function App() {
-  const [cart, setCart] = useState([]);
+  // Initialize cart from localStorage on mount
+  const [cart, setCart] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('cart')) || [];
+    } catch (error) {
+      console.error('Error loading cart from localStorage:', error);
+      return [];
+    }
+  });
   const [wishlist, setWishlist] = useState(() => JSON.parse(localStorage.getItem('wishlist')) || []);
   const [serverWishlistItems, setServerWishlistItems] = useState([]);
   const [isWishlistLoading, setIsWishlistLoading] = useState(false);
@@ -203,6 +211,33 @@ function App() {
   useEffect(() => {
     localStorage.setItem('wishlist', JSON.stringify(wishlist));
   }, [wishlist]);
+
+  // Sync cart from localStorage on mount and when cart-updated event fires
+  useEffect(() => {
+    const syncCartFromStorage = () => {
+      try {
+        const localCart = JSON.parse(localStorage.getItem('cart')) || [];
+        setCart(localCart);
+      } catch (error) {
+        console.error('Error syncing cart from localStorage:', error);
+      }
+    };
+
+    // Sync on cart-updated event (from same tab)
+    window.addEventListener('cart-updated', syncCartFromStorage);
+    
+    // Sync on storage event (from other tabs)
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'cart') {
+        syncCartFromStorage();
+      }
+    });
+
+    return () => {
+      window.removeEventListener('cart-updated', syncCartFromStorage);
+      window.removeEventListener('storage', syncCartFromStorage);
+    };
+  }, []);
 
   // ENHANCED HANDLERS WITH NOTIFICATIONS
 const handleAddToCart = (book) => {

@@ -318,7 +318,7 @@ const books = booksResponse?.data?.map(book => ({
   };
 
   return (
-    <div className="min-h-screen bg-[#9B7BB8] relative overflow-hidden" key={JSON.stringify(cart) + JSON.stringify(wishlist)}>
+    <div className="lg:px-12 min-h-screen bg-[#9B7BB8] relative overflow-hidden" key={JSON.stringify(cart) + JSON.stringify(wishlist)}>
       {/* Background Pattern */}
       <div className="absolute inset-0 opacity-10">
         <div className="absolute top-10 left-10 w-32 h-32 bg-[#2D1B3D] rounded-full blur-3xl"></div>
@@ -332,32 +332,19 @@ const books = booksResponse?.data?.map(book => ({
 <div className="w-full mb-8 space-y-2">
 
 {/* 🌟 MOBILE — Search + Filter SIDE BY SIDE */}
-<div className="mt-2 flex gap-2 bg-[#2D1B3D]/95 backdrop-blur-md rounded-2xl border border-[#3D2A54]/50 shadow-2xl p-2 lg:hidden">
+
   
-  {/* Search Bar */}
-  <input
-    type="text"
-    value={searchQuery}
-    onChange={(e) => {
-      const value = e.target.value;
-      const params = new URLSearchParams(location.search);
-      if (value) params.set("search", value);
-      else params.delete("search");
-      navigate(`/library?${params.toString()}`);
-    }}
-    placeholder="Search books..."
-    className="flex-1 px-4 py-3 text-sm rounded-xl bg-[#2D1B3D]/90 text-white placeholder-white/60 border border-white/20 focus:outline-none focus:ring-2 focus:ring-[#B894D1]"
-  />
 
   {/* Filter Button */}
   <button
     onClick={() => setIsFilterOpen(!isFilterOpen)}
-    className="flex items-center gap-2 bg-[#2D1B3D]/90 text-white px-4 py-3 rounded-xl border border-[#2D1B3D]/30 hover:bg-[#2D1B3D] transition-all shadow-lg"
+    className="lg:hidden flex items-center gap-2 bg-[#2D1B3D]/90 text-white px-4 py-3 rounded-xl border border-[#2D1B3D]/30 hover:bg-[#2D1B3D] transition-all shadow-lg"
   >
     <Filter className="w-5 h-5" />
     <ChevronDown className={`w-4 h-4 transition-transform ${isFilterOpen ? 'rotate-180' : ''}`} />
   </button>
-</div>
+
+
 
 
   {/* 📌 Dropdown (Mobile + Desktop shared) */}
