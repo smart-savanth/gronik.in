@@ -1,86 +1,85 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Search, ShoppingCart, User, Menu, X, BookOpen, Heart, ChevronDown } from 'lucide-react';
-// Import centralizedBooksData for search
 import { centralizedBooksData } from '../pages/LibrarySection';
 import { useSelector } from 'react-redux';
 import { useGetAllBooksQuery } from '../../utils/booksService';
 
 const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-
-
+  
+  // Simplified state: We only need to know if we are on desktop and scrolled
   const [isScrolled, setIsScrolled] = useState(false);
-  const [isHovering, setIsHovering] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
   const [isMobile, setIsMobile] = useState(false);
   
   // Search Suggestions State
+  const [searchQuery, setSearchQuery] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
 
-  
   const navigate = useNavigate();
   const location = useLocation();
-  // const user = useSelector((state) => state.userAuth.user);
   const searchRef = useRef(null);
   const suggestionsRef = useRef(null);
   const searchTimeoutRef = useRef(null);
 
-  // ---- CART BADGE STATE (LOCAL STORAGE + LISTENERS) ----
-const [localCartCount, setLocalCartCount] = useState(() => {
-  try {
-    const local = JSON.parse(localStorage.getItem("cart")) || [];
-    return local.length;
-  } catch {
-    return 0;
-  }
-});
+  // Redux/Auth Hooks
+  const user = useSelector((state) => state.userAuth.user);
+  // Destructuring booksResponse is kept for completeness, though not strictly used in the UI logic here
+  const { data: booksResponse, isLoading, isError } = useGetAllBooksQuery({
+      page: 1,
+      pageSize: 10,
+    });
 
-useEffect(() => {
-  const update = () => {
+
+  // ---- CART BADGE STATE (LOCAL STORAGE + LISTENERS) ----
+  const [localCartCount, setLocalCartCount] = useState(() => {
     try {
       const local = JSON.parse(localStorage.getItem("cart")) || [];
-      setLocalCartCount(local.length);
+      return local.length;
     } catch {
-      setLocalCartCount(0);
+      return 0;
     }
-  };
+  });
 
-  window.addEventListener("cart-updated", update);
-  window.addEventListener("storage", update);
+  useEffect(() => {
+    const update = () => {
+      try {
+        const local = JSON.parse(localStorage.getItem("cart")) || [];
+        setLocalCartCount(local.length);
+      } catch {
+        setLocalCartCount(0);
+      }
+    };
 
-  return () => {
-    window.removeEventListener("cart-updated", update);
-    window.removeEventListener("storage", update);
-  };
-}, []);
+    window.addEventListener("cart-updated", update);
+    window.addEventListener("storage", update);
+
+    return () => {
+      window.removeEventListener("cart-updated", update);
+      window.removeEventListener("storage", update);
+    };
+  }, []);
+
+  // FINAL COUNT TO SHOW IN BADGE
+  const finalCartCount = localCartCount || cartCount;
 
 
-
-
-// FINAL COUNT TO SHOW IN BADGE
-const finalCartCount = localCartCount || cartCount;
-
-
-   const user = useSelector((state) => state.userAuth.user);
-    const { data: booksResponse, isLoading, isError } = useGetAllBooksQuery({
-        page: 1,
-        pageSize: 10,
-      });
+  // --- SCROLL & MOBILE HANDLERS ---
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth <= 1000);
+      // Use 1024px to align with standard Tailwind 'lg' breakpoint
+      setIsMobile(window.innerWidth < 1024);
     };
     checkMobile();
     window.addEventListener('resize', checkMobile);
 
     const handleScroll = () => {
-      const currentScrollY = window.scrollY;
-      if (window.innerWidth >= 1000) {
-        setIsScrolled(currentScrollY > 100);
+      // Only track scroll for desktop
+      if (window.innerWidth >= 1024) {
+        setIsScrolled(window.scrollY > 100);
       } else {
         setIsScrolled(false);
       }
@@ -125,7 +124,7 @@ const finalCartCount = localCartCount || cartCount;
     }
   }, [location, navigate]);
 
-  // Generate search suggestions
+  // --- SEARCH LOGIC ---
   const generateSuggestions = (query) => {
     if (!query.trim() || query.length < 2) {
       setSuggestions([]);
@@ -136,7 +135,6 @@ const finalCartCount = localCartCount || cartCount;
     const q = query.toLowerCase().trim();
     const allSuggestions = [];
 
-    // Get book matches
     centralizedBooksData.forEach(book => {
       // Title matches
       if (book.title.toLowerCase().includes(q)) {
@@ -196,16 +194,13 @@ const finalCartCount = localCartCount || cartCount;
     setSelectedSuggestionIndex(-1);
   };
 
-  // Debounced search
   const handleSearchChange = (value) => {
     setSearchQuery(value);
     
-    // Clear previous timeout
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
     }
     
-    // Set new timeout for debounced search
     searchTimeoutRef.current = setTimeout(() => {
       generateSuggestions(value);
     }, 200);
@@ -223,21 +218,11 @@ const finalCartCount = localCartCount || cartCount;
     setIsMenuOpen(false);
   };
 
-  const handleNavigation = (type, path) => {
-    if (type === 'section') {
-      scrollToSection(path);
-    } else if (type === 'page') {
-      navigate(path);
-    }
-    setIsMenuOpen(false);
-  };
-
   const handleSearchSubmit = (suggestion = null) => {
     let searchTerm = '';
     
     if (suggestion) {
       if (suggestion.type === 'book') {
-        // Navigate to specific book
         navigate(`/product/${suggestion.id}`);
         setSearchQuery('');
         setShowSuggestions(false);
@@ -317,6 +302,19 @@ const finalCartCount = localCartCount || cartCount;
     }
   };
 
+  // --- LOGO NAVIGATION FIX ---
+  const handleLogoClick = (e) => {
+    e.preventDefault();
+    if (location.pathname !== '/') {
+      navigate('/');
+    } else {
+      // Only scroll to top if not already at the top
+      if (window.scrollY > 0) {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }
+  };
+
   const renderSearchInput = (isMobileVersion = false) => (
     <div className="relative w-full" ref={searchRef}>
       <div className="relative">
@@ -327,7 +325,7 @@ const finalCartCount = localCartCount || cartCount;
           onKeyDown={handleKeyPress}
           onFocus={handleSearchFocus}
           placeholder={isMobileVersion ? "Search..." : "Search books, authors, categories..."}
-          className={`w-full bg-gronik-secondary/20 text-gronik-light placeholder-gronik-light/60 px-3 py-1.5 rounded-lg focus:outline-none focus:border-gronik-accent focus:bg-gronik-secondary/30 focus:shadow-lg transition-all duration-200 ${
+          className={`w-full bg-gronik-secondary/20 text-gronik-light placeholder-gronik-light/60 px-3 py-1.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-gronik-accent focus:bg-gronik-secondary/30 focus:shadow-lg transition-all duration-200 ${
             isMobileVersion ? 'text-xs border-2 border-white/40 pr-3' : 'border border-gronik-secondary/30 pr-8'
           } ${showSuggestions ? 'rounded-b-none' : ''}`}
         />
@@ -341,9 +339,8 @@ const finalCartCount = localCartCount || cartCount;
         )}
         
         {showSuggestions && suggestions.length > 0 && !isMobileVersion && (
-          <>
-            <ChevronDown className="absolute right-7 top-1/2 -translate-y-1/2 w-2.5 h-2.5 text-gronik-light/60" />
-          </>
+          // ChevronDown button/icon for visual cue (not needed for functionality)
+          <ChevronDown className="absolute right-7 top-1/2 -translate-y-1/2 w-2.5 h-2.5 text-gronik-light/60" />
         )}
       </div>
 
@@ -361,7 +358,7 @@ const finalCartCount = localCartCount || cartCount;
             <div
               key={`${suggestion.type}-${suggestion.text}-${index}`}
               onClick={() => handleSearchSubmit(suggestion)}
-              className={`flex items-center space-x-3 px-3 py-3 cursor-pointer transition-colors duration-150 border-b last:border-b-0 ${
+              className={`flex items-center space-x-3 px-3 py-3 cursor-pointer transition-colors duration-150 border-b last:border-b-0 group ${
                 isMobileVersion 
                   ? `${selectedSuggestionIndex === index ? 'bg-[#9B7BB8]/20' : 'hover:bg-[#9B7BB8]/10'} border-gray-200`
                   : `${selectedSuggestionIndex === index ? 'bg-[#9B7BB8]/15' : 'hover:bg-[#9B7BB8]/10'} border-gronik-secondary/10`
@@ -389,15 +386,14 @@ const finalCartCount = localCartCount || cartCount;
                 }`}>
                   {suggestion.text}
                 </div>
-                <div className={`text-xs flex items-center space-x-2 ${
-                  isMobileVersion ? 'text-[#4A3B5C] font-medium' : 'text-[#2D1B3D]/60'
-                }`}>
+                <div className="text-xs flex items-center space-x-2 text-[#2D1B3D]/60">
                   <span className="font-semibold">{suggestion.category}</span>
                 </div>
               </div>
               
               {!isMobileVersion && (
                 <div className="flex-shrink-0 text-[#9B7BB8] opacity-0 group-hover:opacity-100 transition-opacity">
+                  {/* Using ChevronDown as a visual right-arrow cue */}
                   <ChevronDown className="w-4 h-4 rotate-[-90deg]" />
                 </div>
               )}
@@ -413,8 +409,8 @@ const finalCartCount = localCartCount || cartCount;
                   : 'hover:bg-[#9B7BB8]/10 border-gronik-secondary/20 bg-gronik-secondary/5'
               }`}
             >
-              <Search className={`w-4 h-4 ${isMobileVersion ? 'text-[#9B7BB8]' : 'text-[#9B7BB8]'}`} />
-              <span className={`text-sm font-bold ${isMobileVersion ? 'text-[#2D1B3D]' : 'text-[#2D1B3D]'}`}>
+              <Search className={`w-4 h-4 text-[#9B7BB8]`} />
+              <span className={`text-sm font-bold text-[#2D1B3D]`}>
                 Search for "<span className="text-[#9B7BB8]">{searchQuery}</span>"
               </span>
             </div>
@@ -428,342 +424,211 @@ const finalCartCount = localCartCount || cartCount;
     <>
       {/* Mobile Navbar */}
       {isMobile && (
-        <nav className="fixed top-0 left-0 right-0 z-50 bg-gronik-primary/95 backdrop-blur-md shadow-lg border-b border-gronik-secondary/20">
-          <div className="flex items-center justify-between h-16 px-3 gap-2">
-            {/* Logo - Left */}
-            <div className="flex-shrink-0">
-              <a
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    if (location.pathname !== "/") navigate("/");
-                    // If already on "/", do nothing → no refresh
-                  }}
+        <nav className="fixed top-0 left-0 right-0 z-[9999] bg-gronik-primary/95 backdrop-blur-md shadow-lg border-b border-gronik-secondary/20">
+          <div className="flex flex-col">
+            {/* Top Bar (Logo, Search, Cart, Menu) */}
+            <div className="flex items-center justify-between h-16 px-3 gap-2">
+              {/* Logo - Left */}
+              <div className="flex-shrink-0">
+                <a
+                  href="/"
+                  onClick={handleLogoClick}
                   className="flex items-center"
                 >
-                <div className="w-auto h-10 ">
                   <img
                     src="/images/logo.png"
                     alt="Gronik Logo"
-                    className="w-full h-full object-contain"
+                    className="w-auto h-10 object-contain"
                   />
-                </div>
-              </a>
-            </div>
+                </a>
+              </div>
 
-            {/* Search Bar & Cart - Center */}
-          <div className="flex-1 flex items-center gap-2 mx-2">
-  <div className="flex-1">
-    {renderSearchInput(true)}
-  </div>
-</div>
+              {/* Search Bar (Mobile Top) */}
+              <div className="flex-1 min-w-0">
+                {renderSearchInput(true)}
+              </div>
 
-
-            {/* Quick Actions */}
-            <div className="flex items-center gap-1">
-              <Link
-                to="/cart"
-                className="p-2 rounded-lg relative flex-shrink-0 text-gronik-light hover:text-gronik-accent transition-colors duration-200"
-                onClick={() => setIsMenuOpen(false)}
-                aria-label="Open cart"
-              >
-                <ShoppingCart className="w-5 h-5" />
-                {finalCartCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-gronik-accent text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center font-bold leading-none">
-                    {finalCartCount}
-                  </span>
-                )}
-              </Link>
-              <div className="flex justify-center items-center">
-             <button
-                className="p-2 flex items-center justify-center text-gronik-light hover:text-gronik-accent transition-colors duration-200"
-                onClick={() => setIsMenuOpen(!isMenuOpen)}
-                aria-label="Toggle navigation menu"
-              >
-                {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-              </button>
-
-
-            </div>
-
-            </div>
-          </div>
-
-          {/* Mobile Menu Dropdown - WISHLIST INSTEAD OF CART */}
-          {isMenuOpen && (
-            <div className="bg-gronik-primary/98 backdrop-blur-md border-t border-gronik-secondary/20 shadow-xl">
-              <div className="p-4 space-y-3">
+              {/* Quick Actions (Cart & Menu) */}
+              <div className="flex items-center gap-1">
                 <Link
-                  to="/"
+                  to="/cart"
+                  className="p-2 rounded-lg relative flex-shrink-0 text-gronik-light hover:text-gronik-accent transition-colors duration-200"
                   onClick={() => setIsMenuOpen(false)}
-                  className="block text-gronik-light hover:text-gronik-accent py-2 font-medium"
+                  aria-label="Open cart"
                 >
-                  Home
-                </Link>
-                <Link
-                  to="/library"
-                  onClick={() => setIsMenuOpen(false)}
-                  className="block text-gronik-light hover:text-gronik-accent py-2 font-medium"
-                >
-                  Library
+                  <ShoppingCart className="w-5 h-5" />
+                  {finalCartCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-gronik-accent text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center font-bold leading-none">
+                      {finalCartCount}
+                    </span>
+                  )}
                 </Link>
                 <button
-                  onClick={() => scrollToSection('about')}
-                  className="block w-full text-left text-gronik-light hover:text-gronik-accent py-2 font-medium"
+                  className="p-2 flex items-center justify-center text-gronik-light hover:text-gronik-accent transition-colors duration-200"
+                  onClick={() => setIsMenuOpen(!isMenuOpen)}
+                  aria-label="Toggle navigation menu"
                 >
-                  About
+                  {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
                 </button>
-                <Link
-                  to="/contact"
-                  onClick={() => setIsMenuOpen(false)}
-                  className="block text-gronik-light hover:text-gronik-accent py-2 font-medium"
-                >
-                  Contact
-                </Link>
+              </div>
+            </div>
 
-                {/* Actions Section */}
-                <div className="pt-3 border-t border-gronik-secondary/20 space-y-4">
-                  <div className="space-y-3">
-                    <Link
-                      to="/wishlist"
-                      onClick={() => setIsMenuOpen(false)}
-                      className="flex items-center justify-between text-gronik-light hover:text-gronik-accent"
-                    >
-                      <span className="flex items-center gap-2">
-                        <Heart className="w-5 h-5" />
-                        <span className="font-medium">Wishlist</span>
-                      </span>
-                      {wishlistCount > 0 && (
-                        <span className="bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                          {wishlistCount}
-                        </span>
-                      )}
-                    </Link>
-                    <Link
-                      to="/cart"
-                      onClick={() => setIsMenuOpen(false)}
-                      className="flex items-center justify-between text-gronik-light hover:text-gronik-accent"
-                    >
-                      <span className="flex items-center gap-2">
-                        <ShoppingCart className="w-5 h-5" />
-                        <span className="font-medium">Cart</span>
-                      </span>
-                      {finalCartCount > 0 && (
-                        <span className="bg-gronik-accent text-white text-xs rounded-full px-2 py-0.5">
-                          {finalCartCount} item{finalCartCount > 1 ? 's' : ''}
-                        </span>
-                      )}
-                    </Link>
-                    <Link
-                      to={user ? "/profile" : "/login"}
-                      onClick={() => setIsMenuOpen(false)}
-                      className="flex items-center gap-2 text-gronik-light hover:text-gronik-accent"
-                    >
-                      <User className="w-5 h-5" />
-                      <span className="font-medium">{user ? "Profile" : "Login"}</span>
-                    </Link>
-                  </div>
+            {/* Mobile Menu Dropdown */}
+            {isMenuOpen && (
+              <div className="bg-gronik-primary/98 backdrop-blur-md border-t border-gronik-secondary/20 shadow-xl overflow-y-auto max-h-[calc(100vh-64px)]">
+                <div className="p-4 space-y-3">
+                  {/* Navigation Links */}
+                  <Link to="/" className="block text-gronik-light hover:text-gronik-accent py-2 font-medium" onClick={() => setIsMenuOpen(false)}>Home</Link>
+                  <Link to="/library" className="block text-gronik-light hover:text-gronik-accent py-2 font-medium" onClick={() => setIsMenuOpen(false)}>Library</Link>
+                  <button onClick={() => scrollToSection('about')} className="block w-full text-left text-gronik-light hover:text-gronik-accent py-2 font-medium">About</button>
+                  <Link to="/contact" className="block text-gronik-light hover:text-gronik-accent py-2 font-medium" onClick={() => setIsMenuOpen(false)}>Contact</Link>
 
-                  {/* Buttons */}
-                  <div className="flex flex-col gap-2">
-                    {!user && (
-                      <button
-                        onClick={() => {
-                          navigate('/login');
-                          setIsMenuOpen(false);
-                        }}
-                        className="bg-gradient-to-r from-gronik-accent to-gronik-secondary text-white px-4 py-2 rounded-lg font-medium text-sm text-center"
-                      >
-                        Login
-                      </button>
-                    )}
-                    {user && (
-                      <Link
-                        to="/admin"
-                        onClick={() => setIsMenuOpen(false)}
-                        className="bg-gradient-to-r from-gronik-accent to-gronik-secondary text-white px-4 py-2 rounded-lg font-medium text-sm text-center"
-                      >
-                        Admin
+                  {/* Actions Section */}
+                  <div className="pt-3 border-t border-gronik-secondary/20 space-y-4">
+                    <div className="space-y-3">
+                      <Link to="/wishlist" onClick={() => setIsMenuOpen(false)} className="flex items-center justify-between text-gronik-light hover:text-gronik-accent">
+                        <span className="flex items-center gap-2"><Heart className="w-5 h-5" /><span className="font-medium">Wishlist</span></span>
+                        {wishlistCount > 0 && (<span className="bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">{wishlistCount}</span>)}
                       </Link>
-                    )}
+                      <Link to="/cart" onClick={() => setIsMenuOpen(false)} className="flex items-center justify-between text-gronik-light hover:text-gronik-accent">
+                        <span className="flex items-center gap-2"><ShoppingCart className="w-5 h-5" /><span className="font-medium">Cart</span></span>
+                        {finalCartCount > 0 && (<span className="bg-gronik-accent text-white text-xs rounded-full px-2 py-0.5">{finalCartCount} item{finalCartCount > 1 ? 's' : ''}</span>)}
+                      </Link>
+                      <Link to={user ? "/profile" : "/login"} onClick={() => setIsMenuOpen(false)} className="flex items-center gap-2 text-gronik-light hover:text-gronik-accent">
+                        <User className="w-5 h-5" /><span className="font-medium">{user ? "Profile" : "Login"}</span>
+                      </Link>
+                    </div>
+
+                    {/* Buttons */}
+                    <div className="flex flex-col gap-2">
+                      {!user ? (
+                        <button
+                          onClick={() => { navigate('/login'); setIsMenuOpen(false); }}
+                          className="bg-gradient-to-r from-gronik-accent to-gronik-secondary text-white px-4 py-2 rounded-lg font-medium text-sm text-center"
+                        >
+                          Login
+                        </button>
+                      ) : (
+                        <Link
+                          to="/admin"
+                          onClick={() => setIsMenuOpen(false)}
+                          className="bg-gradient-to-r from-gronik-accent to-gronik-secondary text-white px-4 py-2 rounded-lg font-medium text-sm text-center"
+                        >
+                          Admin
+                        </Link>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </nav>
       )}
 
-      {/* Desktop Navbar */}
-      {/* Desktop Navbar */}
+      {/* Desktop Navbar (Hidden/Shown based on scroll) */}
+      {!isMobile && (
+        <div
+          // Fixed positioning is simpler and less prone to iOS bugs than complex translate/translate-y logic
+          className={`
+            fixed top-0 left-0 right-0 z-[9999] transition-all duration-300 ease-in-out
+            ${isScrolled ? 'h-16 bg-gronik-primary/95 backdrop-blur-md shadow-lg border-b border-gronik-secondary/20' : 'h-20 bg-transparent'}
+            ${!isScrolled || isSearchFocused ? 'translate-y-0' : '-translate-y-full'}
+          `}
+          // Removed complex mouseEnter/Leave logic from wrapper, relying on simpler scroll/focus state
+        >
+          <nav className={`h-full px-8 max-w-[1400px] mx-auto ${isScrolled ? '' : 'bg-gronik-primary/95 backdrop-blur-md rounded-b-xl shadow-lg border-b border-gronik-secondary/20'}`}>
+            <div className="flex items-center justify-between h-full w-full">
+              
+              {/* Logo */}
+              <a
+                href="/"
+                onClick={handleLogoClick}
+                className="flex items-center"
+              >
+                <img
+                  src="/images/logo.png"
+                  alt="Gronik Logo"
+                  className={`object-contain transition-all duration-300 ${isScrolled ? 'h-10' : 'h-14'}`}
+                />
+              </a>
 
-{!isMobile && (
- <div
-  className={`
-    fixed top-0 left-0 right-0 z-[9999]
-    transition-transform duration-500 ease-in-out
-    ${(!isScrolled || isHovering) ? "translate-y-0" : "-translate-y-full"}
-  `}
-  onMouseEnter={() => setIsHovering(true)}
-  onMouseLeave={() => setIsHovering(false)}
-  style={{ pointerEvents: "auto" }}
->
+              {/* Menu Items (Always visible when desktop) */}
+              <div className="flex items-center space-x-10">
+                <Link to="/" className="text-gronik-light hover:text-gronik-accent font-medium transition-transform hover:scale-105">House</Link>
+                <Link to="/library" className="text-gronik-light hover:text-gronik-accent font-medium transition-transform hover:scale-105">Library</Link>
+                <button onClick={() => scrollToSection("about")} className="text-gronik-light hover:text-gronik-accent font-medium transition-transform hover:scale-105">About</button>
+                <Link to="/contact" className="text-gronik-light hover:text-gronik-accent font-medium transition-transform hover:scale-105">Contact</Link>
+              </div>
 
-    <nav className="bg-gronik-primary/95 backdrop-blur-md shadow-lg border-b border-gronik-secondary/20 pointer-events-auto">
-      <div className="px-8 max-w-[1400px] mx-auto">
-        <div className="flex items-center justify-between h-20   w-full">
-          
-          {/* Logo */}
-          <a
-  href="#"
-  onClick={(e) => {
-    e.preventDefault();
-    if (location.pathname !== "/") navigate("/");
-    // If already on "/", do nothing → no refresh
-  }}
-  className="flex items-center"
->
+              {/* Right Side */}
+              <div className="flex items-center space-x-5">
+                <div className="w-[350px]">
+                  {renderSearchInput(false)}
+                </div>
 
-            <img
-              src="/images/logo.png"
-              alt="Gronik Logo"
-              className="w-auto h-14 object-contain"
-            />
-          </a>
+                {/* Icons */}
+                <Link to="/wishlist" className="relative p-2 rounded-lg transition hover:bg-gronik-secondary/20 hover:scale-110 transform duration-200 group">
+                  <Heart className="w-5 h-5 text-gronik-light group-hover:text-gronik-accent" />
+                  {wishlistCount > 0 && (<span className="absolute -top-1 -right-1 bg-gronik-accent text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">{wishlistCount}</span>)}
+                </Link>
 
-          {/* Menu Items */}
-          <div className="flex items-center space-x-10">
-            <Link to="/" className="text-gronik-light hover:text-gronik-accent font-medium transition-transform hover:scale-110">
-              House
-            </Link>
+                <Link to="/cart" className="relative p-2 rounded-lg transition hover:bg-gronik-secondary/20 hover:scale-110 transform duration-200 group">
+                  <ShoppingCart className="w-5 h-5 text-gronik-light group-hover:text-gronik-accent" />
+                  {finalCartCount > 0 && (<span className="absolute -top-1 -right-1 bg-gronik-accent text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">{finalCartCount}</span>)}
+                </Link>
 
-            <Link to="/library" className="text-gronik-light hover:text-gronik-accent font-medium transition-transform hover:scale-110">
-              Library
-            </Link>
+                <Link to={user ? "/profile" : "/login"} className="p-2 rounded-lg transition hover:bg-gronik-secondary/20 hover:scale-110 transform duration-200 group">
+                  <User className="w-5 h-5 text-gronik-light group-hover:text-gronik-accent" />
+                </Link>
 
-            <button
-              onClick={() => scrollToSection("about")}
-              className="text-gronik-light hover:text-gronik-accent font-medium transition-transform hover:scale-110"
-            >
-              About
-            </button>
-
-            <Link to="/contact" className="text-gronik-light hover:text-gronik-accent font-medium transition-transform hover:scale-110">
-              Contact
-            </Link>
-          </div>
-
-          {/* Right Side */}
-          <div className="flex items-center space-x-5">
-            <div className="w-[350px]">
-              {renderSearchInput(false)}
+                {/* Login/Admin Button */}
+                {!user ? (
+                  <button onClick={() => navigate("/login")} className="px-6 py-2 bg-gradient-to-r from-gronik-accent to-gronik-secondary text-white rounded-lg shadow-lg transition-transform hover:scale-105">
+                    Login
+                  </button>
+                ) : (
+                  <Link to="/admin" className="px-6 py-2 bg-gradient-to-r from-gronik-accent to-gronik-secondary text-white rounded-lg shadow-lg transition-transform hover:scale-105">
+                    Admin
+                  </Link>
+                )}
+              </div>
             </div>
-
-           <Link 
-                to="/wishlist" 
-                className="relative p-2 rounded-lg transition 
-                          hover:bg-gronik-secondary/20 
-                          hover:-translate-y-2
-                          transform duration-200 group"
-              >
-              <Heart className="w-5 h-5 text-gronik-light group-hover:text-gronik-accent" />
-              {wishlistCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-gronik-accent text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                  {wishlistCount}
-                </span>
-              )}
-            </Link>
-
-           <Link 
-                to="/cart" 
-                className="relative p-2 rounded-lg transition 
-                          hover:bg-gronik-secondary/20 
-                          hover:-translate-y-2 
-                          transform duration-200 group"
-              >
-
-              <ShoppingCart className="w-5 h-5 text-gronik-light group-hover:text-gronik-accent" />
-              {finalCartCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-gronik-accent text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                  {finalCartCount}
-                </span>
-              )}
-            </Link>
-
-           <Link 
-              to={user ? "/profile" : "/login"} 
-              className="p-2 rounded-lg transition 
-                        hover:bg-gronik-secondary/20 
-                        hover:-translate-y-2 
-                        transform duration-200 group"
-            >
-              <User className="w-5 h-5 text-gronik-light group-hover:text-gronik-accent" />
-            </Link>
-
-            {!user ? (
-              <button
-                onClick={() => navigate("/login")}
-                className="px-6 py-2 bg-gradient-to-r from-gronik-accent to-gronik-secondary text-white rounded-lg shadow-lg transition-transform hover:scale-110"
-              >
-                Login
-              </button>
-            ) : (
-              <Link
-                to="/admin"
-                className="px-6 py-2 bg-gradient-to-r from-gronik-accent to-gronik-secondary text-white rounded-lg shadow-lg transition-transform hover:scale-110"
-              >
-                Admin
-              </Link>
-            )}
-          </div>
-
+          </nav>
         </div>
-      </div>
-    </nav>
-  </div>
-)}
-
-
-
-
-      {/* Floating G Logo - Desktop Only */}
+      )}
+      
+      {/* Floating G Logo - Desktop Only (Simplified CSS) */}
       {!isMobile && (
         <div 
-          className={`fixed top-4 -left-1 z-50 transition-all duration-500 ease-in-out ${
-            isScrolled && !isHovering
+          className={`fixed top-4 -left-1 z-[9999] transition-all duration-300 ease-in-out ${
+            isScrolled && !isSearchFocused
               ? 'opacity-100 scale-100 translate-y-0' 
               : 'opacity-0 scale-75 -translate-y-4 pointer-events-none'
           }`}
-          onMouseEnter={() => setIsHovering(true)}
-          onMouseLeave={() => setIsHovering(false)}
         >
           <Link 
             to="/" 
-            className="block transform hover:scale-125 transition-all duration-300 group cursor-pointer"
+            onClick={handleLogoClick}
+            className="block transform hover:scale-110 transition-all duration-300 group cursor-pointer"
           >
             <img 
               src="/images/icon.png" 
               alt="Gronik G Logo"
-              className="w-24 h-24 object-contain drop-shadow-2xl group-hover:drop-shadow-[0_0_20px_rgba(168,85,247,0.8)] group-hover:brightness-125 transition-all duration-300 filter contrast-125 saturate-150"
+              className="w-24 h-24 object-contain"
               style={{
                 filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.5)) drop-shadow(0 0 8px rgba(168,85,247,0.3)) contrast(1.3) saturate(1.4) brightness(1.1)'
               }}
             />
           </Link>
           
-          <div className="absolute inset-0 w-24 h-24 rounded-full bg-gradient-to-br from-gronik-accent/20 to-gronik-secondary/20 blur-xl animate-pulse opacity-60 group-hover:opacity-100 transition-opacity duration-300"></div>
+          <div className="absolute inset-0 w-24 h-24 rounded-full bg-gradient-to-br from-gronik-accent/20 to-gronik-secondary/20 blur-xl animate-pulse opacity-60 transition-opacity duration-300 pointer-events-none"></div>
         </div>
       )}
+      
+      {/* Spacer to prevent content from hiding behind fixed Navbar */}
+      <div className={`${isMobile ? 'h-16' : 'h-20'}`}></div>
 
-      {/* Extended Hover Area - Desktop only */}
-      {isScrolled && !isMobile && (
-        <div 
-          className="fixed top-0 left-0 w-full h-24 z-[9998] pointer-events-auto"
-          onMouseEnter={() => setIsHovering(true)}
-          onMouseLeave={() => setIsHovering(false)}
-        ></div>
-      )}
-     
     </>
   );
 };
