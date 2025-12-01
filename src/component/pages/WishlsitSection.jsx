@@ -4,11 +4,16 @@ import { Trash2, ShoppingBag, ArrowLeft, Heart, Star, ShoppingCart, ChevronLeft,
 
 const WishlistCard = React.memo(function WishlistCard({ item, onAddToCart, onRemove }) {
   return (
-    <div className="bg-[#2D1B3D]/95 backdrop-blur-sm rounded-2xl p-6 border border-gronik-accent/20 hover:border-gronik-accent/40 transition-all duration-300 group hover:transform hover:scale-105">
+    <div className="bg-[#2D1B3D]/95 rounded-xl p-4 border border-white/10 hover:border-white/30 transition-all duration-300 hover:scale-105 shadow-lg">
       <div className="relative mb-4">
-        <div className="w-full aspect-[3/4] rounded-lg overflow-hidden shadow-lg bg-[#2D1B3D]/80">
-          <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
-        </div>
+        <div className="w-full h-56 sm:h-64 rounded-xl overflow-hidden shadow-lg bg-[#2D1B3D]/80">
+        <img
+          src={item.image}
+          alt={item.title}
+          className="w-full h-full object-cover object-center"
+        />
+      </div>
+
         <button
           onClick={() => onRemove(item.id)}
           className="absolute top-2 right-2 w-8 h-8 bg-gronik-primary/80 hover:bg-red-500 rounded-full transition-colors duration-200 flex items-center justify-center shadow-md"
@@ -19,7 +24,7 @@ const WishlistCard = React.memo(function WishlistCard({ item, onAddToCart, onRem
         </button>
       </div>
 
-      <div className="space-y-3">
+   <div className="mt-3 space-y-2">
         <div>
           <h3 className="font-bold text-lg text-white group-hover:text-gronik-accent transition-colors duration-200 line-clamp-2">
             {item.title}

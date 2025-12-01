@@ -211,16 +211,9 @@ const WhyEbooksButton = () => {
                 md:mb-6 
                 lg:mb-7 
                 xl:mb-8">
-                <div className="w-6 h-6 
-                  xs:w-7 xs:h-7 
-                  sm:w-8 sm:h-8 
-                  md:w-10 md:h-10 
-                  lg:w-12 lg:h-12 
-                  xl:w-14 xl:h-14 
-                  2xl:w-16 2xl:h-16 
-                  flex items-center justify-center">
-                  <img src="/images/icon.png" alt="logo" className="w-full h-full object-contain"></img>
-                </div>
+               
+                  <img src="/images/icon.png" alt="logo" className="w-28 h-28 object-contain"></img>
+                
                 <h3 className="text-xs 
                   xs:text-sm 
                   sm:text-base 

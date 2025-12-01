@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useSelector } from "react-redux";
 import { Star, Quote, Plus, X, Send } from "lucide-react";
 import { saveReview, getAllReviews } from "../../utils/reviewservice";
+import { useNavigate } from "react-router-dom";
 
 const FALLBACK_REVIEWS = [
   { id: "fallback-1", rating: 5, review: "Hands down the most immersive reading experience I have ever had online. The curation is on point!", name: "Sahana Devi" },
@@ -9,7 +10,10 @@ const FALLBACK_REVIEWS = [
   { id: "fallback-3", rating: 5, review: "I moved all my study material to Gronik. The annotations and downloads make learning super easy.", name: "Aanya P." },
 ];
 
+
+
 const ReviewsSection = () => {
+  const navigate = useNavigate();
   const user = useSelector((state) => state.userAuth?.user);
 
   const [reviews, setReviews] = useState([]);
@@ -240,7 +244,7 @@ const onPointerUp = (e) => {
   const handleSubmitReview = async () => {
     if (!newReview.text.trim()) return;
     if (!user?.guid) {
-      alert("Please log in to submit a review.");
+      navigate("/login");
       return;
     }
 
