@@ -4,78 +4,126 @@ import { Trash2, ShoppingBag, ArrowLeft, Heart, Star, ShoppingCart, ChevronLeft,
 
 const WishlistCard = React.memo(function WishlistCard({ item, onAddToCart, onRemove }) {
   return (
-    <div className="bg-[#2D1B3D]/95 rounded-xl p-4 border border-white/10 hover:border-white/30 transition-all duration-300 hover:scale-105 shadow-lg">
-      <div className="relative mb-4">
-        <div className="w-full h-56 sm:h-64 rounded-xl overflow-hidden shadow-lg bg-[#2D1B3D]/80">
-        <img
-          src={item.image}
-          alt={item.title}
-          className="w-full h-full object-cover object-center"
-        />
+    <div
+      className="
+        group relative bg-[#1A0F2E]/80 backdrop-blur-md 
+        rounded-xl lg:rounded-3xl border border-white/10 
+        transition-all duration-500 transform 
+        hover:scale-105 hover:-translate-y-2 shadow-2xl
+        p-3 sm:p-4 lg:p-6 flex flex-col card-hover-gold mb-4
+      "
+    >
+
+      {/* CATEGORY BADGE (optional — remove if not needed) */}
+      <div className="absolute -top-2 left-1/2 transform -translate-x-1/2">
+        <div className="bg-gradient-to-r from-[#2D1B3D] to-[#3D2A54]
+        text-white px-4 py-1 rounded-full text-xs font-bold shadow-lg border border-white/20">
+          {item.category || "Wishlist"}
+        </div>
       </div>
 
+      {/* IMAGE */}
+      <div className="flex justify-center mt-4 mb-4">
+        <div className="relative w-20 h-28 sm:w-24 sm:h-32 lg:w-48 lg:h-64 
+          rounded-lg lg:rounded-xl overflow-hidden shadow-2xl">
+          <img
+            src={item.image}
+            alt={item.title}
+            className="w-full h-full object-cover"
+          />
+        </div>
+
+        {/* REMOVE HEART BUTTON */}
         <button
           onClick={() => onRemove(item.id)}
-          className="absolute top-2 right-2 w-8 h-8 bg-gronik-primary/80 hover:bg-red-500 rounded-full transition-colors duration-200 flex items-center justify-center shadow-md"
-          aria-label="Remove from wishlist"
-          type="button"
+          className="absolute top-2 right-2 
+          bg-red-500/5 hover:bg-red-100 rounded-full transition duration-200
+          flex items-center justify-center shadow-md"
         >
-          <Heart className="w-4 h-4 text-gronik-accent fill-current hover:text-white" />
+          <Heart className="w-4 h-4 text-white fill-white" />
         </button>
       </div>
 
-   <div className="mt-3 space-y-2">
-        <div>
-          <h3 className="font-bold text-lg text-white group-hover:text-gronik-accent transition-colors duration-200 line-clamp-2">
-            {item.title}
-          </h3>
-          <p className="text-gronik-light/80 text-sm">by {item.author}</p>
-          <div className="flex items-center mt-1">
-            <div className="flex items-center">
-              {[...Array(5)].map((_, i) => (
-                <Star
-                  key={i}
-                  className={`w-3 h-3 ${i < Math.floor(item.rating) ? 'text-yellow-400 fill-current' : 'text-gronik-light/30'}`}
-                />
-              ))}
-            </div>
-            <span className="text-xs text-gronik-light/60 ml-2">({item.rating})</span>
-          </div>
-        </div>
-
-        <div className="flex items-center space-x-2">
-          {Number.isFinite(item.originalPrice) && Number.isFinite(item.price) && item.originalPrice > item.price && (
-            <span className="text-sm text-gronik-light/60 line-through">₹{item.originalPrice.toFixed(2)}</span>
-          )}
-          <span className="text-lg font-bold text-gronik-accent">₹{item.price.toFixed(2)}</span>
-        </div>
-
-        <div className="flex space-x-2 pt-2">
-          <button
-            onClick={() => onAddToCart(item)}
-            disabled={!item.inStock}
-            className={`flex-1 flex items-center justify-center py-2 px-3 rounded-lg font-medium text-sm transition-all duration-200 ${
-              item.inStock ? 'bg-gronik-accent hover:bg-gronik-secondary text-white transform hover:scale-105' : 'bg-gronik-light/20 text-gronik-light/50 cursor-not-allowed'
-            }`}
-            type="button"
-          >
-            <ShoppingCart className="w-4 h-4 mr-2" />
-            {item.inStock ? 'Add to Cart' : 'Out of Stock'}
-          </button>
-
-          <button
-            onClick={() => onRemove(item.id)}
-            type="button"
-            className="p-2 text-gronik-light/60 hover:text-red-400 hover:bg-red-400/20 rounded-lg transition-all duration-200"
-            aria-label="Delete"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
-        </div>
+      {/* TITLE & AUTHOR */}
+      <div className="text-center mb-4 px-2">
+        <h3 className="font-bold text-white leading-tight text-xs sm:text-sm lg:text-lg mb-1 line-clamp-2">
+          {item.title}
+        </h3>
+        <p className="text-white/70 font-medium text-xs sm:text-sm">
+          by {item.author}
+        </p>
       </div>
+
+      {/* RATING */}
+      <div className="flex justify-center items-center space-x-1 mb-2">
+        <div className="flex items-center">
+          {[...Array(5)].map((_, i) => (
+            <Star
+              key={i}
+              className={`w-3 h-3 lg:w-4 lg:h-4 ${
+                i < Math.floor(item.rating)
+                  ? "text-yellow-400 fill-current"
+                  : "text-white/30"
+              }`}
+            />
+          ))}
+        </div>
+        <span className="text-white/80 text-xs sm:text-sm font-medium">
+          {item.rating}
+        </span>
+      </div>
+
+      {/* PRICE */}
+      <div className="flex justify-center items-center space-x-2 mb-4">
+        {item.originalPrice > item.price && (
+          <span className="text-xs sm:text-sm text-white/50 line-through">
+            ₹{item.originalPrice}
+          </span>
+        )}
+        <span className="text-sm sm:text-base lg:text-xl text-white font-bold">
+          ₹{item.price}
+        </span>
+      </div>
+
+      {/* BUTTONS */}
+      <div className="flex gap-2 mt-auto w-full">
+
+        {/* ADD TO CART BUTTON */}
+        <button
+          onClick={() => onAddToCart(item)}
+          className="
+            flex-1 py-2 rounded-xl font-semibold text-sm
+            bg-gradient-to-r from-white to-gray-100 text-[#2D1B3D]
+            shadow-xl hover:scale-105 hover:shadow-2xl transition duration-300
+          "
+        >
+          Add to Cart
+        </button>
+
+        {/* REMOVE BUTTON */}
+        <button
+          onClick={() => onRemove(item.id)}
+          className="
+            p-3 bg-gradient-to-r from-red-500 to-red-600 
+            text-white rounded-xl hover:scale-105 transition-all
+          "
+        >
+          <Trash2 className="w-4 h-4 m-auto" />
+        </button>
+      </div>
+
+      {/* Add gold-hover effect like library */}
+      <style jsx>{`
+        .card-hover-gold:hover {
+          box-shadow: 0 0 0 2px #ffe9b3,
+                      0 4px 24px 0 #ffe9b3cc,
+                      0 1.5px 8px 0 #fff7c1;
+        }
+      `}</style>
     </div>
   );
 });
+
 
 
 const WishlistPage = ({
@@ -170,8 +218,8 @@ const handleRemoveFromWishlist = useCallback((id) => {
 
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#9B7BB8] to-[#8A6AA7] pt-20">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 lg:py-8 sm:py-2 py-1">
+    <div className="min-h-screen bg-gradient-to-br from-[#9B7BB8] to-[#8A6AA7] ">
+      <div className="max-w-7xl mx-auto px-1 sm:px-6 lg:px-8 lg:py-8 sm:py-2 py-1">
         {/* Desktop Header */}
         <div className="hidden sm:flex items-center justify-between mb-8">
           <div className="flex items-center">

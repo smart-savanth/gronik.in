@@ -23,17 +23,12 @@ const WhyEbooksButton = () => {
     document.head.appendChild(link);
   }, []);
 
-  // Check if mobile device (more precise detection)
+  // Check if mobile device
   useEffect(() => {
     const checkDevice = () => {
       const width = window.innerWidth;
-      const height = window.innerHeight;
-      
-      // Mobile: screens smaller than 13" laptops (typically under 1024px width)
-      // OR touch-only devices
       const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
       const isSmallScreen = width < 1024;
-      
       setIsMobile(isTouchDevice && isSmallScreen);
     };
     
@@ -55,52 +50,48 @@ const WhyEbooksButton = () => {
   }, []);
 
   const handleButtonClick = () => {
-    // For mobile devices, toggle on click
     if (isMobile) {
       setIsHovered(!isHovered);
+      // Logic for scroll lock is handled in the useEffect below
     }
   };
 
   const handleMouseEnter = () => {
-    // Only work on desktop/laptop
     if (!isMobile) {
       setIsHovered(true);
     }
   };
 
   const handleMouseLeave = () => {
-    // Only work on desktop/laptop
     if (!isMobile) {
       setIsHovered(false);
     }
   };
 
-  // Close modal when clicking outside (mobile only)
+  // Close when clicking the dark overlay
+  const handleOverlayClick = () => {
+    setIsHovered(false);
+  };
+
   useEffect(() => {
-    if (!isMobile || !isHovered) return;
+    if (isHovered) {
+      document.body.style.overflow = "hidden";   // stop scroll
+    } else {
+      document.body.style.overflow = "auto";     // restore scroll
+    }
+  }, [isHovered]);
 
-    const handleClickOutside = (event) => {
-      if (buttonRef.current && !buttonRef.current.contains(event.target)) {
-        // Check if click is outside the modal content
-        const modalContent = document.querySelector('[data-modal-content]');
-        if (modalContent && !modalContent.contains(event.target)) {
-          setIsHovered(false);
-        }
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('touchstart', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('touchstart', handleClickOutside);
-    };
-  }, [isMobile, isHovered]);
 
   return (
     <>
-      {/* Main Button - Bottom right corner - BIGGER ON MOBILE */}
-      <div className="fixed bottom-4 right-4 z-50">
+      {/* FIX 1 & 2: INCREASED RANGE & Z-INDEX
+         - Wrapped in a div with padding (p-6) to create a larger invisible "hit area" around the button.
+         - Increased z-index to z-[100] so it stays ON TOP of the overlay (fixing the flicker).
+      */}
+      <div className="fixed bottom-0 right-0 z-[100] p-6" // p-6 adds the invisible hover buffer
+           onMouseEnter={handleMouseEnter}
+           onMouseLeave={handleMouseLeave}
+      >
         <button
           ref={buttonRef}
           onClick={handleButtonClick}
@@ -114,8 +105,6 @@ const WhyEbooksButton = () => {
             boxShadow: '0 8px 32px rgba(45, 27, 61, 0.4), 0 4px 16px rgba(0, 0, 0, 0.2)',
             outline: 'none'
           }}
-          onMouseEnter={handleMouseEnter}
-          onMouseLeave={handleMouseLeave}
         >
           {/* Background Glow Effect */}
           <div className="absolute inset-0 bg-gradient-to-br from-purple-400/20 to-pink-400/20 rounded-full blur-xl group-hover:blur-2xl transition-all duration-300"></div>
@@ -127,7 +116,7 @@ const WhyEbooksButton = () => {
             <div className="absolute top-4 right-3 w-0.5 h-0.5 bg-white/50 rounded-full animate-pulse animation-delay-500"></div>
           </div>
 
-          {/* Logo Container - 2 LINES: "Why" and "E-Books?" */}
+          {/* Logo Container */}
           <div className="relative z-10 flex flex-col items-center justify-center h-full gap-0.5">
             <span 
               className={`block font-extrabold leading-tight text-white ${
@@ -160,158 +149,162 @@ const WhyEbooksButton = () => {
             isMobile ? 'w-4 h-4' : 'w-2 h-2 sm:w-3 sm:h-3'
           }`} />
         </button>
+      </div>
 
-        {/* Background Blur Overlay - Only shows when hovered */}
-        <div 
-          className={`fixed inset-0 bg-black/30 backdrop-blur-sm transition-all duration-500 ${isHovered ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+      {/* FIX 3: DARKER, NON-INTERACTIVE BG
+         - Increased opacity to bg-black/90 for a "completely disabled" look.
+         - Added handleOverlayClick to close modal if they click the background.
+         - Keeps z-98 so it sits BELOW the button (z-100) but ABOVE page content.
+      */}
+      <div 
+          onClick={handleOverlayClick}
+          className={`
+            fixed inset-0 bg-black/90 backdrop-blur-md transition-all duration-500 
+            ${isHovered ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}
+          `}
           style={{ zIndex: 98 }}
         ></div>
 
-        {/* Hover Content Popup - FULLY MOBILE RESPONSIVE */}
-        <div 
-          className={`fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 transition-all duration-500 ease-out ${isHovered ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'}`}
-          style={{ zIndex: 99 }}
-          data-modal-content
-        >
-          {/* Arrow pointing to button - HIDDEN ON MOBILE */}
-          <div className="hidden md:block absolute bottom-6 right-8 w-4 h-4 bg-gradient-to-br from-[#2D1B3D] to-[#4A3B5C] rotate-45 border-r border-b border-white/20 shadow-lg transform translate-y-2"></div>
+      {/* Hover Content Popup - RESTORED ORIGINAL DIMS */}
+      <div 
+        className={`lg:mt-10 fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 transition-all duration-500 ease-out ${isHovered ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'}`}
+        style={{ zIndex: 99 }}
+        data-modal-content
+      >
+        {/* Arrow pointing to button */}
+        <div className="hidden md:block absolute bottom-6 right-8 w-4 h-4 bg-gradient-to-br from-[#2D1B3D] to-[#4A3B5C] rotate-45 border-r border-b border-white/20 shadow-lg transform translate-y-2"></div>
 
-          {/* Content Container - PERFECT RESPONSIVENESS */}
-          <div className="bg-gradient-to-br from-[#2D1B3D]/95 via-[#4A3B5C]/95 to-[#2D1B3D]/95 backdrop-blur-xl rounded-2xl 
-            p-3 
-            xs:p-4 
-            sm:p-5 
-            md:p-6 
-            lg:p-7 
-            xl:p-8 
-            2xl:p-10 
-            shadow-2xl border border-white/10 
-            w-[95vw] 
-            xs:w-[90vw] 
-            sm:w-[85vw] 
-            md:w-[80vw] 
-            lg:w-[75vw] 
-            xl:w-[70vw] 
-            2xl:w-[65vw] 
-            max-w-4xl relative overflow-hidden mx-2">
+        {/* Content Container - ORIGINAL CLASSES RESTORED */}
+        <div className="bg-gradient-to-br from-[#2D1B3D]/95 via-[#4A3B5C]/95 to-[#2D1B3D]/95 backdrop-blur-xl rounded-2xl 
+          pb-3
+          px-3 
+          xs:px-4 
+          sm:px-5 
+          md:px-6 
+          lg:px-7 
+          xl:px-8 
+          2xl:px-10 
+          shadow-2xl border border-white/10 
+          w-[95vw] 
+          xs:w-[90vw] 
+          sm:w-[85vw] 
+          md:w-[80vw] 
+          lg:w-[75vw] 
+          xl:w-[70vw] 
+          2xl:w-[65vw] 
+          max-w-4xl relative overflow-hidden mx-2">
 
-            {/* Subtle Background Pattern */}
-            <div className="absolute inset-0 opacity-5">
-              <div className="absolute top-6 left-6 w-12 h-12 border border-white/20 rounded-full"></div>
-              <div className="absolute bottom-6 right-6 w-8 h-8 border border-white/15 rounded-lg rotate-45"></div>
+          {/* Subtle Background Pattern */}
+          <div className="absolute inset-0 opacity-5 -p-10">
+            <div className="absolute top-6 left-6 w-12 h-12 border border-white/20 rounded-full"></div>
+            <div className="absolute bottom-6 right-6 w-8 h-8 border border-white/15 rounded-lg rotate-45"></div>
+          </div>
+
+          {/* Content */}
+          <div className="relative z-10">
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row items-center justify-center">
+            
+              <img src="/images/icon.png" alt="logo" className="w-28 h-28 object-contain"></img>
+              
+              <h3 className="text-xs 
+                xs:text-sm 
+                sm:text-base 
+                md:text-lg 
+                lg:text-xl 
+                xl:text-2xl 
+                2xl:text-3xl 
+                font-bold text-white text-center sm:text-left">
+                Why E-Books & Guides?
+              </h3>
             </div>
 
-            {/* Content */}
-            <div className="relative z-10">
-              {/* Header - PERFECTLY RESPONSIVE */}
-              <div className="flex flex-col sm:flex-row items-center justify-center space-y-2 sm:space-y-0 sm:space-x-3 
-                mb-3 
-                xs:mb-4 
-                sm:mb-5 
-                md:mb-6 
-                lg:mb-7 
-                xl:mb-8">
-               
-                  <img src="/images/icon.png" alt="logo" className="w-28 h-28 object-contain"></img>
-                
-                <h3 className="text-xs 
-                  xs:text-sm 
-                  sm:text-base 
-                  md:text-lg 
-                  lg:text-xl 
-                  xl:text-2xl 
-                  2xl:text-3xl 
-                  font-bold text-white text-center sm:text-left">
-                  Why E-Books & Guides?
-                </h3>
-              </div>
+            {/* Main Description - RESTORED FULL TEXT */}
+            <p className="text-white/90 
+              text-xs 
+              xs:text-xs 
+              sm:text-sm 
+              md:text-base 
+              lg:text-lg 
+              xl:text-xl 
+              leading-relaxed 
+              mb-3 
+              xs:mb-4 
+              sm:mb-5 
+              md:mb-6 
+              lg:mb-7 
+              xl:mb-8 
+              font-medium text-center max-w-3xl mx-auto px-1 sm:px-2">
+              In a world addicted to quick hacks and 10-second reels, we're forgetting the one habit that built legends — <span className="text-yellow-300 font-semibold">reading</span>.
+            </p>
 
-              {/* Main Description - RESPONSIVE */}
-              <p className="text-white/90 
-                text-xs 
-                xs:text-xs 
-                sm:text-sm 
-                md:text-base 
-                lg:text-lg 
-                xl:text-xl 
-                leading-relaxed 
-                mb-3 
-                xs:mb-4 
-                sm:mb-5 
-                md:mb-6 
-                lg:mb-7 
-                xl:mb-8 
-                font-medium text-center max-w-3xl mx-auto px-1 sm:px-2">
-                In a world addicted to quick hacks and 10-second reels, we're forgetting the one habit that built legends — <span className="text-yellow-300 font-semibold">reading</span>.
-              </p>
-
-              {/* Feature Points - RESPONSIVE GRID */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 
-                gap-2 
-                xs:gap-3 
-                sm:gap-4 
-                md:gap-5 
-                lg:gap-6 
-                mb-3 
-                xs:mb-4 
-                sm:mb-5 
-                md:mb-6 
-                lg:mb-7 
-                xl:mb-8">
-                {/* Point 1 */}
-                <div className="text-center space-y-2 sm:space-y-3 p-3 sm:p-4 lg:p-6 rounded-xl bg-white/5 backdrop-blur-sm border border-white/10 hover:bg-white/8 transition-all duration-300">
-                  <div className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 lg:w-12 lg:h-12 bg-gradient-to-br from-green-500 to-blue-500 rounded-xl mx-auto flex items-center justify-center">
-                    <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 lg:w-6 lg:h-6 text-white" />
-                  </div>
-                  <div>
-                    <h4 className="text-white font-semibold text-xs sm:text-sm md:text-base lg:text-lg mb-1 sm:mb-2">The Evergreen Weapon for Growth</h4>
-                    <p className="text-white/75 text-xs sm:text-sm leading-relaxed">
-                      E-books aren't "old-school" — they're timeless tools for deep thinking, clarity, and life upgrades.
-                    </p>
-                  </div>
+            {/* Feature Points */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 
+              gap-2 
+              xs:gap-3 
+              sm:gap-4 
+              md:gap-5 
+              lg:gap-6 
+              mb-3 
+              xs:mb-4 
+              sm:mb-5 
+              md:mb-6 
+              lg:mb-7 
+              xl:mb-8">
+              {/* Point 1 */}
+              <div className="text-center space-y-2 sm:space-y-3 -p-(-10) p-3 sm:p-4 lg:p-6 rounded-xl bg-white/5 backdrop-blur-sm border border-white/10 hover:bg-white/8 transition-all duration-300">
+                <div className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 lg:w-12 lg:h-12 bg-gradient-to-br from-green-500 to-blue-500 rounded-xl mx-auto flex items-center justify-center">
+                  <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 lg:w-6 lg:h-6 text-white" />
                 </div>
-
-                {/* Point 2 */}
-                <div className="text-center space-y-2 sm:space-y-3 p-3 sm:p-4 lg:p-6 rounded-xl bg-white/5 backdrop-blur-sm border border-white/10 hover:bg-white/8 transition-all duration-300">
-                  <div className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 lg:w-12 lg:h-12 bg-gradient-to-br from-red-500 to-orange-500 rounded-xl mx-auto flex items-center justify-center">
-                    <Target className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 lg:w-6 lg:h-6 text-white" />
-                  </div>
-                  <div>
-                    <h4 className="text-white font-semibold text-xs sm:text-sm md:text-base lg:text-lg mb-1 sm:mb-2">Read or Regret</h4>
-                    <p className="text-white/75 text-xs sm:text-sm leading-relaxed">
-                      The ones who read — <span className="text-yellow-300 font-semibold">lead</span>. The ones who don't? They follow the noise.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Point 3 */}
-                <div className="text-center space-y-2 sm:space-y-3 p-3 sm:p-4 lg:p-6 rounded-xl bg-white/5 backdrop-blur-sm border border-white/10 hover:bg-white/8 transition-all duration-300 sm:col-span-2 lg:col-span-1">
-                  <div className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 lg:w-12 lg:h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl mx-auto flex items-center justify-center">
-                    <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 lg:w-6 lg:h-6 text-white" />
-                  </div>
-                  <div>
-                    <h4 className="text-white font-semibold text-xs sm:text-sm md:text-base lg:text-lg mb-1 sm:mb-2">Built for Action, Not Fluff</h4>
-                    <p className="text-white/75 text-xs sm:text-sm leading-relaxed">
-                      Battle-tested blueprints for an unfair advantage in fitness, finance, mindset, and business.
-                    </p>
-                  </div>
+                <div>
+                  <h4 className="text-white font-semibold text-xs sm:text-sm md:text-base lg:text-lg mb-1 sm:mb-2">The Evergreen Weapon for Growth</h4>
+                  <p className="text-white/75 text-xs sm:text-sm leading-relaxed">
+                    E-books aren't "old-school" — they're timeless tools for deep thinking, clarity, and life upgrades.
+                  </p>
                 </div>
               </div>
 
-              {/* Bottom Accent - RESPONSIVE */}
-              <div className="pt-3 sm:pt-4 lg:pt-6 border-t border-white/10">
-                <div className="flex items-center justify-center space-x-2 sm:space-x-3">
-                  <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 lg:w-2 lg:h-2 bg-purple-400 rounded-full animate-pulse"></div>
-                  <span className="text-white/80 text-xs sm:text-sm lg:text-base font-medium">
-                    Start Your Reading Journey
-                  </span>
-                  <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 lg:w-2 lg:h-2 bg-pink-400 rounded-full animate-pulse animation-delay-500"></div>
+              {/* Point 2 */}
+              <div className="text-center space-y-2 sm:space-y-3 p-3 sm:p-4 lg:p-6 rounded-xl bg-white/5 backdrop-blur-sm border border-white/10 hover:bg-white/8 transition-all duration-300">
+                <div className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 lg:w-12 lg:h-12 bg-gradient-to-br from-red-500 to-orange-500 rounded-xl mx-auto flex items-center justify-center">
+                  <Target className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 lg:w-6 lg:h-6 text-white" />
                 </div>
+                <div>
+                  <h4 className="text-white font-semibold text-xs sm:text-sm md:text-base lg:text-lg mb-1 sm:mb-2">Read or Regret</h4>
+                  <p className="text-white/75 text-xs sm:text-sm leading-relaxed">
+                    The ones who read — <span className="text-yellow-300 font-semibold">lead</span>. The ones who don't? They follow the noise.
+                  </p>
+                </div>
+              </div>
+
+              {/* Point 3 */}
+              <div className="text-center space-y-2 sm:space-y-3 p-3 sm:p-4 lg:p-6 rounded-xl bg-white/5 backdrop-blur-sm border border-white/10 hover:bg-white/8 transition-all duration-300 sm:col-span-2 lg:col-span-1">
+                <div className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 lg:w-12 lg:h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl mx-auto flex items-center justify-center">
+                  <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 lg:w-6 lg:h-6 text-white" />
+                </div>
+                <div>
+                  <h4 className="text-white font-semibold text-xs sm:text-sm md:text-base lg:text-lg mb-1 sm:mb-2">Built for Action, Not Fluff</h4>
+                  <p className="text-white/75 text-xs sm:text-sm leading-relaxed">
+                    Battle-tested blueprints for an unfair advantage in fitness, finance, mindset, and business.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom Accent */}
+            <div className="pt-3 sm:pt-4 lg:pt-6 border-t border-white/10">
+              <div className="flex items-center justify-center space-x-2 sm:space-x-3">
+                <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 lg:w-2 lg:h-2 bg-purple-400 rounded-full animate-pulse"></div>
+                <span className="text-white/80 text-xs sm:text-sm lg:text-base font-medium">
+                  Start Your Reading Journey
+                </span>
+                <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 lg:w-2 lg:h-2 bg-pink-400 rounded-full animate-pulse animation-delay-500"></div>
               </div>
             </div>
           </div>
         </div>
       </div>
+    
 
       {/* Custom Styles */}
       <style jsx>{`

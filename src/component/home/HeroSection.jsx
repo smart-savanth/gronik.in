@@ -229,9 +229,7 @@ const navigateToLibrary = () => {
       {/* Main Content Container - REDUCED TOP PADDING */}
     <div className="
   relative z-10 min-h-screen flex flex-col justify-center items-center
-  pt-24          /* mobile: much smaller top space */
-  sm:pt-10    /* tablets */
-  lg:pt-16    /* desktop */
+
   pb-16 px-4 sm:px-6 lg:px-8
 ">
         <div className="max-w-7xl mx-auto w-full">

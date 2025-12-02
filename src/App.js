@@ -387,7 +387,7 @@ const handleAddToWishlist = async (book) => {
         wishlist={wishlist}
       />
       <AboutSection />
-      <ReviewsSection />
+      <ReviewsSection id="reviews"/>
     </>
   );
 

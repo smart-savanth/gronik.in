@@ -326,7 +326,7 @@ const books = booksResponse?.data?.map(book => ({
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-60 h-60 bg-[#2D1B3D] rounded-full blur-3xl"></div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 lg:pt-28 relative z-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-2 lg:pt-2 relative z-10">
 
       {/* 🔍 Search + Filter Wrapper */}
 <div className="w-full mb-8 space-y-2">

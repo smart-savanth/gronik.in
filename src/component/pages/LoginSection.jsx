@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Eye, EyeOff, Mail, Phone, Lock, ArrowRight, Check, X, RefreshCw } from 'lucide-react';
 import { useSelector, useDispatch } from 'react-redux';
 import { login, setUser } from '../../slices/userAuthSlice';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import api from '../../utils/api';
 
 const LoginPage = () => {
+  const location=useLocation()
+  const from = location.state?.from || "/";
   const [currentStep, setCurrentStep] = useState('login'); // 'choice', 'signup', 'login', 'otp', 'forgot', 'reset'
   const [loginMethod, setLoginMethod] = useState('email'); // 'email' or 'mobile'
   const [formData, setFormData] = useState({
@@ -208,7 +210,7 @@ const handleSignup = async () => {
 
       setShowAuthSuccess(true);
       setTimeout(() => {
-        navigate('/');
+        navigate(from, { replace: true });
       }, 500);
 
     } catch (error) {
@@ -269,7 +271,7 @@ const handleLogin = async () => {
     );
 
     setShowAuthSuccess(true);
-    setTimeout(() => navigate("/"), 500);
+    setTimeout(() => navigate(from, { replace: true }), 500);
   } catch (err) {
     setErrors({ api: err.response?.data?.message || "Login failed" });
   } finally {

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useSelector } from "react-redux";
 import { Star, Quote, Plus, X, Send } from "lucide-react";
 import { saveReview, getAllReviews } from "../../utils/reviewservice";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const FALLBACK_REVIEWS = [
   { id: "fallback-1", rating: 5, review: "Hands down the most immersive reading experience I have ever had online. The curation is on point!", name: "Sahana Devi" },
@@ -13,6 +13,7 @@ const FALLBACK_REVIEWS = [
 
 
 const ReviewsSection = () => {
+  const location=useLocation()
   const navigate = useNavigate();
   const user = useSelector((state) => state.userAuth?.user);
 
@@ -244,9 +245,11 @@ const onPointerUp = (e) => {
   const handleSubmitReview = async () => {
     if (!newReview.text.trim()) return;
     if (!user?.guid) {
-      navigate("/login");
+      navigate("/login", { state: { from: "/#reviews" } });
       return;
     }
+
+
 
     try {
       const payload = { type: "site", product: null, user_id: user.guid, rating: newReview.rating, review: newReview.text.trim() };
@@ -279,7 +282,7 @@ const onPointerUp = (e) => {
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-24 h-24 sm:w-32 sm:h-32 md:w-60 md:h-60 bg-[#2D1B3D] rounded-full blur-2xl sm:blur-3xl"></div>
       </div>
 
-      <div className="max-w-7xl mx-auto  relative z-10">
+      <div id="reviews" className="max-w-7xl mx-auto  relative z-10">
         {/* Header */}
         <div className="text-center mb-6 sm:mb-8 md:mb-12 lg:mb-16">
           <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold mb-2 sm:mb-3 md:mb-4 text-[#2D1B3D] px-2 sm:px-4">

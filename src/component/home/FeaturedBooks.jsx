@@ -34,7 +34,7 @@ const BookCard = React.memo(({
       onMouseLeave={() => setHoveredBook(null)}
       onClick={() => onCardClick(book)}
     >
-      <div className={`relative bg-[#1A0F2E]/80 backdrop-blur-md rounded-xl lg:rounded-3xl border border-white/10 transition-all duration-500 transform hover:scale-105 hover:-translate-y-2 shadow-2xl w-[300px] p-3 sm:p-4 lg:p-6 flex flex-col card-hover-gold ${hovered === book.id ? 'gold-glow' : ''}`}>
+      <div className={`relative bg-[#1A0F2E]/80 backdrop-blur-md rounded-xl lg:rounded-3xl border border-white/10 transition-all duration-500 transform hover:scale-105 hover:-translate-y-2 shadow-2xl w-[175px] sm:w-[150px] lg:w-[250px] p-3 sm:p-4 lg:p-6 flex flex-col card-hover-gold ${hovered === book.id ? 'gold-glow' : ''}`}>
 
         
         {/* Category Badge */}
@@ -272,10 +272,10 @@ const FeaturedBooksSection = ({
         <div className="flex justify-center mb-16">
           <div className="
               grid
-      grid-cols-1
+      grid-cols-2
       sm:grid-cols-2
       md:grid-cols-3
-      gap-10
+      gap-4
       mx-auto
       place-items-center
             ">
