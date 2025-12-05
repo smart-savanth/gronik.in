@@ -223,41 +223,37 @@ const handleSignup = async () => {
 
 
 const handleLogin = async () => {
-  const identifier = formData.email.trim();
   const newErrors = {};
 
-  if (!identifier) newErrors.email = "Enter email or phone";
-  if (!formData.password) newErrors.password = "Password required";
+  // Validate mobile
+  if (!formData.mobile.trim()) {
+    newErrors.mobile = "Mobile number required";
+  }
+
+  if (!formData.password.trim()) {
+    newErrors.password = "Password required";
+  }
 
   setErrors(newErrors);
   if (Object.keys(newErrors).length > 0) return;
 
-  const isEmail = validateEmail(identifier);
-  let payload = { password: formData.password };
+  const digits = formData.mobile.replace(/\D/g, "").slice(-10);
 
-  if (isEmail) {
-    payload.email = identifier;
-  } else {
-    let digits = identifier.replace(/\D/g, ""); // remove spaces, +, etc.
-
-    if (digits.length < 10) {
-      setErrors({ email: "Invalid phone number" });
-      return;
-    }
-
-    const mobile = digits.slice(-10);        // last 10 digits = number
-    const countryDigits = digits.slice(0, -10); // remaining = country code
-
-    if (!countryDigits) {
-      setErrors({ email: "Country code missing (e.g., +91)" });
-      return;
-    }
-
-    const country_code = `+${countryDigits}`;
-
-    payload.mobile = mobile;
-    payload.country_code = country_code;
+  if (digits.length !== 10) {
+    setErrors({ mobile: "Enter a valid 10-digit mobile number" });
+    return;
   }
+
+  const country_code =
+    formData.countryCode === "other"
+      ? formData.customCountryCode
+      : formData.countryCode;
+
+  const payload = {
+    mobile: digits,
+    country_code,
+    password: formData.password,
+  };
 
   try {
     setIsLoading(true);
@@ -689,33 +685,49 @@ const verifySignupOtp = () => {
             {currentStep === 'login' && (
               <div className="space-y-4">
                 <div>
-                  <label className="block text-xs font-medium text-white/80 mb-2 uppercase tracking-wider">
-                    Email or Phone
-                  </label>
+  <label className="block text-xs font-medium text-white/80 mb-2">PHONE NUMBER</label>
 
-                  <div className="relative">
-                    <div className="absolute top-0 left-0 flex items-center">
-                      <Mail className="w-4 h-4 text-white/60" />
-                    </div>
+  <div className="flex items-center gap-2">
+    <select
+      value={formData.countryCode}
+      onChange={(e) => handleInputChange('countryCode', e.target.value)}
+      className="w-32 bg-transparent border-b-2 border-white/30 text-white py-3 focus:outline-none focus:border-white transition-all text-sm"
+    >
+      <option className="bg-[#2D1B3D]" value="+91">+91 (IN)</option>
+      <option className="bg-[#2D1B3D]" value="+1">+1 (US)</option>
+      <option className="bg-[#2D1B3D]" value="+44">+44 (UK)</option>
+      <option className="bg-[#2D1B3D]" value="+61">+61 (AU)</option>
+      <option className="bg-[#2D1B3D]" value="+971">+971 (UAE)</option>
+      <option className="bg-[#2D1B3D]" value="other">Other</option>
+    </select>
 
-                    <input
-                      type="text"
-                      value={formData.email}
-                      onChange={(e) => handleInputChange("email", e.target.value)}
-                      placeholder="Email or Phone (e.g., +91 9876543210)"
-                      className="w-full bg-transparent border-b-2 border-white/30 text-white pl-6 pr-10 py-3 focus:outline-none focus:border-white focus:shadow-lg focus:shadow-white/20 -white/40 text-sm"
-                    />
+    {formData.countryCode === 'other' && (
+      <input
+        type="text"
+        value={formData.customCountryCode}
+        onChange={(e) => handleInputChange('customCountryCode', e.target.value)}
+        className="w-24 bg-transparent border-b-2 border-white/30 text-white pl-2 pr-2 py-3 focus:outline-none focus:border-white transition-all text-sm"
+        placeholder="+XX"
+      />
+    )}
 
-                  </div>
+    <input
+      type="tel"
+      value={formData.mobile}
+      onChange={(e) => handleInputChange('mobile', e.target.value)}
+      className="flex-1 bg-transparent border-b-2 border-white/30 text-white pl-2 pr-4 py-3 focus:outline-none focus:border-white placeholder-white/40 text-sm"
+      placeholder="Enter your mobile number"
+    />
+  </div>
 
-                  {errors.email && (
-                    <p className="text-red-400 text-xs mt-1 flex items-center space-x-1">
-                      <X className="w-3 h-3" />
-                      <span>{errors.email}</span>
-                    </p>
-                  )}
+  {(errors.countryCode || errors.mobile) && (
+    <p className="text-red-400 text-xs mt-1 flex items-center">
+      <X className="w-3 h-3 mr-1" />
+      {errors.countryCode || errors.mobile}
+    </p>
+  )}
+</div>
 
-                </div>
 
                 <div>
                   <label className="block text-xs font-medium text-white/80 mb-2 uppercase tracking-wider">Password</label>

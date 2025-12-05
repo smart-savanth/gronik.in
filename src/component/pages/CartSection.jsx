@@ -120,7 +120,9 @@ React.useEffect(() => {
   return () => window.removeEventListener("storage", update);
 }, []);
 
-
+const handleCardClick = (book) => {
+    navigate(`/product/${book.id}`, { state: { from: 'featured' } });
+  };
 
 const handleAddWishlist = (book) => {
   addToWishlist(book);   // redux
@@ -226,7 +228,7 @@ React.useEffect(() => {
                   const displayPrice = resolvePrice(item);
                   const displayOriginal = resolveOriginalPrice(item);
                   return (
-                  <div key={item.id} className="flex flex-col sm:flex-row gap-6 bg-[#2D1B3D]/95 rounded-2xl p-6 border border-white/10 hover:border-white/30 transition-all duration-300 group hover:scale-105">
+                  <div key={item.id} onClick={()=>handleCardClick(item)} className="flex flex-col sm:flex-row gap-6 bg-[#2D1B3D]/95 rounded-2xl p-6 border border-white/10 hover:border-white/30 transition-all duration-300 group hover:scale-105">
                     {/* Book Image */}
                     <div className="flex-shrink-0">
                       <div className="relative w-24 h-32 sm:w-28 sm:h-36 rounded-lg overflow-hidden shadow-lg group-hover:scale-105 transition-transform duration-300">

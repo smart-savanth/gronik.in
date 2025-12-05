@@ -2,7 +2,7 @@ import React, { useRef, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Trash2, ShoppingBag, ArrowLeft, Heart, Star, ShoppingCart, ChevronLeft, ChevronRight } from 'lucide-react';
 
-const WishlistCard = React.memo(function WishlistCard({ item, onAddToCart, onRemove }) {
+const WishlistCard = React.memo(function WishlistCard({ item, onAddToCart, onRemove,onCardClick }) {
   return (
     <div
       className="
@@ -12,6 +12,7 @@ const WishlistCard = React.memo(function WishlistCard({ item, onAddToCart, onRem
         hover:scale-105 hover:-translate-y-2 shadow-2xl
         p-3 sm:p-4 lg:p-6 flex flex-col card-hover-gold mb-4
       "
+      onClick={() => onCardClick(item)}
     >
 
       {/* CATEGORY BADGE (optional — remove if not needed) */}
@@ -212,6 +213,10 @@ const handleAddToCart = useCallback((item) => {
   removeFromWishlist(item.id);
 }, [addToCart, removeFromWishlist]);
 
+const handleCardClick = (book) => {
+    navigate(`/product/${book.id}`, { state: { from: 'featured' } });
+  };
+
 const handleRemoveFromWishlist = useCallback((id) => {
   removeFromWishlist(id);
 }, [removeFromWishlist]);
@@ -315,6 +320,7 @@ const handleRemoveFromWishlist = useCallback((id) => {
       <div className="hidden sm:grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {normalizedWishlist.map(item => (
           <WishlistCard
+           onCardClick={handleCardClick}
             key={item.id}
             item={item}
             onAddToCart={handleAddToCart}

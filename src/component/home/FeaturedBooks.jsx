@@ -100,8 +100,8 @@ const BookCard = React.memo(({
                 <ExternalLink className="hidden sm:inline w-5 h-5" />
               ) : (
                 <>
-                  <ShoppingCart className="hidden sm:inline cart-icon w-5 h-5" />
-                  <div className="hidden sm:inline box-icon w-3 h-3 bg-current rounded-sm"></div>
+                  <ShoppingCart className="cart-icon w-5 h-5 opacity-0 sm:opacity-100" />
+                  <div className="box-icon w-3 h-3 bg-current rounded-sm opacity-0 sm:opacity-100"></div>
                 </>
               )}
 

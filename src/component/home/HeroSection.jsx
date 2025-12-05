@@ -198,13 +198,7 @@ const navigateToLibrary = () => {
   }
 
   // 🔥 Wait for images to load before showing content to prevent flicker
-  if (!imagesLoaded || isInitialLoad) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-[#9B7BB8] via-[#A67FC4] to-[#B894D1] flex justify-center items-center text-white">
-        <div className="animate-pulse">Loading...</div>
-      </div>
-    );
-  }
+
 
 
   return (
@@ -363,8 +357,8 @@ lg:min-h-[calc(100vh-6rem)]">
                               {/* Book Image from Library Data */}
                               {book.image ? (
                                 <img 
-                                  loading="eager"
-                                  decoding="sync"
+                                  loading="lazy"
+                                  decoding="async"
                                   src={book.image} 
                                   alt={book.title}
                                   className="book-image-uniform"

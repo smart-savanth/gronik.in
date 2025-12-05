@@ -530,14 +530,14 @@ const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
       {!isMobile && (
         <div
           // Fixed positioning is simpler and less prone to iOS bugs than complex translate/translate-y logic
-          className={`
-            fixed top-0 left-0 right-0 z-[9999] transition-all duration-300 ease-in-out
-            ${isScrolled ? 'h-16 bg-gronik-primary/95 backdrop-blur-md shadow-lg border-b border-gronik-secondary/20' : 'h-20 bg-transparent'}
-            ${!isScrolled || isSearchFocused ? 'translate-y-0' : '-translate-y-full'}
-          `}
+           className={`
+    fixed top-0 left-0 right-0 z-[9999] transition-all duration-300 ease-in-out
+    ${isScrolled ? 'h-16 bg-gronik-primary/95 backdrop-blur-md shadow-lg border-b border-gronik-secondary/20' : 'h-20 bg-gronik-primary/95 backdrop-blur-md shadow-lg border-b border-gronik-secondary/20'}
+    ${!isScrolled || isSearchFocused ? 'translate-y-0' : '-translate-y-full'}
+  `}
           // Removed complex mouseEnter/Leave logic from wrapper, relying on simpler scroll/focus state
         >
-          <nav className={`h-full px-8 max-w-[1400px] mx-auto ${isScrolled ? '' : 'bg-gronik-primary/95 backdrop-blur-md rounded-b-xl shadow-lg border-b border-gronik-secondary/20'}`}>
+          <nav className={`h-full px-8 max-w-full mx-auto ${isScrolled ? '' : 'bg-gronik-primary/95 backdrop-blur-md rounded-b-xl shadow-lg border-b border-gronik-secondary/20'}`}>
             <div className="flex items-center justify-between h-full w-full">
               
               {/* Logo */}
@@ -555,7 +555,7 @@ const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
 
               {/* Menu Items (Always visible when desktop) */}
               <div className="flex items-center space-x-10">
-                <Link to="/" className="text-gronik-light hover:text-gronik-accent font-medium transition-transform hover:scale-105">House</Link>
+                <Link to="/" className="text-gronik-light hover:text-gronik-accent font-medium transition-transform hover:scale-105">Home</Link>
                 <Link to="/library" className="text-gronik-light hover:text-gronik-accent font-medium transition-transform hover:scale-105">Library</Link>
                 <button onClick={() => scrollToSection("about")} className="text-gronik-light hover:text-gronik-accent font-medium transition-transform hover:scale-105">About</button>
                 <Link to="/contact" className="text-gronik-light hover:text-gronik-accent font-medium transition-transform hover:scale-105">Contact</Link>
