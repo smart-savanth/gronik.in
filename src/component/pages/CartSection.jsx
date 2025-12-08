@@ -359,6 +359,7 @@ React.useEffect(() => {
                   return (
                   <div
                     key={item.id}
+                    onClick={()=>handleCardClick(item)} 
                     className="bg-[#2D1B3D]/95 backdrop-blur-sm rounded-2xl p-4 border border-white/10 hover:border-white/30 transition-all duration-300"
                   >
                     <div className="flex gap-4">
