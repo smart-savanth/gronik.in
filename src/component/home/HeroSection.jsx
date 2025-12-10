@@ -203,7 +203,7 @@ const navigateToLibrary = () => {
 
   return (
     <div
-      className="min-h-screen relative overflow-hidden bg-gradient-to-br from-[#9B7BB8] via-[#A67FC4] to-[#B894D1]"
+      className="lg:-mt-10 min-h-screen relative overflow-hidden bg-gradient-to-br from-[#9B7BB8] via-[#A67FC4] to-[#B894D1]"
       style={{
         backgroundImage: `linear-gradient(rgba(155, 123, 184, 0.4), rgba(166, 127, 196, 0.4)), url('/images/hero.webp')`,
         backgroundSize: 'cover',
@@ -223,14 +223,14 @@ const navigateToLibrary = () => {
       {/* Main Content Container - REDUCED TOP PADDING */}
     <div className="
   relative z-10 min-h-screen flex flex-col justify-center items-center
-
   pb-16 px-4 sm:px-6 lg:px-8
 ">
         <div className="max-w-7xl mx-auto w-full">
           
           {/* DESKTOP LAYOUT - IMPROVED SPACING & MOVED SLIGHTLY LEFT */}
-          <div className="lg:pl-8 flex flex-col-reverse lg:grid lg:grid-cols-2 items-center 
-gap-4 sm:gap-6 lg:gap-12 xl:gap-16 
+          <div className=" lg:pl-8
+  flex flex-col-reverse lg:grid lg:grid-cols-2 items-center
+  gap-4 sm:gap-6 md:gap-20 lg:gap-16 xl:gap-20
 lg:min-h-[calc(100vh-6rem)]">
 
             

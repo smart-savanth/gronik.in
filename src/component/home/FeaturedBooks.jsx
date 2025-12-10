@@ -34,7 +34,11 @@ const BookCard = React.memo(({
       onMouseLeave={() => setHoveredBook(null)}
       onClick={() => onCardClick(book)}
     >
-      <div className={`relative bg-[#1A0F2E]/80 backdrop-blur-md rounded-xl lg:rounded-3xl border border-white/10 transition-all duration-500 transform hover:scale-105 hover:-translate-y-2 shadow-2xl w-[175px] sm:w-[150px] lg:w-[250px] p-3 sm:p-4 lg:p-6 flex flex-col card-hover-gold ${hovered === book.id ? 'gold-glow' : ''}`}>
+      <div className={` group relative bg-[#1A0F2E]/80 backdrop-blur-md 
+  rounded-xl lg:rounded-3xl border border-white/10 
+  transition-all duration-500 transform 
+  hover:scale-105 hover:-translate-y-2 shadow-2xl
+  p-3 sm:p-4 lg:p-6 flex flex-col card-hover-gold mb-4${hovered === book.id ? 'gold-glow' : ''}`}>
 
         
         {/* Category Badge */}
@@ -271,14 +275,18 @@ const FeaturedBooksSection = ({
         {/* Grid - Using the alignment from the previous FeaturedBooks request */}
         <div className="flex justify-center mb-16">
           <div className="
-              grid
-      grid-cols-2
-      sm:grid-cols-2
-      md:grid-cols-3
-      gap-4
-      mx-auto
-      place-items-center
-            ">
+   grid 
+      grid-cols-2        
+      sm:grid-cols-2     
+      lg:grid-cols-3     
+      gap-6        
+
+      w-full            /* <-- FORCE FULL WIDTH */
+      max-w-4xl         /* <-- NICE RESPONSIVE WIDTH */
+      mx-2           /* <-- CENTER THE GRID */
+
+      place-items-stretch  /* <-- FIX NARROW CARDS */
+  ">
             {featuredBooks.map((book, index) => (
               <div key={book.id} style={{ animationDelay: `${index * 200}ms` }}>
                 <BookCard

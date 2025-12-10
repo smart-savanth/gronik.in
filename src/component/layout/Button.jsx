@@ -1,11 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { TrendingUp, Target, Sparkles } from 'lucide-react';
 
-const WhyEbooksButton = () => {
+const WhyEbooksButton = ({ setWhyButtonHover }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isRectangle, setIsRectangle] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const buttonRef = useRef(null);
+
+  useEffect(() => {
+  // send the real hovered value (true when hovered)
+  if (typeof setWhyButtonHover === 'function') {
+    setWhyButtonHover(isHovered);
+  }
+}, [isHovered, setWhyButtonHover])
 
   // Load stylish font
   useEffect(() => {
@@ -55,7 +62,11 @@ const WhyEbooksButton = () => {
       // Logic for scroll lock is handled in the useEffect below
     }
   };
-
+useEffect(() => {
+  if (typeof setWhyButtonHover !== "function") {
+    console.warn("❌ setWhyButtonHover NOT RECEIVED in WhyEbooksButton");
+  }
+}, []);
   const handleMouseEnter = () => {
     if (!isMobile) {
       setIsHovered(true);
@@ -167,7 +178,7 @@ const WhyEbooksButton = () => {
 
       {/* Hover Content Popup - RESTORED ORIGINAL DIMS */}
       <div 
-        className={`lg:mt-10 fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 transition-all duration-500 ease-out ${isHovered ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'}`}
+        className={` fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 transition-all duration-500 ease-out ${isHovered ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'}`}
         style={{ zIndex: 99 }}
         data-modal-content
       >

@@ -36,6 +36,168 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
   const scrollContainerRef = useRef(null);
   const currentTransformRef = useRef(0);
 
+  const normalizeProduct = (raw = {}, fallbackId = null) => {
+  if (!raw || typeof raw !== "object") return null;
+
+  // -----------------------------
+  // Helpers
+  // -----------------------------
+  const ensureArray = (val) => Array.isArray(val) ? val : [];
+
+  const safeText = (v, def) => (v && typeof v === "string" ? v : def);
+
+  const safeNumber = (v, def = 0) => {
+    const num = Number(v);
+    return Number.isFinite(num) ? num : def;
+  };
+
+  // -----------------------------
+  // Extract Base Fields
+  // -----------------------------
+  const id =
+    raw._id ||
+    raw.id ||
+    raw.productId ||
+    raw.product_id ||
+    fallbackId ||
+    "unknown-product";
+
+  const title = safeText(raw.title || raw.book_name, "Untitled Book");
+  const author = safeText(raw.author || raw.author_name, "Unknown Author");
+
+  const image =
+    raw.coverImageUrl ||
+    raw.image ||
+    "/images/book-placeholder.jpg";
+
+  const images = ensureArray(raw.images).length
+    ? raw.images
+    : [image];
+
+  const price = safeNumber(
+    raw.final_price || raw.price || raw.sellingPrice,
+    99
+  );
+
+  const originalPrice = safeNumber(
+    raw.original_price || raw.originalPrice || raw.mrp,
+    price + 100
+  );
+
+  const rating = safeNumber(
+    raw.rating || raw.avgRating,
+    5
+  );
+
+  const category = safeText(
+    raw.category || raw.genre,
+    "General"
+  );
+
+  const description = safeText(
+    raw.description,
+    "No description available."
+  );
+
+  const fullDescription = safeText(
+    raw.fullDescription,
+    description +
+      "\n\nThis is a sample detailed description used as fallback."
+  );
+
+  const pages = safeNumber(raw.pages, 200);
+  const readingTime = raw.readingTime || "6–8 hours";
+  const language = raw.language || "English";
+  const publishDate = raw.publishDate || "Digital Edition 2024";
+  const format = raw.format || "PDF, EPUB";
+
+  // -----------------------------
+  // Normalize Chapters
+  // (from raw.chapters)
+  // -----------------------------
+  const chapters = ensureArray(raw.chapters).map((c, i) => ({
+    chapterNumber: c.chapterNumber || i + 1,
+    title: safeText(c.title, `Chapter ${i + 1}`),
+    pdfUrl: c.pdfUrl || c.pdf || null,
+    thumbnail: c.thumbnail || null,
+    pages: safeNumber(c.pages, 0),
+  }));
+
+  const defaultChapters = [
+    {
+      chapterNumber: 1,
+      title: "Sample Chapter",
+      pdfUrl: "/sample/sample1.pdf",
+      thumbnail: null,
+      pages: 5,
+    },
+  ];
+
+  const normalizedChapters = chapters.length ? chapters : defaultChapters;
+
+  // -----------------------------
+  // Normalize Table of Contents
+  // (sections → chapters)
+  // -----------------------------
+  const tableOfContents = ensureArray(raw.tableOfContents).map(
+    (section, i) => ({
+      sectionTitle: safeText(section.sectionTitle || section.title, `Section ${i + 1}`),
+
+      chapters: ensureArray(section.chapters).map((ch, j) => ({
+        chapterNumber: ch.chapterNumber || j + 1,
+        title: safeText(ch.title, `Chapter ${j + 1}`),
+        pdfUrl: ch.pdfUrl || ch.pdf || null,
+        thumbnail: ch.thumbnail || null,
+      })),
+    })
+  );
+
+  const defaultToC = [
+    {
+      sectionTitle: "Sample Section",
+      chapters: [
+        {
+          chapterNumber: 1,
+          title: "Sample Chapter",
+          pdfUrl: "/sample/sample1.pdf",
+          thumbnail: null,
+        },
+      ],
+    },
+  ];
+
+  const normalizedToC = tableOfContents.length ? tableOfContents : defaultToC;
+
+  // -----------------------------
+  // FINAL NORMALIZED OBJECT
+  // -----------------------------
+
+  return {
+    id,
+    title,
+    author,
+    image,
+    images,
+    price,
+    originalPrice,
+    rating,
+    category,
+    description,
+    fullDescription,
+    pages,
+    readingTime,
+    language,
+    publishDate,
+    format,
+    chapters: normalizedChapters,
+    tableOfContents: normalizedToC,
+
+    // extra safe flags
+    inStock: raw.inStock ?? true,
+    totalSales: raw.totalSales || Math.floor(Math.random() * 20000) + 5000,
+  };
+};
+
   // Carousel data
   const carouselBooks = [
     {
@@ -82,6 +244,8 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
   console.log(productId,)
   // Get product data from centralized books data
   const productData = booksResponse?.data?.find(book => book._id === productId);
+  const enhancedProductData = normalizeProduct(productData, productId);
+
 
   const suggestedBooks = booksResponse?.data?.filter(book => 
     book._id !== productId && 
@@ -152,88 +316,8 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
     return 0;
   };
 
-  const enhancedProductData = {
-    ...productData,
-    inStock: true,
-    totalSales: productData.totalSales || Math.floor(Math.random() * 20000) + 5000,
-    pages: productData.pages || Math.floor(Math.random() * 400) + 200,
-    readingTime: productData.readingTime || "6-8 hours",
-    language: productData.language || "English",
-    format: productData.format || "PDF, EPUB, MOBI",
-    publishDate: productData.publishDate || "Digital Edition 2024",
-    images: productData.images || [productData.image],
-    fullDescription: productData.fullDescription || `${productData.description}\n\nThis comprehensive guide offers deep insights and practical strategies that will transform your approach to ${productData.category.toLowerCase()}. Whether you're a beginner or an experienced practitioner, this book provides valuable knowledge and actionable steps to help you achieve your goals.`,
-    keyFeatures: productData.keyFeatures || [
-      "Comprehensive coverage of essential topics",
-      "Practical examples and case studies",
-      "Easy-to-follow step-by-step guidance",
-      "Proven strategies and techniques",
-      "Actionable insights for immediate application",
-      "Expert insights from industry leaders"
-    ],
-    whatYoullLearn: productData.whatYoullLearn || [
-      "Core principles and fundamentals",
-      "Advanced techniques and strategies",
-      "Real-world applications and examples",
-      "Common pitfalls and how to avoid them",
-      "Best practices and industry standards",
-      "Tools and resources for continued learning"
-    ],
-    tableOfContents: Array.isArray(productData.tableOfContents) && productData.tableOfContents.length > 0 && typeof productData.tableOfContents[0] === 'object'
-      ? productData.tableOfContents
-      : [
-          {
-            title: "Getting Started",
-            image: "/images/section1.jpg",
-            chapters: [
-              { title: "Introduction to the Course", thumbnail: "/images/chapter1-thumb.jpg", pdf: "/pdfs/chapter1.pdf" },
-              { title: "Setting Up Your Environment", thumbnail: "/images/chapter2-thumb.jpg", pdf: "/pdfs/chapter2.pdf" },
-              { title: "Understanding the Basics", thumbnail: "/images/chapter3-thumb.jpg", pdf: "/pdfs/chapter3.pdf" },
-              { title: "Your First Project", thumbnail: "/images/chapter4-thumb.jpg", pdf: "/pdfs/chapter4.pdf" }
-            ]
-          },
-          {
-            title: "Core Concepts",
-            image: "/images/section2.jpg",
-            chapters: [
-              { title: "Fundamental Principles", thumbnail: "/images/chapter5-thumb.jpg", pdf: "/pdfs/chapter5.pdf" },
-              { title: "Key Theories and Models", thumbnail: "/images/chapter6-thumb.jpg", pdf: "/pdfs/chapter6.pdf" },
-              { title: "Essential Techniques", thumbnail: "/images/chapter7-thumb.jpg", pdf: "/pdfs/chapter7.pdf" },
-              { title: "Best Practices", thumbnail: "/images/chapter8-thumb.jpg", pdf: "/pdfs/chapter8.pdf" }
-            ]
-          },
-          {
-            title: "Advanced Topics",
-            image: "/images/section3.jpg",
-            chapters: [
-              { title: "Complex Scenarios", thumbnail: "/images/chapter9-thumb.jpg", pdf: "/pdfs/chapter9.pdf" },
-              { title: "Advanced Strategies", thumbnail: "/images/chapter10-thumb.jpg", pdf: "/pdfs/chapter10.pdf" },
-              { title: "Optimization Techniques", thumbnail: "/images/chapter11-thumb.jpg", pdf: "/pdfs/chapter11.pdf" },
-              { title: "Troubleshooting", thumbnail: "/images/chapter12-thumb.jpg", pdf: "/pdfs/chapter12.pdf" }
-            ]
-          },
-          {
-            title: "Practical Applications",
-            image: "/images/section4.jpg",
-            chapters: [
-              { title: "Real-World Examples", thumbnail: "/images/chapter13-thumb.jpg", pdf: "/pdfs/chapter13.pdf" },
-              { title: "Case Studies", thumbnail: "/images/chapter14-thumb.jpg", pdf: "/pdfs/chapter14.pdf" },
-              { title: "Implementation Guide", thumbnail: "/images/chapter15-thumb.jpg", pdf: "/pdfs/chapter15.pdf" },
-              { title: "Performance Tips", thumbnail: "/images/chapter16-thumb.jpg", pdf: "/pdfs/chapter16.pdf" }
-            ]
-          },
-          {
-            title: "Conclusion",
-            image: "/images/section5.jpg",
-            chapters: [
-              { title: "Summary and Review", thumbnail: "/images/chapter17-thumb.jpg", pdf: "/pdfs/chapter17.pdf" },
-              { title: "Next Steps", thumbnail: "/images/chapter18-thumb.jpg", pdf: "/pdfs/chapter18.pdf" },
-              { title: "Additional Resources", thumbnail: "/images/chapter19-thumb.jpg", pdf: "/pdfs/chapter19.pdf" },
-              { title: "Final Thoughts", thumbnail: "/images/chapter20-thumb.jpg", pdf: "/pdfs/chapter20.pdf" }
-            ]
-          }
-        ]
-  };
+
+
 
   const isInCart = cart.some(item => item.id === enhancedProductData.id);
   const isInWishlist = wishlist.some(item => item.id === enhancedProductData.id);
@@ -747,14 +831,14 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
                             {!imageErrors[`section-${sectionIndex}`] && section.image ? (
                               <img
                                 src={section.image}
-                                alt={section.title}
+                                alt={section.sectionTitle}
                                 className="w-full h-full object-cover"
                                 style={{ aspectRatio: '3/4' }}
                                 onError={() => setImageErrors(prev => ({ ...prev, [`section-${sectionIndex}`]: true }))}
                               />
                             ) : (
                               <div className="w-full h-full bg-gradient-to-br from-[#9B7BB8] to-[#8A6AA7] flex items-center justify-center text-white font-bold text-2xl">
-                                {section.title.charAt(0)}
+                               {section.sectionTitle?.charAt(0) || "S"}
                               </div>
                             )}
                           </div>
@@ -764,7 +848,7 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
                       </div>
 
                       {expandedSections[sectionIndex] && (
-                        <div className="pl-4 sm:pl-20 mt-6 space-y-4">
+                        <div className=" sm:pl-20 mt-6 space-y-4">
                           {section.chapters.map((chapter, chapterIndex) => (
                             <div key={chapterIndex} className="group bg-[#2D1B3D]/50 backdrop-blur-md border-[#2D1B3D]/20 shadow-lg rounded-2xl p-4 border transition-all duration-300">
                               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
@@ -779,7 +863,7 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
                                     />
                                   ) : (
                                     <div className="w-full h-full bg-gradient-to-br from-[#9B7BB8] to-[#8A6AA7] flex items-center justify-center text-white font-bold text-lg">
-                                      {chapter.title.charAt(0)}
+                                      {chapter.title?.charAt(0) || "C"}
                                     </div>
                                   )}
                                 </div>

@@ -4,9 +4,14 @@ import { Search, ShoppingCart, User, Menu, X, BookOpen, Heart, ChevronDown } fro
 import { centralizedBooksData } from '../pages/LibrarySection';
 import { useSelector } from 'react-redux';
 import { useGetAllBooksQuery } from '../../utils/booksService';
+import WhyEbooksButton from './Button';
 
-const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
+const Navbar = ({ cartCount = 0, wishlistCount = 0,isAdminRoute }) => {
+  const [whyButtonHover, setWhyButtonHover] = useState(false);
+
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [hoveringFloatingLogo, setHoveringFloatingLogo] = useState(false);
+const [hoveringNavbar, setHoveringNavbar] = useState(false);
   
   // Simplified state: We only need to know if we are on desktop and scrolled
   const [isScrolled, setIsScrolled] = useState(false);
@@ -32,6 +37,7 @@ const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
       page: 1,
       pageSize: 10,
     });
+
 
 
   // ---- CART BADGE STATE (LOCAL STORAGE + LISTENERS) ----
@@ -83,6 +89,7 @@ const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
       } else {
         setIsScrolled(false);
       }
+      
     };
 
     window.addEventListener('scroll', handleScroll);
@@ -301,8 +308,18 @@ const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
         return <Search className="w-4 h-4 text-gray-500" />;
     }
   };
+// derived flags --------------------
+// show floating G logo when page is scrolled AND the Why button is hovered,
+// and we are not interacting with the navbar/search/menu.
+const floatingLogoVisible =
+  (isScrolled && !hoveringNavbar && !isSearchFocused && !isMenuOpen) ||
+  (whyButtonHover && !hoveringNavbar);
 
-  // --- LOGO NAVIGATION FIX ---
+// show navbar when WHY button is NOT hovered AND one of the normal conditions applies.
+// (when whyButtonHover === true we force-hide the navbar)
+const shouldShowNavbar = !whyButtonHover && (
+  !isScrolled || isSearchFocused || hoveringFloatingLogo || hoveringNavbar || isMenuOpen
+);  // --- LOGO NAVIGATION FIX ---
   const handleLogoClick = (e) => {
     e.preventDefault();
     if (location.pathname !== '/') {
@@ -424,120 +441,168 @@ const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
     <>
       {/* Mobile Navbar */}
       {isMobile && (
-        <nav className="fixed top-0 left-0 right-0 z-[9999] bg-gronik-primary/95 backdrop-blur-md shadow-lg border-b border-gronik-secondary/20">
-          <div className="flex flex-col">
-            {/* Top Bar (Logo, Search, Cart, Menu) */}
-            <div className="flex items-center justify-between h-16 px-3 gap-2">
-              {/* Logo - Left */}
-              <div className="flex-shrink-0">
-                <a
-                  href="/"
-                  onClick={handleLogoClick}
-                  className="flex items-center"
-                >
-                  <img
-                    src="/images/logo.png"
-                    alt="Gronik Logo"
-                    className="w-auto h-10 object-contain"
-                  />
-                </a>
-              </div>
+  <nav className="fixed top-0 left-0 right-0 z-[9999] bg-gronik-primary backdrop-blur-md shadow-lg border-b border-gronik-secondary/20">
+    <div className="flex flex-col">
 
-              {/* Search Bar (Mobile Top) */}
-              <div className="flex-1 min-w-0">
-                {renderSearchInput(true)}
-              </div>
+      {/* TOP BAR */}
+      <div className="flex items-center justify-between h-16 px-3 gap-3 w-full">
 
-              {/* Quick Actions (Cart & Menu) */}
-              <div className="flex items-center gap-1">
+        {/* LOGO */}
+        <div className="flex-shrink-0">
+          <a href="/" onClick={handleLogoClick}>
+            <img
+              src="/images/logo.png"
+              alt="Gronik Logo"
+              className="h-10 object-contain"
+            />
+          </a>
+        </div>
+
+        {/* SEARCH BOX (same for tablet + mobile) */}
+      
+
+  <div className="ml-4 flex justify-center w-[280px] md:w-[360px]">
+    <div className="w-full max-w-[360px]">
+      {renderSearchInput(true)}
+    </div>
+  </div>
+
+        {/* CART + MENU BUTTONS */}
+        <div className="flex items-center gap-2">
+          
+          {/* CART */}
+          <Link
+            to="/cart"
+            onClick={() => setIsMenuOpen(false)}
+            className="relative p-2 text-gronik-light hover:text-gronik-accent"
+          >
+            <ShoppingCart className="w-6 h-6" />
+
+            {finalCartCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-gronik-accent text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">
+                {finalCartCount}
+              </span>
+            )}
+          </Link>
+
+          {/* MENU */}
+          <button
+  onClick={() => setIsMenuOpen(!isMenuOpen)}
+  className="p-2 flex items-center justify-center text-gronik-light hover:text-gronik-accent"
+>
+  {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+</button>
+        </div>
+      </div>
+
+      {/* DROPDOWN MENU */}
+      {isMenuOpen && (
+        <div className="bg-gronik-primary/98 backdrop-blur-xl border-t border-white/10 shadow-xl max-h-[calc(100vh-64px)] overflow-y-auto">
+          <div className="p-5 space-y-4">
+
+            {/* LINKS */}
+            <Link to="/" onClick={() => setIsMenuOpen(false)} className="text-gronik-light hover:text-gronik-accent block font-medium">
+              Home
+            </Link>
+
+            <Link to="/library" onClick={() => setIsMenuOpen(false)} className="text-gronik-light hover:text-gronik-accent block font-medium">
+              Library
+            </Link>
+
+            <button
+              onClick={() => scrollToSection("about")}
+              className="text-gronik-light hover:text-gronik-accent block w-full text-left font-medium"
+            >
+              About
+            </button>
+
+            <Link to="/contact" onClick={() => setIsMenuOpen(false)} className="text-gronik-light hover:text-gronik-accent block font-medium">
+              Contact
+            </Link>
+
+            {/* ACCOUNT MENU */}
+            <div className="border-t border-white/20 pt-4 space-y-3">
+
+              <Link
+                to="/wishlist"
+                onClick={() => setIsMenuOpen(false)}
+                className="flex justify-between text-gronik-light hover:text-gronik-accent"
+              >
+                <span className="flex items-center gap-2">
+                  <Heart className="w-5 h-5" /> Wishlist
+                </span>
+                {wishlistCount > 0 && (
+                  <span className="bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                    {wishlistCount}
+                  </span>
+                )}
+              </Link>
+
+              <Link
+                to="/cart"
+                onClick={() => setIsMenuOpen(false)}
+                className="flex justify-between text-gronik-light hover:text-gronik-accent"
+              >
+                <span className="flex items-center gap-2">
+                  <ShoppingCart className="w-5 h-5" /> Cart
+                </span>
+                {finalCartCount > 0 && (
+                  <span className="bg-gronik-accent text-white text-xs rounded-full px-2 py-0.5">
+                    {finalCartCount}
+                  </span>
+                )}
+              </Link>
+
+              <Link
+                to={user ? "/profile" : "/login"}
+                onClick={() => setIsMenuOpen(false)}
+                className="flex items-center gap-2 text-gronik-light hover:text-gronik-accent"
+              >
+                <User className="w-5 h-5" />
+                {user ? "Profile" : "Login"}
+              </Link>
+
+              {/* ADMIN BUTTON */}
+              {user && (
                 <Link
-                  to="/cart"
-                  className="p-2 rounded-lg relative flex-shrink-0 text-gronik-light hover:text-gronik-accent transition-colors duration-200"
+                  to="/admin"
                   onClick={() => setIsMenuOpen(false)}
-                  aria-label="Open cart"
+                  className="block bg-gradient-to-r from-gronik-accent to-gronik-secondary text-white px-4 py-2 rounded-lg font-medium text-center"
                 >
-                  <ShoppingCart className="w-5 h-5" />
-                  {finalCartCount > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-gronik-accent text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center font-bold leading-none">
-                      {finalCartCount}
-                    </span>
-                  )}
+                  Admin
                 </Link>
-                <button
-                  className="p-2 flex items-center justify-center text-gronik-light hover:text-gronik-accent transition-colors duration-200"
-                  onClick={() => setIsMenuOpen(!isMenuOpen)}
-                  aria-label="Toggle navigation menu"
-                >
-                  {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-                </button>
-              </div>
+              )}
             </div>
 
-            {/* Mobile Menu Dropdown */}
-            {isMenuOpen && (
-              <div className="bg-gronik-primary/98 backdrop-blur-md border-t border-gronik-secondary/20 shadow-xl overflow-y-auto max-h-[calc(100vh-64px)]">
-                <div className="p-4 space-y-3">
-                  {/* Navigation Links */}
-                  <Link to="/" className="block text-gronik-light hover:text-gronik-accent py-2 font-medium" onClick={() => setIsMenuOpen(false)}>Home</Link>
-                  <Link to="/library" className="block text-gronik-light hover:text-gronik-accent py-2 font-medium" onClick={() => setIsMenuOpen(false)}>Library</Link>
-                  <button onClick={() => scrollToSection('about')} className="block w-full text-left text-gronik-light hover:text-gronik-accent py-2 font-medium">About</button>
-                  <Link to="/contact" className="block text-gronik-light hover:text-gronik-accent py-2 font-medium" onClick={() => setIsMenuOpen(false)}>Contact</Link>
-
-                  {/* Actions Section */}
-                  <div className="pt-3 border-t border-gronik-secondary/20 space-y-4">
-                    <div className="space-y-3">
-                      <Link to="/wishlist" onClick={() => setIsMenuOpen(false)} className="flex items-center justify-between text-gronik-light hover:text-gronik-accent">
-                        <span className="flex items-center gap-2"><Heart className="w-5 h-5" /><span className="font-medium">Wishlist</span></span>
-                        {wishlistCount > 0 && (<span className="bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">{wishlistCount}</span>)}
-                      </Link>
-                      <Link to="/cart" onClick={() => setIsMenuOpen(false)} className="flex items-center justify-between text-gronik-light hover:text-gronik-accent">
-                        <span className="flex items-center gap-2"><ShoppingCart className="w-5 h-5" /><span className="font-medium">Cart</span></span>
-                        {finalCartCount > 0 && (<span className="bg-gronik-accent text-white text-xs rounded-full px-2 py-0.5">{finalCartCount} item{finalCartCount > 1 ? 's' : ''}</span>)}
-                      </Link>
-                      <Link to={user ? "/profile" : "/login"} onClick={() => setIsMenuOpen(false)} className="flex items-center gap-2 text-gronik-light hover:text-gronik-accent">
-                        <User className="w-5 h-5" /><span className="font-medium">{user ? "Profile" : "Login"}</span>
-                      </Link>
-                    </div>
-
-                    {/* Buttons */}
-                    <div className="flex flex-col gap-2">
-                      {!user ? (
-                        <button
-                          onClick={() => { navigate('/login'); setIsMenuOpen(false); }}
-                          className="bg-gradient-to-r from-gronik-accent to-gronik-secondary text-white px-4 py-2 rounded-lg font-medium text-sm text-center"
-                        >
-                          Login
-                        </button>
-                      ) : (
-                        <Link
-                          to="/admin"
-                          onClick={() => setIsMenuOpen(false)}
-                          className="bg-gradient-to-r from-gronik-accent to-gronik-secondary text-white px-4 py-2 rounded-lg font-medium text-sm text-center"
-                        >
-                          Admin
-                        </Link>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
-        </nav>
+        </div>
       )}
+    </div>
+  </nav>
+)}
+
 
       {/* Desktop Navbar (Hidden/Shown based on scroll) */}
       {!isMobile && (
-        <div
-          // Fixed positioning is simpler and less prone to iOS bugs than complex translate/translate-y logic
-           className={`
-    fixed top-0 left-0 right-0 z-[9999] transition-all duration-300 ease-in-out
-    ${isScrolled ? 'h-16 bg-gronik-primary/95 backdrop-blur-md shadow-lg border-b border-gronik-secondary/20' : 'h-20 bg-gronik-primary/95 backdrop-blur-md shadow-lg border-b border-gronik-secondary/20'}
-    ${!isScrolled || isSearchFocused ? 'translate-y-0' : '-translate-y-full'}
+       <div
+ className={`
+    fixed top-0 left-0 right-0 z-[9999]
+    transition-all duration-300 ease-in-out
+    ${shouldShowNavbar ? "translate-y-0" : "-translate-y-full"}
   `}
-          // Removed complex mouseEnter/Leave logic from wrapper, relying on simpler scroll/focus state
-        >
-          <nav className={`h-full px-8 max-w-full mx-auto ${isScrolled ? '' : 'bg-gronik-primary/95 backdrop-blur-md rounded-b-xl shadow-lg border-b border-gronik-secondary/20'}`}>
+  onMouseEnter={() => setHoveringNavbar(true)}
+  onMouseLeave={() => setHoveringNavbar(false)}
+>
+    <nav
+      className={`
+        w-full mx-auto px-8
+        ${isScrolled 
+          ? 'h-20 bg-gronik-primary shadow-lg border-b border-gronik-secondary/20' 
+          : 'h-20 bg-gronik-primary shadow-lg border-b border-gronik-secondary/20'
+        }
+      `}
+    >
+
             <div className="flex items-center justify-between h-full w-full">
               
               {/* Logo */}
@@ -549,7 +614,7 @@ const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
                 <img
                   src="/images/logo.png"
                   alt="Gronik Logo"
-                  className={`object-contain transition-all duration-300 ${isScrolled ? 'h-10' : 'h-14'}`}
+                  className={`object-contain transition-all duration-300 ${isScrolled ? 'h-14' : 'h-14'}`}
                 />
               </a>
 
@@ -562,23 +627,24 @@ const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
               </div>
 
               {/* Right Side */}
-              <div className="flex items-center space-x-5">
+              <div className="flex items-center space-x-5 transform-gpu will-change-transform">
                 <div className="w-[350px]">
                   {renderSearchInput(false)}
                 </div>
 
                 {/* Icons */}
-                <Link to="/wishlist" className="relative p-2 rounded-lg transition hover:bg-gronik-secondary/20 hover:scale-110 transform duration-200 group">
+                <Link to="/wishlist" className="relative p-2 rounded-lg transition transform-gpu will-change-transform hover:-translate-y-1 hover:scale-110 hover:bg-gronik-secondary/20 duration-200 group">
                   <Heart className="w-5 h-5 text-gronik-light group-hover:text-gronik-accent" />
                   {wishlistCount > 0 && (<span className="absolute -top-1 -right-1 bg-gronik-accent text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">{wishlistCount}</span>)}
                 </Link>
 
-                <Link to="/cart" className="relative p-2 rounded-lg transition hover:bg-gronik-secondary/20 hover:scale-110 transform duration-200 group">
+                <Link to="/cart" className="relative p-2 rounded-lg transition transform-gpu will-change-transform hover:-translate-y-1 hover:scale-110 hover:bg-gronik-secondary/20 duration-200 group">
                   <ShoppingCart className="w-5 h-5 text-gronik-light group-hover:text-gronik-accent" />
                   {finalCartCount > 0 && (<span className="absolute -top-1 -right-1 bg-gronik-accent text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">{finalCartCount}</span>)}
                 </Link>
 
-                <Link to={user ? "/profile" : "/login"} className="p-2 rounded-lg transition hover:bg-gronik-secondary/20 hover:scale-110 transform duration-200 group">
+                <Link to={user ? "/profile" : "/login"} className="relative p-2 rounded-lg transition transform-gpu will-change-transform
+             hover:-translate-y-1 hover:scale-110 hover:bg-gronik-secondary/20 duration-200 group">
                   <User className="w-5 h-5 text-gronik-light group-hover:text-gronik-accent" />
                 </Link>
 
@@ -599,36 +665,38 @@ const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
       )}
       
       {/* Floating G Logo - Desktop Only (Simplified CSS) */}
-      {!isMobile && (
-        <div 
-          className={`fixed top-4 -left-1 z-[9999] transition-all duration-300 ease-in-out ${
-            isScrolled && !isSearchFocused
-              ? 'opacity-100 scale-100 translate-y-0' 
-              : 'opacity-0 scale-75 -translate-y-4 pointer-events-none'
-          }`}
-        >
-          <Link 
-            to="/" 
-            onClick={handleLogoClick}
-            className="block transform hover:scale-110 transition-all duration-300 group cursor-pointer"
-          >
-            <img 
-              src="/images/icon.png" 
-              alt="Gronik G Logo"
-              className="w-24 h-24 object-contain"
-              style={{
-                filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.5)) drop-shadow(0 0 8px rgba(168,85,247,0.3)) contrast(1.3) saturate(1.4) brightness(1.1)'
-              }}
-            />
-          </Link>
-          
-          <div className="absolute inset-0 w-24 h-24 rounded-full bg-gradient-to-br from-gronik-accent/20 to-gronik-secondary/20 blur-xl animate-pulse opacity-60 transition-opacity duration-300 pointer-events-none"></div>
-        </div>
-      )}
-      
+  {!isMobile && (
+<div 
+  onMouseEnter={() => setHoveringFloatingLogo(true)}
+  onMouseLeave={() => setHoveringFloatingLogo(false)}
+  className={`fixed top-2 -left-1 z-[9999] pointer-events-auto transition-all duration-300 ease-in-out ${
+    floatingLogoVisible ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 -translate-y-4'
+  }`}
+>
+    <div 
+      className="block transition-all duration-300 cursor-pointer"
+      onClick={(e) => e.preventDefault()}
+    >
+      <img 
+        src="/images/icon.png" 
+        alt="Gronik G Logo"
+        className="w-24 h-24 object-contain"
+        style={{
+          filter:
+            'drop-shadow(0 4px 12px rgba(0,0,0,0.5)) drop-shadow(0 0 8px rgba(168,85,247,0.3)) contrast(1.3) saturate(1.4) brightness(1.1)'
+        }}
+      />
+    </div>
+
+    {/* Glow background */}
+    <div className="absolute inset-0 w-24 h-24 rounded-full bg-gradient-to-br from-gronik-accent/20 to-gronik-secondary/20 blur-xl animate-pulse opacity-100 pointer-events-none"></div>
+  </div>
+)}
+
+
       {/* Spacer to prevent content from hiding behind fixed Navbar */}
       <div className={`${isMobile ? 'h-16' : 'h-20'}`}></div>
-
+      {!isAdminRoute && <WhyEbooksButton setWhyButtonHover={setWhyButtonHover} />}
     </>
   );
 };

@@ -409,7 +409,7 @@ const handleAddToWishlist = async (book) => {
 
   return (
     <div className="App">
-      {!isAdminRoute && <Navbar cartCount={cart.length} wishlistCount={wishlist.length} />}
+      {!isAdminRoute && <Navbar isAdminRoute={isAdminRoute} cartCount={cart.length} wishlistCount={wishlist.length} />}
       <ScrollToTop />
       
       <Notification />
@@ -470,7 +470,7 @@ const handleAddToWishlist = async (book) => {
       </Routes>
       
       {!isAdminRoute && <Footer />}
-      {!isAdminRoute && <WhyEbooksButton />}
+      
     </div>
   );
 }

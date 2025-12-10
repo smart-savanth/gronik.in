@@ -55,11 +55,12 @@ const Footer = () => {
             <p className="text-gronik-light/60 mb-4 sm:mb-6 max-w-md text-sm sm:text-base">
               Transform your mind with our premium collection of digital books and unlock your potential.
             </p>
-            <div className="flex flex-wrap gap-3 sm:space-x-4 sm:gap-0">
-              <a href="#" className="bg-gronik-secondary/20 text-gronik-light border border-gronik-secondary/30 rounded-lg px-4 py-2 sm:p-3 text-sm sm:text-base font-medium footer-social-btn youtube-btn">YouTube</a>
-              <a href="#" className="bg-gronik-secondary/20 text-gronik-light border border-gronik-secondary/30 rounded-lg px-4 py-2 sm:p-3 text-sm sm:text-base font-medium footer-social-btn instagram-btn">Instagram</a>
-              <a href="#" className="bg-gronik-secondary/20 text-gronik-light border border-gronik-secondary/30 rounded-lg px-4 py-2 sm:p-3 text-sm sm:text-base font-medium footer-social-btn twitter-btn">Twitter</a>
-            </div>
+            <div className="flex flex-wrap gap-3">
+  <a href="#" className="footer-social-btn youtube-btn whitespace-nowrap">YouTube</a>
+  <a href="#" className="footer-social-btn instagram-btn whitespace-nowrap">Instagram</a>
+  <a href="#" className="footer-social-btn twitter-btn whitespace-nowrap">Twitter</a>
+</div>
+
             <div className="flex flex-row space-x-10 mt-4">
                 <a href="/terms-and-conditions" className="text-white underline">
                   Terms and Conditions
@@ -73,7 +74,7 @@ const Footer = () => {
           </div>
           
           {/* Mobile: Quick Links and Connect With Us side by side */}
-          <div className="col-span-1 grid grid-cols-2 gap-6 md:col-span-2 md:grid-cols-2 md:gap-8">
+          <div className="col-span-1 grid grid-cols-2 gap-0 md:col-span-2 md:grid-cols-2 md:gap-2">
             <div>
               <h4 className="font-bold text-gronik-light mb-4 sm:mb-6 text-base sm:text-lg">Quick Links</h4>
               <ul className="space-y-2 sm:space-y-3">

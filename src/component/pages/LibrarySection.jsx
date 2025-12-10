@@ -414,7 +414,9 @@ const books = booksResponse?.data?.map(book => ({
 
         {/* Books Grid */}
         <div className="flex justify-center mb-12">
-          <div className="grid gap-3 sm:gap-6 lg:gap-8 grid-cols-2 lg:grid-cols-4 w-full max-w-[340px] sm:max-w-none">
+        <div className="grid grid-cols-2 gap-1 px-4 sm:gap-6 lg:gap-8 lg:grid-cols-4 w-full">
+
+
             {currentBooks.map((book, index) => (
               <div
                 key={book.id}
@@ -424,7 +426,11 @@ const books = booksResponse?.data?.map(book => ({
                 onClick={() => handleCardClick(book)}
                 style={{ animationDelay: `${index * 100}ms` }}
               >
-                <div className={`relative bg-[#1A0F2E]/80 backdrop-blur-md rounded-xl lg:rounded-3xl border border-white/10 transition-all duration-500 transform hover:scale-105 hover:-translate-y-2 shadow-2xl w-full p-3 sm:p-4 lg:p-6 flex flex-col card-hover-gold ${hoveredBook === book.id ? 'gold-glow' : ''}`}>
+                <div className={` group relative bg-[#1A0F2E]/80 backdrop-blur-md 
+  rounded-xl lg:rounded-3xl border border-white/10 
+  transition-all duration-500 transform 
+  hover:scale-105 hover:-translate-y-2 shadow-2xl
+  p-3 sm:p-4 lg:p-6 flex flex-col card-hover-gold mb-4 ${hoveredBook === book.id ? 'gold-glow' : ''}`}>
                   {/* Category Badge */}
                   <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 z-20">
                     <div className="bg-gradient-to-r from-[#2D1B3D] to-[#3D2A54] text-white px-4 py-2 rounded-full text-xs font-bold shadow-lg border border-white/20 whitespace-nowrap">
@@ -434,7 +440,8 @@ const books = booksResponse?.data?.map(book => ({
 
                   {/* Image */}
                   <div className="mb-2 sm:mb-3 lg:mb-4 flex justify-center mt-1 sm:mt-2 lg:mt-4">
-                    <div className="relative w-20 h-28 sm:w-24 sm:h-32 lg:w-48 lg:h-64 rounded-lg lg:rounded-xl overflow-hidden shadow-2xl">
+                    <div className="relative w-20 h-28 sm:w-24 sm:h-32 lg:w-48 lg:h-64 
+    rounded-lg lg:rounded-xl overflow-hidden shadow-2xl">
                       <img src={book.image} alt={book.title} className="w-full h-full object-cover" />
                     </div>
                   </div>

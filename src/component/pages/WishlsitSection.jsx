@@ -91,7 +91,10 @@ const WishlistCard = React.memo(function WishlistCard({ item, onAddToCart, onRem
 
         {/* ADD TO CART BUTTON */}
         <button
-          onClick={() => onAddToCart(item)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onAddToCart(item);
+          }}
           className="
             flex-1 py-2 rounded-xl font-semibold text-sm
             bg-gradient-to-r from-white to-gray-100 text-[#2D1B3D]
@@ -103,7 +106,10 @@ const WishlistCard = React.memo(function WishlistCard({ item, onAddToCart, onRem
 
         {/* REMOVE BUTTON */}
         <button
-          onClick={() => onRemove(item.id)}
+          onClick={(e) => {
+              e.stopPropagation();
+              onRemove(item.id);
+            }}
           className="
             p-3 bg-gradient-to-r from-red-500 to-red-600 
             text-white rounded-xl hover:scale-105 transition-all

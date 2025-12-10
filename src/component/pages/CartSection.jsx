@@ -243,7 +243,10 @@ React.useEffect(() => {
                           />
                         <div className="absolute top-2 right-2">
                           <button
-                             onClick={() => handleAddWishlist(item)}
+                             onClick={(e) => {
+                                e.stopPropagation();
+                                handleAddWishlist(item);
+                              }}
                             className={`p-1 bg-[#2D1B3D]/80 rounded-full hover:bg-[#3D2A54]/80 transition-colors duration-200 ${wishlist.some(w => w.id === item.id) ? 'animate-pulse' : ''}`}
                           >
                             <Heart className={`w-4 h-4 ${wishlist.some(w => w.id === item.id) ? 'fill-current text-white' : 'text-white'}`} />
@@ -273,7 +276,10 @@ React.useEffect(() => {
                             </div>
                           </div>
                           <button 
-                            onClick={() => handleRemove(item.id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRemove(item.id);
+                            }}
                             className="p-2 text-white/60 hover:text-red-400 hover:bg-red-400/20 rounded-lg transition-all duration-200"
                           >
                             <Trash2 className="w-5 h-5" />
