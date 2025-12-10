@@ -168,7 +168,7 @@ React.useEffect(() => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#9B7BB8] to-[#8A6AA7]">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 ">
         {/* Desktop Header */}
         <div className="hidden sm:flex items-center mb-8">
           <button className="flex items-center text-white/80 hover:text-white transition-colors duration-200 mr-6" onClick={handleContinueShopping}>
@@ -412,7 +412,11 @@ React.useEffect(() => {
                             </div>
                           </div>
                           <button
-                            onClick={() => removeFromCart(item.id)}
+                          onClick={(e) => {
+                              e.stopPropagation();
+                              removeFromCart(item.id);
+                            }}
+                          
                             className="p-2 text-white/60 hover:text-red-400 hover:bg-red-400/20 rounded-lg transition-all duration-200"
                           >
                             <Trash2 className="w-4 h-4" />

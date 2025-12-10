@@ -311,9 +311,8 @@ const [hoveringNavbar, setHoveringNavbar] = useState(false);
 // derived flags --------------------
 // show floating G logo when page is scrolled AND the Why button is hovered,
 // and we are not interacting with the navbar/search/menu.
-const floatingLogoVisible =
-  (isScrolled && !hoveringNavbar && !isSearchFocused && !isMenuOpen) ||
-  (whyButtonHover && !hoveringNavbar);
+
+
 
 // show navbar when WHY button is NOT hovered AND one of the normal conditions applies.
 // (when whyButtonHover === true we force-hide the navbar)
@@ -331,7 +330,11 @@ const shouldShowNavbar = !whyButtonHover && (
       }
     }
   };
-
+const floatingLogoVisible =
+  !shouldShowNavbar && (  // ⬅ NEW CONDITION ADDED
+    (isScrolled && !hoveringNavbar && !isSearchFocused && !isMenuOpen) ||
+    (whyButtonHover && !hoveringNavbar)
+  );
   const renderSearchInput = (isMobileVersion = false) => (
     <div className="relative w-full" ref={searchRef}>
       <div className="relative">
@@ -632,21 +635,38 @@ const shouldShowNavbar = !whyButtonHover && (
                   {renderSearchInput(false)}
                 </div>
 
-                {/* Icons */}
-                <Link to="/wishlist" className="relative p-2 rounded-lg transition transform-gpu will-change-transform hover:-translate-y-1 hover:scale-110 hover:bg-gronik-secondary/20 duration-200 group">
-                  <Heart className="w-5 h-5 text-gronik-light group-hover:text-gronik-accent" />
-                  {wishlistCount > 0 && (<span className="absolute -top-1 -right-1 bg-gronik-accent text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">{wishlistCount}</span>)}
-                </Link>
+{/* Icons */}
+<Link
+  to="/wishlist"
+  className="relative p-2 rounded-lg  transition-transform duration-200 hover:-translate-y-2"
+>
+  <Heart className="w-5 h-5 text-gronik-light" />
+  {wishlistCount > 0 && (
+    <span className="absolute -top-1 -right-1 bg-gronik-accent text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+      {wishlistCount}
+    </span>
+  )}
+</Link>
 
-                <Link to="/cart" className="relative p-2 rounded-lg transition transform-gpu will-change-transform hover:-translate-y-1 hover:scale-110 hover:bg-gronik-secondary/20 duration-200 group">
-                  <ShoppingCart className="w-5 h-5 text-gronik-light group-hover:text-gronik-accent" />
-                  {finalCartCount > 0 && (<span className="absolute -top-1 -right-1 bg-gronik-accent text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">{finalCartCount}</span>)}
-                </Link>
+<Link
+  to="/cart"
+  className="relative p-2 rounded-lg transition-transform duration-200 hover:-translate-y-2"
+>
+  <ShoppingCart className="w-5 h-5 text-gronik-light" />
+  {finalCartCount > 0 && (
+    <span className="absolute -top-1 -right-1 bg-gronik-accent text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+      {finalCartCount}
+    </span>
+  )}
+</Link>
 
-                <Link to={user ? "/profile" : "/login"} className="relative p-2 rounded-lg transition transform-gpu will-change-transform
-             hover:-translate-y-1 hover:scale-110 hover:bg-gronik-secondary/20 duration-200 group">
-                  <User className="w-5 h-5 text-gronik-light group-hover:text-gronik-accent" />
-                </Link>
+<Link
+  to={user ? "/profile" : "/login"}
+  className="relative p-2 rounded-lg  transition-transform duration-200 hover:-translate-y-2"
+>
+  <User className="w-5 h-5 text-gronik-light" />
+</Link>
+
 
                 {/* Login/Admin Button */}
                 {!user ? (

@@ -4,6 +4,73 @@ import { useSelector, useDispatch } from 'react-redux';
 import { ArrowLeft, ShoppingCart, Heart, Star, Eye, Users, Check, BookOpen, ChevronDown, Quote, Plus, X, Send, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
 import { centralizedBooksData } from './LibrarySection';
 import { useGetAllBooksQuery } from '../../utils/booksService';
+import ProductReviews from '../layout/ProductReviews';
+
+
+// Dummy suggested books (fallback)
+const dummySuggestedBooks = [
+  {
+    id: "dummy-1",
+    title: "Atomic Habits",
+    author: "James Clear",
+    image: "/images/book1.jpg",
+    rating: 4.9,
+    price: 199,
+    originalPrice: 499,
+    category: "Self Help",
+  },
+  {
+    id: "dummy-2",
+    title: "The 48 Laws of Power",
+    author: "Robert Greene",
+    image: "/images/book2.jpg",
+    rating: 4.8,
+    price: 249,
+    originalPrice: 599,
+    category: "Strategy",
+  },
+  {
+    id: "dummy-3",
+    title: "Think and Grow Rich",
+    author: "Napoleon Hill",
+    image: "/images/book3.jpg",
+    rating: 4.7,
+    price: 149,
+    originalPrice: 399,
+    category: "Business",
+  },
+  {
+    id: "dummy-4",
+    title: "The Psychology of Money",
+    author: "Morgan Housel",
+    image: "/images/book4.jpg",
+    rating: 4.8,
+    price: 199,
+    originalPrice: 499,
+    category: "Finance",
+  },
+  {
+    id: "dummy-5",
+    title: "Rich Dad Poor Dad",
+    author: "Robert Kiyosaki",
+    image: "/images/book5.jpg",
+    rating: 4.6,
+    price: 129,
+    originalPrice: 349,
+    category: "Finance",
+  },
+  {
+    id: "dummy-6",
+    title: "How to Win Friends & Influence People",
+    author: "Dale Carnegie",
+    image: "/images/book6.jpg",
+    rating: 4.9,
+    price: 179,
+    originalPrice: 499,
+    category: "Self Help",
+  }
+];
+
 
 const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCart, onAddToWishlist, onRemoveFromWishlist }) => {
   const { productId } = useParams();
@@ -32,6 +99,32 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
   const [animatingSuggestedCart, setAnimatingSuggestedCart] = useState({});
   const [animatingSuggestedWishlist, setAnimatingSuggestedWishlist] = useState({});
   const [hoveredSuggested, setHoveredSuggested] = useState(null);
+
+  const [product, setProduct] = useState({
+  _id: "prod-101",
+  name: "Atomic Habits – Premium Edition",
+  reviews: [
+    {
+      id: "rev-1",
+      rating: 5,
+      review: "Absolutely loved it! The examples were practical and easy to apply.",
+      name: "Meera Sharma",
+    },
+    {
+      id: "rev-2",
+      rating: 4,
+      review: "Great book, but the pacing felt slow in the middle chapters.",
+      name: "Rohit Verma",
+    },
+    {
+      id: "rev-3",
+      rating: 5,
+      review: "Helped me improve my productivity drastically!",
+      name: "Ananya Gupta",
+    },
+  ]
+});
+
   
   const scrollContainerRef = useRef(null);
   const currentTransformRef = useRef(0);
@@ -43,6 +136,11 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
   // Helpers
   // -----------------------------
   const ensureArray = (val) => Array.isArray(val) ? val : [];
+
+
+
+
+
 
   const safeText = (v, def) => (v && typeof v === "string" ? v : def);
 
@@ -247,10 +345,15 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
   const enhancedProductData = normalizeProduct(productData, productId);
 
 
-  const suggestedBooks = booksResponse?.data?.filter(book => 
-    book._id !== productId && 
+ const suggestedBooks =
+  booksResponse?.data?.filter(book =>
+    book._id !== productId &&
     (book.category === productData?.category || book.author === productData?.author)
   ).slice(0, 6) || [];
+
+const finalSuggestedBooks =
+  suggestedBooks.length > 1 ? suggestedBooks : dummySuggestedBooks;
+
 
   // If product not found, redirect to library
   useEffect(() => {
@@ -425,12 +528,19 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
     }, 250);
   };
 
-  const handleSuggestedBookClick = (book) => {
+const handleSuggestedBookClick = (book) => {
+    if (isMobile) {
+        setHoveredSuggested(null);  // <-- FIX HERE
+    }
     navigate(`/product/${book.id}`, { state: { from: 'suggested' } });
-  };
+};
+
+  const isMobile = typeof window !== "undefined" &&
+  window.matchMedia("(hover: none), (pointer: coarse)").matches;
+
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#2D1B3D] via-[#4A3B5C] to-[#9B7BB8] relative">
+    <div className="-mt-16 min-h-screen bg-gradient-to-br from-[#2D1B3D] via-[#4A3B5C] to-[#9B7BB8] relative">
       {/* Background Pattern */}
       <div className="absolute inset-0 opacity-5">
         <div
@@ -443,6 +553,12 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
 
       {/* Styles */}
       <style jsx>{`
+      
+      @media (hover: none) and (pointer: coarse) {
+  .card-hover-gold:hover {
+    box-shadow: none !important;
+  }
+}
         .cart-button-animated { position: relative; overflow: hidden; }
         .cart-button-animated .cart-icon { position: absolute; z-index: 2; top: 50%; left: -10%; transform: translate(-50%, -50%); opacity: 0; }
         .cart-button-animated .box-icon { position: absolute; z-index: 3; top: -20%; left: 52%; transform: translate(-50%, -50%); opacity: 0; }
@@ -524,6 +640,24 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
           .text-lg { font-size: 0.98rem !important; }
           .p-8 { padding: 1rem !important; }
         }
+          @media (hover: none), (pointer: coarse) {
+  .card-hover-gold:hover,
+  .gold-glow {
+    box-shadow: none !important;
+    transform: none !important;
+  }
+}
+  @media (hover: none), (pointer: coarse) {
+  .suggested-card:hover {
+    box-shadow: none !important;
+    transform: none !important;
+  }
+  .card-hover-gold:hover {
+    box-shadow: none !important;
+    transform: none !important;
+  }
+}
+
       `}</style>
 
       {/* Back button */}
@@ -907,62 +1041,21 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
           </div>
         </div>
 
-        {/* Reviews Section */}
-        <div ref={reviewsSectionRef} className="mt-16 py-8 sm:py-12 md:py-16 lg:py-20 relative overflow-hidden">
-          <div className="text-center mb-8 sm:mb-16">
-            <h3 className="text-2xl sm:text-4xl lg:text-5xl font-bold mb-4 sm:mb-6 text-white px-4">What Our Readers Say</h3>
-            <p className="text-sm sm:text-xl text-white/70 max-w-2xl mx-auto mb-6 sm:mb-8 font-medium px-4">
-              Join thousands of satisfied readers who have transformed their reading experience
-            </p>
-            <button
-              onClick={() => setShowReviewForm(true)}
-              className="inline-flex items-center space-x-2 bg-[#2D1B3D] text-white px-4 sm:px-6 py-2 sm:py-3 rounded-full hover:bg-[#3D2A54] transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 font-semibold text-sm sm:text-base"
-            >
-              <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
-              <span>Add Your Review</span>
-            </button>
-          </div>
+       <ProductReviews
+  initialReviews={product.reviews}     // pass array from API
+  productId={product._id}
+  onReviewAdded={(newReview) => {
+    setProduct(prev => ({
+      ...prev,
+      reviews: [newReview, ...(prev.reviews || [])]
+    }));
+  }}
+/>
 
-          <div className="relative overflow-hidden" style={{ height: '280px', paddingTop: '20px', paddingBottom: '20px' }}>
-            <div
-              ref={scrollContainerRef}
-              className="flex gap-4 sm:gap-8 w-max transition-all duration-500 ease-out"
-              onMouseEnter={() => setIsPaused(true)}
-              onMouseLeave={() => setIsPaused(false)}
-              style={{
-                transform: 'translateX(0px)',
-                willChange: 'transform'
-              }}
-            >
-              {duplicatedReviews.map((review, index) => (
-                <div
-                  key={`${review.id}-${index}`}
-                  className="bg-[#2D1B3D]/70 backdrop-blur-md border-[#2D1B3D]/30 shadow-xl rounded-2xl p-4 sm:p-8 transition-all duration-300 relative group border w-64 sm:w-80 flex-shrink-0"
-                >
-                  <div className="absolute top-3 right-3 sm:top-4 sm:right-4 opacity-30 group-hover:opacity-50 text-white/80 transition-opacity duration-300">
-                    <Quote className="w-6 h-6 sm:w-8 sm:h-8" />
-                  </div>
-                  <div className="flex justify-center mb-4 sm:mb-6">
-                    <div className="flex">
-                      {[...Array(5)].map((_, i) => (
-                        <Star key={i} className={`w-4 h-4 sm:w-6 sm:h-6 ${i < review.rating ? 'text-yellow-400 fill-current' : 'text-white/40'}`} />
-                      ))}
-                    </div>
-                  </div>
-                  <p className="italic leading-relaxed text-sm sm:text-base text-white/90 text-center">"{review.text}"</p>
-                  <div className="flex justify-center mt-3">
-                    <span className="text-xs sm:text-sm text-[#FFD700] font-semibold opacity-80 rounded-full px-2 py-0.5 bg-[#2D1B3D]/30" style={{ fontFamily: 'cursive' }}>
-                      {review.name}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+
 
     {/* Suggested Books - Cute & Compact for All Devices */}
-    {suggestedBooks.length > 0 && (
+    {finalSuggestedBooks.length > 0 && (
       <div className="mt-12 md:mt-16 lg:mt-20 py-8 md:py-12 relative">
         <div className="text-center mb-8 md:mb-12">
           <div className="inline-flex items-center bg-white/10 backdrop-blur-sm rounded-full px-4 sm:px-6 py-2 sm:py-3 mb-4 sm:mb-6 border border-white/20 shadow-lg">
@@ -975,189 +1068,168 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
           </p>
         </div>
 
-        {/* Mobile: Compact Cards */}
-        <div className="block sm:hidden space-y-3 px-4">
-          {suggestedBooks.map((book) => (
-            <div
-              key={book.id}
-              className="cursor-pointer transform transition-all duration-300"
-              style={{
-                boxShadow: hoveredSuggested === book.id 
-                  ? '0 0 0 2px #FFE9B3, 0 6px 24px 0 rgba(255, 233, 179, 0.4), 0 3px 12px 0 rgba(255, 247, 193, 0.35)'
-                  : '0 3px 15px rgba(0,0,0,0.3)',
-                borderRadius: '16px'
-              }}
-              onClick={() => handleSuggestedBookClick(book)}
-              onTouchStart={() => setHoveredSuggested(book.id)}
-              onTouchEnd={() => setHoveredSuggested(null)}
-            >
-              <div className="bg-[#1A0F2E]/90 backdrop-blur-md rounded-2xl p-3 border border-white/20 overflow-hidden">
-                <div className="flex gap-3">
-                  {/* Compact Book Image */}
-                  <div className="relative w-20 h-28 flex-shrink-0 rounded-lg overflow-hidden shadow-lg">
-                    <img src={book.image} alt={book.title} className="w-full h-full object-cover" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent"></div>
-                  </div>
+    <div className="
+    grid
+    grid-cols-2    /* ALWAYS 2 COLUMNS ON MOBILE */
+    sm:grid-cols-2
+    md:grid-cols-3
+    lg:grid-cols-4
+    gap-2 
+    sm:gap-2
+    md:gap-4
+    lg:gap-6
+    max-w-6xl
+    mx-auto 
 
-                  {/* Compact Book Info */}
-                  <div className="flex-1 flex flex-col justify-between min-w-0">
-                    <div>
-                      <h4 className="text-sm font-bold text-white line-clamp-2 leading-tight mb-1">
-                        {book.title}
-                      </h4>
-                      <p className="text-white/60 font-medium text-xs mb-1">by {book.author}</p>
-                      
-                      <div className="flex items-center space-x-1 mb-1">
-                        {[...Array(5)].map((_, i) => (
-                          <Star key={i} className={`w-2.5 h-2.5 ${i < Math.floor(book.rating) ? 'text-yellow-400 fill-current' : 'text-white/20'}`} />
-                        ))}
-                        <span className="text-white font-semibold text-xs ml-1">{book.rating}</span>
-                      </div>
+">
 
-                      <div className="flex items-center space-x-1.5 mb-1">
-                        <span className="text-lg font-bold text-white">₹{book.price}</span>
-                        <span className="text-xs text-white/40 line-through">₹{book.originalPrice}</span>
-                      </div>
-                      <div className="text-xs font-bold text-green-400">{book.discount}</div>
-                    </div>
-                  </div>
-                </div>
 
-                {/* Compact Action Buttons */}
-                <div className="flex gap-2 mt-3">
-                  <button
-                    onClick={(e) => handleSuggestedCartAction(e, book)}
-                    className={`flex-1 py-1.5 px-2 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-md ${
-                      isSuggestedInCart(book)
-                        ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
-                        : 'bg-gradient-to-r from-white to-gray-100 text-[#2D1B3D]'
-                    }`}
-                  >
-                    {isSuggestedInCart(book) ? <Check className="w-3 h-3" /> : <ShoppingCart className="w-3 h-3" />}
-                    <span>{isSuggestedInCart(book) ? 'Cart' : 'Add'}</span>
-                  </button>
-                  <button
-                    onClick={(e) => handleSuggestedToggleWishlist(e, book)}
-                    className={`p-1.5 rounded-lg transition-all shadow-md ${
-                      isSuggestedInWishlist(book)
-                        ? 'bg-gradient-to-r from-red-500 to-pink-600 text-white'
-                        : 'bg-[#9B7BB8] text-white'
-                    }`}
-                  >
-                    <Heart className={`w-3.5 h-3.5 ${isSuggestedInWishlist(book) ? 'fill-current' : ''}`} />
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
+ {finalSuggestedBooks.map((book, index) => {
+  const isInCartLocal = isSuggestedInCart(book);
+  const isInWishlistLocal = isSuggestedInWishlist(book);
+  const cartClicked = suggestedCartClicked[book.id];
+  const wishlistClicked = suggestedWishlistClicked[book.id];
+  const animCart = animatingSuggestedCart[book.id];
+  const animWish = animatingSuggestedWishlist[book.id];
+
+  return (
+<div
+  key={book.id}
+  className="group relative cursor-pointer suggested-card"
+  onMouseEnter={() => {
+    if (!isMobile) setHoveredSuggested(book.id);
+  }}
+  onMouseLeave={() => {
+    if (!isMobile) setHoveredSuggested(null);
+  }}
+  onTouchStart={() => {
+    // 🔥 THE FIX: reset hover when touch begins
+    setHoveredSuggested(null);
+  }}
+  onClick={() => handleSuggestedBookClick(book)}
+  style={{
+    animationDelay: `${index * 100}ms`,
+    width: "100%",
+    height: isMobile ? "360px" : "auto",
+  }}
+>
+
+      <div
+        className={`
+          bg-[#1A0F2E]/80 backdrop-blur-md 
+          rounded-xl lg:rounded-3xl border border-white/10 
+          transition-all duration-500 transform 
+          hover:scale-105 hover:-translate-y-2 shadow-2xl 
+          p-3 sm:p-4 lg:p-6 flex flex-col card-hover-gold mb-4
+          ${!isMobile && hoveredSuggested === book.id ? "gold-glow" : ""}
+        `}
+      >
+        {/* Category Badge */}
+        <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 z-20">
+          <div className="bg-gradient-to-r from-[#2D1B3D] to-[#3D2A54] text-white px-4 py-1 rounded-full text-xs font-bold shadow-lg border border-white/20 whitespace-nowrap">
+            {book.category}
+          </div>
         </div>
 
-        {/* Tablet & Desktop: Cute Compact Cards */}
-        <div className="hidden sm:grid grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 max-w-6xl mx-auto px-4">
-          {suggestedBooks.map((book) => (
-            <div
-              key={book.id}
-              className="group cursor-pointer transform transition-all duration-500 hover:scale-105"
-              style={{
-                boxShadow: hoveredSuggested === book.id 
-                  ? '0 0 0 2px #FFE9B3, 0 8px 32px 0 rgba(255, 233, 179, 0.5), 0 4px 16px 0 rgba(255, 247, 193, 0.4)'
-                  : '0 6px 24px rgba(0,0,0,0.4)',
-                borderRadius: '20px',
-                transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)'
-              }}
-              onClick={() => handleSuggestedBookClick(book)}
-              onMouseEnter={() => setHoveredSuggested(book.id)}
-              onMouseLeave={() => setHoveredSuggested(null)}
-            >
-              <div className="relative bg-[#1A0F2E]/85 backdrop-blur-md rounded-[20px] p-5 border border-white/20 overflow-hidden h-full flex flex-col">
-                
-                {/* Compact Book Image */}
-                <div className="relative mb-4 flex justify-center">
-                  <div className="relative w-32 h-44 lg:w-36 lg:h-48 rounded-xl overflow-hidden shadow-2xl transition-all duration-700 group-hover:shadow-3xl">
-                    <img 
-                      src={book.image} 
-                      alt={book.title} 
-                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
-                  </div>
-                </div>
-
-                {/* Compact Book Info */}
-                <div className="text-center space-y-2 flex-1 flex flex-col">
-                  <h4 className="text-base lg:text-lg font-bold text-white line-clamp-2 leading-tight transition-all duration-300 group-hover:text-[#FFE9B3]">
-                    {book.title}
-                  </h4>
-                  <p className="text-white/60 font-medium text-xs lg:text-sm">by {book.author}</p>
-
-                  <div className="flex items-center justify-center space-x-1 py-1">
-                    <div className="flex">
-                      {[...Array(5)].map((_, i) => (
-                        <Star key={i} className={`w-3 h-3 lg:w-3.5 lg:h-3.5 ${i < Math.floor(book.rating) ? 'text-yellow-400 fill-current' : 'text-white/20'}`} />
-                      ))}
-                    </div>
-                    <span className="text-white font-semibold text-xs lg:text-sm ml-1">{book.rating}</span>
-                  </div>
-
-                  <div className="py-1 flex-1 flex flex-col justify-center">
-                    <div className="flex items-center justify-center space-x-2 mb-1">
-                      <span className="text-xl lg:text-2xl font-bold text-white">₹{book.price}</span>
-                      <span className="text-xs lg:text-sm text-white/40 line-through">₹{book.originalPrice}</span>
-                    </div>
-                    <div className="text-xs lg:text-sm font-bold text-green-400">
-                      {book.discount}
-                    </div>
-                  </div>
-
-                  {/* Compact Action Buttons */}
-                  <div className="flex gap-2 w-full pt-2 mt-auto">
-                    <button
-                      onClick={(e) => handleSuggestedCartAction(e, book)}
-                      disabled={animatingSuggestedCart[book.id]}
-                      className={`cart-button-animated ${suggestedCartClicked[book.id] ? 'clicked' : ''} flex-1 py-2 px-2 rounded-xl font-bold text-xs lg:text-sm flex items-center justify-center gap-1.5 transition-all duration-300 hover:scale-105 shadow-xl ${
-                        isSuggestedInCart(book)
-                          ? 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white'
-                          : 'bg-gradient-to-r from-white to-gray-100 hover:from-yellow-100 hover:to-yellow-50 text-[#2D1B3D]'
-                      }`}
-                    >
-                      {isSuggestedInCart(book) ? (
-                        <>
-                          <Check className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
-                          <span className="hidden lg:inline">Go to Cart</span>
-                          <span className="lg:hidden">Cart</span>
-                        </>
-                      ) : (
-                        <>
-                          <ShoppingCart className="cart-icon w-3.5 h-3.5 lg:w-4 lg:h-4" />
-                          <div className="box-icon w-1.5 h-1.5 lg:w-2 lg:h-2 bg-current rounded-sm"></div>
-                          <span className="cart-text">
-                            {animatingSuggestedCart[book.id] ? 'Adding...' : 'Add'}
-                          </span>
-                          <span className="added-text flex items-center gap-1">
-                            <Check className="w-3 h-3" />
-                            Added!
-                          </span>
-                        </>
-                      )}
-                    </button>
-
-                    <button
-                      onClick={(e) => handleSuggestedToggleWishlist(e, book)}
-                      disabled={animatingSuggestedWishlist[book.id]}
-                      className={`wishlist-button-animated ${suggestedWishlistClicked[book.id] ? 'clicked' : ''} p-2 rounded-xl transition-all duration-300 hover:scale-110 shadow-lg ${
-                        isSuggestedInWishlist(book)
-                          ? 'bg-gradient-to-r from-red-500 to-pink-600 text-white'
-                          : 'bg-[#9B7BB8] text-white hover:bg-[#8A6AA7]'
-                      }`}
-                    >
-                      <Heart className={`heart-static w-4 h-4 lg:w-4.5 lg:h-4.5 ${isSuggestedInWishlist(book) ? 'fill-current' : ''}`} />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
+        {/* IMAGE (EXACTLY LIKE LIBRARY) */}
+        <div className="mb-2 sm:mb-3 lg:mb-4 flex justify-center mt-4">
+          <div className="relative w-20 h-28 sm:w-24 sm:h-32 lg:w-48 lg:h-64 rounded-lg lg:rounded-xl overflow-hidden shadow-2xl">
+            <img src={book.image} alt={book.title} className="w-full h-full object-cover" />
+          </div>
         </div>
+
+        {/* TITLE + AUTHOR */}
+        <div className="text-center flex-1 flex flex-col justify-between">
+          <div className="mb-2">
+            <h3 className="font-bold text-white group-hover:text-white/90 transition-colors duration-300 leading-tight 
+              text-xs sm:text-sm lg:text-lg  line-clamp-2 
+              min-h-[2.5rem] sm:min-h-[2.5rem] lg:min-h-[3.5rem] flex items-center justify-center">
+              {book.title}
+            </h3>
+
+            <p className="text-white/70 font-medium text-[10px] sm:text-xs lg:text-sm">
+              by {book.author}
+            </p>
+          </div>
+
+          {/* RATING */}
+          <div className="mb-2">
+            <div className="flex items-center justify-center space-x-1 ">
+              {[...Array(5)].map((_, i) => (
+                <Star
+                  key={i}
+                  className={`w-3 h-3 lg:w-4 lg:h-4 ${
+                    i < Math.floor(book.rating)
+                      ? "text-yellow-400 fill-current"
+                      : "text-white/30"
+                  }`}
+                />
+              ))}
+              <span className="text-white/80 text-xs sm:text-sm font-medium ml-1">{book.rating}</span>
+            </div>
+          </div>
+
+          {/* PRICE */}
+          <div className="text-center mb-1">
+            <div className="flex items-center justify-center space-x-1 ">
+              <span className="text-sm sm:text-base lg:text-xl font-bold text-white">₹{book.price}</span>
+              <span className="text-xs sm:text-sm lg:text-sm text-white/50 line-through">₹{book.originalPrice}</span>
+            </div>
+          </div>
+
+          {/* ACTION BUTTONS — SAME STYLE AS LIBRARY */}
+          <div className="flex flex-row gap-2 w-full mb-2">
+            {/* Add to Cart */}
+            <button
+              onClick={(e) => handleSuggestedCartAction(e, book)}
+              disabled={animCart}
+              className={`
+                cart-button-animated ${cartClicked ? "clicked" : ""}
+                flex-1 py-2 rounded-xl font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 
+                transition-all duration-300 hover:scale-105 shadow-xl
+                ${
+                  isInCartLocal
+                    ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white"
+                    : "bg-gradient-to-r from-white to-gray-100 text-[#2D1B3D]"
+                }
+              `}
+            >
+              {isInCartLocal ? (
+                <span className="text-xs sm:text-sm font-semibold">Go to Cart</span>
+              ) : (
+                <span className="text-xs sm:text-sm font-semibold">Add to Cart</span>
+              )}
+            </button>
+
+            {/* Wishlist */}
+            <button
+              onClick={(e) => handleSuggestedToggleWishlist(e, book)}
+              disabled={animWish}
+              className={`
+                wishlist-button-animated ${wishlistClicked ? "clicked" : ""}
+                p-2 rounded-xl transition-all duration-200 hover:scale-105 shadow-lg
+                ${
+                  isInWishlistLocal
+                    ? "bg-gradient-to-r from-red-500 to-red-600 text-white"
+                    : "bg-[#9B7BB8] text-[#2D1B3D]"
+                }
+              `}
+              style={{ minWidth: 0 }}
+            >
+              <Heart className={`w-4 h-4 ${isInWishlistLocal ? "fill-current" : ""}`} />
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+})}
+
+
+</div>
+
+
+
       </div>
     )}
 

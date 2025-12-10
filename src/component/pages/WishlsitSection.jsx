@@ -34,15 +34,7 @@ const WishlistCard = React.memo(function WishlistCard({ item, onAddToCart, onRem
           />
         </div>
 
-        {/* REMOVE HEART BUTTON */}
-        <button
-          onClick={() => onRemove(item.id)}
-          className="absolute top-2 right-2 
-          bg-red-500/5 hover:bg-red-100 rounded-full transition duration-200
-          flex items-center justify-center shadow-md"
-        >
-          <Heart className="w-4 h-4 text-white fill-white" />
-        </button>
+
       </div>
 
       {/* TITLE & AUTHOR */}

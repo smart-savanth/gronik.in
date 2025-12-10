@@ -230,7 +230,7 @@ const navigateToLibrary = () => {
           {/* DESKTOP LAYOUT - IMPROVED SPACING & MOVED SLIGHTLY LEFT */}
           <div className=" lg:pl-8
   flex flex-col-reverse lg:grid lg:grid-cols-2 items-center
-  gap-4 sm:gap-6 md:gap-20 lg:gap-16 xl:gap-20
+  gap-10 sm:gap-10 md:gap-24 lg:gap-16 xl:gap-20
 lg:min-h-[calc(100vh-6rem)]">
 
             
