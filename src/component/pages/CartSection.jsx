@@ -167,7 +167,7 @@ React.useEffect(() => {
 
 
   return (
-    <div className="mt-4 min-h-screen bg-gradient-to-br from-[#9B7BB8] to-[#8A6AA7]">
+    <div className="mt-8 min-h-screen bg-gradient-to-br from-[#9B7BB8] to-[#8A6AA7]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 ">
         {/* Desktop Header */}
         <div className="hidden sm:flex items-center mb-8">

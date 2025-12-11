@@ -228,7 +228,7 @@ const navigateToLibrary = () => {
         <div className="max-w-7xl mx-auto w-full">
           
           {/* DESKTOP LAYOUT - IMPROVED SPACING & MOVED SLIGHTLY LEFT */}
-          <div className=" lg:pl-8
+          <div className=" lg:pl-8 lg:pt-10
   flex flex-col-reverse lg:grid lg:grid-cols-2 items-center
   gap-10 sm:gap-10 md:gap-24 lg:gap-16 xl:gap-20
 lg:min-h-[calc(100vh-6rem)]">
