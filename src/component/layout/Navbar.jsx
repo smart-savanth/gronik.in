@@ -131,6 +131,32 @@ const [hoveringNavbar, setHoveringNavbar] = useState(false);
     }
   }, [location, navigate]);
 
+  // detect pointer within top-area (desktop only) so hovering the top of the screen
+// triggers floatingLogo behaviour without placing any clickable overlay above the navbar
+useEffect(() => {
+  if (isMobile) return; // skip for touch devices
+
+  const threshold = 120; // px from top — tweak to your liking
+  const handleMove = (e) => {
+    const hovering = e.clientY <= threshold;
+    // update only when value changes (avoids excessive re-renders)
+    setHoveringFloatingLogo(prev => (prev === hovering ? prev : hovering));
+  };
+
+  window.addEventListener('mousemove', handleMove);
+  // also check pointer leaving the window (hide)
+  const handleLeave = () => setHoveringFloatingLogo(false);
+  window.addEventListener('mouseleave', handleLeave);
+  window.addEventListener('blur', handleLeave);
+
+  return () => {
+    window.removeEventListener('mousemove', handleMove);
+    window.removeEventListener('mouseleave', handleLeave);
+    window.removeEventListener('blur', handleLeave);
+  };
+}, [isMobile]);
+
+
   // --- SEARCH LOGIC ---
   const generateSuggestions = (query) => {
     if (!query.trim() || query.length < 2) {
@@ -685,33 +711,36 @@ const floatingLogoVisible =
       )}
       
       {/* Floating G Logo - Desktop Only (Simplified CSS) */}
-  {!isMobile && (
-<div 
-  onMouseEnter={() => setHoveringFloatingLogo(true)}
-  onMouseLeave={() => setHoveringFloatingLogo(false)}
-  className={`fixed top-2 -left-1 z-[9999] pointer-events-auto transition-all duration-300 ease-in-out ${
-    floatingLogoVisible ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 -translate-y-4'
-  }`}
->
-    <div 
-      className="block transition-all duration-300 cursor-pointer"
-      onClick={(e) => e.preventDefault()}
+{!isMobile && (
+  <div
+    className={`
+      fixed top-0 left-0 w-full h-[130px] z-[9998]
+      transition-all duration-300 ease-in-out
+      ${floatingLogoVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'}
+    `}
+    // No pointer-events handlers here — we rely on global mousemove instead
+    style={{ pointerEvents: "none" }} // let clicks pass through to navbar/content
+  >
+    {/* Only the logo itself accepts pointer events/clicks */}
+    <div
+      className="absolute -left-1 top-2 cursor-pointer"
+      style={{ pointerEvents: "auto" }}
+      onClick={handleLogoClick}
+      // keep accessible: keyboard activation too
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleLogoClick(e); }}
     >
-      <img 
-        src="/images/icon.png" 
+      <img
+        src="/images/icon.png"
         alt="Gronik G Logo"
         className="w-24 h-24 object-contain"
-        style={{
-          filter:
-            'drop-shadow(0 4px 12px rgba(0,0,0,0.5)) drop-shadow(0 0 8px rgba(168,85,247,0.3)) contrast(1.3) saturate(1.4) brightness(1.1)'
-        }}
       />
+      <div className="absolute inset-0 w-24 h-24 rounded-full bg-gradient-to-br from-gronik-accent/20 to-gronik-secondary/20 blur-xl animate-pulse pointer-events-none" />
     </div>
-
-    {/* Glow background */}
-    <div className="absolute inset-0 w-24 h-24 rounded-full bg-gradient-to-br from-gronik-accent/20 to-gronik-secondary/20 blur-xl animate-pulse opacity-100 pointer-events-none"></div>
   </div>
 )}
+
 
 
       {/* Spacer to prevent content from hiding behind fixed Navbar */}

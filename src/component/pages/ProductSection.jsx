@@ -784,9 +784,11 @@ const handleSuggestedBookClick = (book) => {
               <button
                 onClick={handleAddToCart}
                 className={`cart-button-animated ${cartButtonClicked ? 'clicked' : ''} flex-1 py-3 px-4 rounded-xl font-semibold text-base flex items-center justify-center gap-2 transition-all duration-300 shadow-xl ${
-                  isInCart
-                    ? 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white hover:shadow-2xl'
-                    : 'bg-gradient-to-r from-white to-gray-100 hover:from-yellow-100 hover:to-yellow-50 text-[#2D1B3D] hover:shadow-2xl'
+                 isInCart
+  ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:shadow-[0_0_18px_4px_rgba(255,215,0,0.6)] transition-shadow duration-300'
+  : 'bg-gradient-to-r from-white to-gray-100 text-[#2D1B3D] hover:shadow-[0_0_18px_4px_rgba(255,215,0,0.75)] transition-shadow duration-300'
+
+
                 }`}
               >
                 <ShoppingCart className="cart-icon w-5 h-5" />
@@ -1181,25 +1183,36 @@ const handleSuggestedBookClick = (book) => {
           <div className="flex flex-row gap-2 w-full mb-2">
             {/* Add to Cart */}
             <button
-              onClick={(e) => handleSuggestedCartAction(e, book)}
-              disabled={animCart}
-              className={`
-                cart-button-animated ${cartClicked ? "clicked" : ""}
-                flex-1 py-2 rounded-xl font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 
-                transition-all duration-300 hover:scale-105 shadow-xl
-                ${
-                  isInCartLocal
-                    ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white"
-                    : "bg-gradient-to-r from-white to-gray-100 text-[#2D1B3D]"
-                }
-              `}
-            >
-              {isInCartLocal ? (
-                <span className="text-xs sm:text-sm font-semibold">Go to Cart</span>
-              ) : (
-                <span className="text-xs sm:text-sm font-semibold">Add to Cart</span>
-              )}
-            </button>
+  onClick={(e) => handleSuggestedCartAction(e, book)}
+  disabled={animCart}
+  className={`
+    cart-button-animated ${cartClicked ? "clicked" : ""}
+    flex-1 py-2 rounded-xl font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 
+    transition-all duration-300 hover:scale-105 shadow-xl
+    ${
+      isInCartLocal
+        ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white"
+        : "bg-gradient-to-r from-white to-gray-100 text-[#2D1B3D]"
+    }
+  `}
+>
+  {/* animated cart icon */}
+  <ShoppingCart className="cart-icon w-4 h-4" />
+
+  {/* animated box icon */}
+  <div className="box-icon w-2 h-2 bg-current rounded-sm"></div>
+
+  {/* default text */}
+  <span className="cart-text">
+    {isInCartLocal ? "Go to Cart" : "Add to Cart"}
+  </span>
+
+  {/* animated “Added!” text */}
+  <span className="added-text">
+    <Check className="w-4 h-4 inline mr-1" /> Added!
+  </span>
+</button>
+
 
             {/* Wishlist */}
             <button
