@@ -1,7 +1,7 @@
 import React from 'react';
 import { Trash2, ShoppingBag, ArrowLeft, Heart, Star } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useSaveCartMutation, useGetCartByUserIdQuery } from '../../utils/cartService';
+import { useGetCartByUserIdQuery, useRemoveFromCartMutation } from '../../utils/cartService';
 
 const toNumber = (raw) => {
   if (raw === null || raw === undefined) return NaN;
@@ -26,20 +26,18 @@ const resolvePrice = (item) =>
   normalizeCurrency(
     item?.price,
     item?.final_price,
-    item?.product_details?.final_price,
     item?.product?.final_price
   );
 
 const resolveOriginalPrice = (item) =>
-   normalizeCurrency(
+  normalizeCurrency(
     item?.original_price,
     item?.originalPrice,
-    item?.product_details?.original_price,
     item?.product?.original_price,
     item?.price
   );
 const CartSection = ({
-  removeFromCart,
+  removeFromCart, // Keep for backward compatibility, but we'll use API mutation directly
   addToWishlist,
   wishlist = []
 }) => {
@@ -67,36 +65,22 @@ const [cart, setCart] = React.useState([]);
 // ---------------------------
 React.useEffect(() => {
   if (userId && Array.isArray(cartResponse?.data)) {
-    // Logged-in user → backend cart (already normalized in service, but ensure fallback)
-setCart(
-  cartResponse.data.map(item => {
-    const p = item.product_details || item.product || {}; // fallback
+    // Logged-in user → backend cart (already normalized in service)
+    setCart(
+      cartResponse.data.map(item => {
+        const p = item.product || {};
 
-    return {
-      id: item._id || item.id || item.productId,
-
-      // Correct product fields
-      title: p.title,
-      author: p.author,
-      image: p.coverImageUrl || p.image,
-
-      // Correct price fields
-      price: normalizeCurrency(
-        p.final_price,
-        p.price
-      ),
-
-      originalPrice: normalizeCurrency(
-        p.original_price,
-        p.mrp,
-        p.price
-      ),
-
-      quantity: item.quantity ?? 1
-    };
-  })
-);
-
+        return {
+          id: item.productId || item._id || item.id,
+          title: p.title || item.title,
+          author: p.author || item.author,
+          image: p.coverImageUrl || p.image || item.image,
+          price: resolvePrice(item),
+          originalPrice: resolveOriginalPrice(item),
+          quantity: item.quantity ?? 1,
+        };
+      })
+    );
   } else {
     // Logged-out user → localStorage cart
     const local = JSON.parse(localStorage.getItem("cart")) || [];
@@ -146,11 +130,33 @@ const handleAddWishlist = (book) => {
   }, 0);
   const total = subtotal;
 
-  const [saveCart] = useSaveCartMutation();
+  // Use API mutation for removing items
+  const [removeFromCartMutation] = useRemoveFromCartMutation();
 
-const handleRemove = (id) => {
-  removeFromCart(id);   // redux
-  window.dispatchEvent(new Event("cart-updated"));
+const handleRemove = async (id) => {
+  // For logged-in users: use API mutation
+  if (userId) {
+    try {
+      await removeFromCartMutation({
+        userId,
+        itemId: id,
+      }).unwrap();
+      // Cart will auto-refresh via RTK Query invalidation
+      window.dispatchEvent(new Event("cart-updated"));
+    } catch (error) {
+      console.error('Error removing from cart:', error);
+      // Fallback to prop function if API fails
+      if (removeFromCart) {
+        removeFromCart(id);
+      }
+    }
+  } else {
+    // For logged-out users: use prop function (localStorage)
+    if (removeFromCart) {
+      removeFromCart(id);
+    }
+    window.dispatchEvent(new Event("cart-updated"));
+  }
 };
 
 React.useEffect(() => {
@@ -414,7 +420,7 @@ React.useEffect(() => {
                           <button
                           onClick={(e) => {
                               e.stopPropagation();
-                              removeFromCart(item.id);
+                              handleRemove(item.id);
                             }}
                           
                             className="p-2 text-white/60 hover:text-red-400 hover:bg-red-400/20 rounded-lg transition-all duration-200"

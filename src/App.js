@@ -35,6 +35,7 @@ import { useSelector } from 'react-redux';
 import { useNotification } from './hooks/useNotification';
 import { useGetAllBooksQuery } from './utils/booksService';
 import { fetchWishlistProductIds, updateWishlistItems } from './utils/wishListService';
+import { useAddToCartMutation, useRemoveFromCartMutation, useUpdateCartQuantityMutation, useGetCartByUserIdQuery } from './utils/cartService';
 import TermsAndConditions from './component/pages/TermsAndConditions';
 import PrivacyPolicy from './component/pages/PrivacyPolicy';
 
@@ -55,6 +56,12 @@ function App() {
   const user = useSelector(state => state.userAuth.user);
   const userId = user?.guid;
   const { data: booksResponse } = useGetAllBooksQuery({ page: 1, pageSize: 1000 });
+  
+  // Cart API mutations and query
+  const [addToCartMutation] = useAddToCartMutation();
+  const [removeFromCartMutation] = useRemoveFromCartMutation();
+  const [updateCartQuantityMutation] = useUpdateCartQuantityMutation();
+  const { data: cartResponse } = useGetCartByUserIdQuery(userId, { skip: !userId });
 
   const booksIndex = useMemo(() => {
     const index = new Map();
@@ -212,8 +219,47 @@ function App() {
     localStorage.setItem('wishlist', JSON.stringify(wishlist));
   }, [wishlist]);
 
-  // Sync cart from localStorage on mount and when cart-updated event fires
+  // Sync cart from backend (for logged-in users) or localStorage (for logged-out users)
   useEffect(() => {
+    console.log('Cart sync effect:', { userId, hasCartResponse: !!cartResponse, cartDataLength: cartResponse?.data?.length });
+    
+    if (userId && cartResponse?.data && Array.isArray(cartResponse.data)) {
+      // For logged-in users: sync from backend
+      const backendCart = cartResponse.data.map(item => {
+        const p = item.product_details || item.product || {};
+        return {
+          id: item.productId || item._id || item.id,
+          _id: item.productId || item._id || item.id,
+          title: p.title || item.title,
+          author: p.author || item.author,
+          image: p.coverImageUrl || p.image || item.image,
+          price: p.final_price || p.price || item.price || 0,
+          originalPrice: p.original_price || p.mrp || item.originalPrice || item.original_price || 0,
+          quantity: item.quantity || 1,
+        };
+      });
+      console.log('Syncing cart from backend:', backendCart);
+      setCart(backendCart);
+      // Also update localStorage for consistency
+      localStorage.setItem('cart', JSON.stringify(backendCart));
+    } else if (!userId) {
+      // For logged-out users: sync from localStorage
+      const syncCartFromStorage = () => {
+        try {
+          const localCart = JSON.parse(localStorage.getItem('cart')) || [];
+          setCart(localCart);
+        } catch (error) {
+          console.error('Error syncing cart from localStorage:', error);
+        }
+      };
+      syncCartFromStorage();
+    }
+  }, [userId, cartResponse]);
+
+  // Sync cart from localStorage on cart-updated event (for logged-out users)
+  useEffect(() => {
+    if (userId) return; // Skip for logged-in users (they use backend)
+
     const syncCartFromStorage = () => {
       try {
         const localCart = JSON.parse(localStorage.getItem('cart')) || [];
@@ -237,53 +283,124 @@ function App() {
       window.removeEventListener('cart-updated', syncCartFromStorage);
       window.removeEventListener('storage', syncCartFromStorage);
     };
-  }, []);
+  }, [userId]);
 
   // ENHANCED HANDLERS WITH NOTIFICATIONS
-const handleAddToCart = (book) => {
-  let local = JSON.parse(localStorage.getItem("cart")) || [];
-
-  const exists = local.some(
-    item => item.id === book._id || item.id === book.id
-  );
-
-  if (!exists) {
-    local.push({
-      id: book._id || book.id,
-      title: book.title,
-      image: book.image || book.coverImageUrl,
-      price: book.price || book.final_price,
-      originalPrice: book.originalPrice || book.original_price,
-      author: book.author,
-      quantity: 1,
-    });
-
-    localStorage.setItem("cart", JSON.stringify(local));
-    setCart(local);
-
-    window.dispatchEvent(new Event("cart-updated"));
+const handleAddToCart = async (book) => {
+  const productId = book._id || book.id || book.productId;
+  console.log('handleAddToCart called:', { book, productId, userId });
+  
+  if (!productId) {
+    console.error('Cannot add to cart: missing product ID', book);
+    notification.custom('Error: Product ID not found', 'error');
+    return;
   }
 
-  notification.addToCart(book.title);
+  // For logged-in users: sync with backend
+  if (userId) {
+    try {
+      console.log('Adding to cart via API:', { userId, productId });
+      const result = await addToCartMutation({
+        userId,
+        productId,
+        quantity: 1,
+      }).unwrap();
+      console.log('Add to cart API success:', result);
+      notification.addToCart(book.title);
+      // Cart will auto-refresh via RTK Query invalidation, which will trigger the useEffect above
+      // No need to manually update cart state - it will sync from cartResponse
+    } catch (error) {
+      console.error('Error adding to cart (backend):', error);
+      notification.custom('Failed to add item to cart. Please try again.', 'error');
+    }
+  } else {
+    // For logged-out users: use localStorage only
+    let local = JSON.parse(localStorage.getItem("cart")) || [];
+
+    const exists = local.some(
+      item => item.id === productId
+    );
+
+    if (!exists) {
+      local.push({
+        id: productId,
+        title: book.title,
+        image: book.image || book.coverImageUrl,
+        price: book.price || book.final_price,
+        originalPrice: book.originalPrice || book.original_price,
+        author: book.author,
+        quantity: 1,
+      });
+
+      localStorage.setItem("cart", JSON.stringify(local));
+      setCart(local);
+      window.dispatchEvent(new Event("cart-updated"));
+      notification.addToCart(book.title);
+    }
+  }
 };
 
 
 
-const handleRemoveFromCart = (id) => {
-  const local = JSON.parse(localStorage.getItem("cart")) || [];
-  const updated = local.filter(item => item.id !== id);
+const handleRemoveFromCart = async (id) => {
+  // For logged-in users: sync with backend
+  if (userId) {
+    try {
+      await removeFromCartMutation({
+        userId,
+        itemId: id,
+      }).unwrap();
+      notification.removeFromCart();
+      // Cart will auto-refresh via RTK Query invalidation, which will trigger the useEffect above
+      // No need to manually update cart state - it will sync from cartResponse
+    } catch (error) {
+      console.error('Error removing from cart (backend):', error);
+      notification.custom('Failed to remove item from cart. Please try again.', 'error');
+    }
+  } else {
+    // For logged-out users: use localStorage only
+    const local = JSON.parse(localStorage.getItem("cart")) || [];
+    const updated = local.filter(item => item.id !== id);
 
-  localStorage.setItem("cart", JSON.stringify(updated));
-  setCart(updated);
-
-  window.dispatchEvent(new Event("cart-updated"));
-  notification.removeFromCart();
+    localStorage.setItem("cart", JSON.stringify(updated));
+    setCart(updated);
+    window.dispatchEvent(new Event("cart-updated"));
+    notification.removeFromCart();
+  }
 };
 
 
-  const handleUpdateCartItemQuantity = (id, newQuantity) => {
-    
-    if (newQuantity > 0) {
+  const handleUpdateCartItemQuantity = async (id, newQuantity) => {
+    if (newQuantity <= 0) {
+      // If quantity is 0 or less, remove the item
+      await handleRemoveFromCart(id);
+      return;
+    }
+
+    // For logged-in users: sync with backend
+    if (userId) {
+      try {
+        await updateCartQuantityMutation({
+          userId,
+          itemId: id,
+          quantity: newQuantity,
+        }).unwrap();
+        notification.custom('Cart updated successfully!', 'success');
+        // Cart will auto-refresh via RTK Query invalidation, which will trigger the useEffect above
+        // No need to manually update cart state - it will sync from cartResponse
+      } catch (error) {
+        console.error('Error updating cart quantity (backend):', error);
+        notification.custom('Failed to update cart quantity. Please try again.', 'error');
+      }
+    } else {
+      // For logged-out users: use localStorage only
+      const local = JSON.parse(localStorage.getItem("cart")) || [];
+      const updated = local.map(item =>
+        item.id === id ? { ...item, quantity: newQuantity } : item
+      );
+      localStorage.setItem("cart", JSON.stringify(updated));
+      setCart(updated);
+      window.dispatchEvent(new Event("cart-updated"));
       notification.custom('Cart updated successfully!', 'success');
     }
   };
