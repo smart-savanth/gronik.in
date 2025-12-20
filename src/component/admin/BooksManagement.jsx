@@ -59,7 +59,9 @@ const BooksManagement = () => {
   const [showViewModal, setShowViewModal] = useState(false);
   const [modalBook, setModalBook] = useState(null);
   const [isEdit, setIsEdit] = useState(false);
-  
+  const [isCustomCategory, setIsCustomCategory] = useState(false);
+const [customCategory, setCustomCategory] = useState('');
+
   const [currentPhase, setCurrentPhase] = useState(1);
   const [priceError, setPriceError] = useState(''); // NEW: For price validation error
   
@@ -575,7 +577,7 @@ const BooksManagement = () => {
                 )}
 
                 {modalBook.learningPoints && modalBook.learningPoints.length > 0 && (
-                  <div className="bg-[#9B7BB8]/10 rounded-lg p-4">
+                  <div className="bg-[#9B7BB8]/10 rounded-lg p-4 mt-2">
                     <h3 className="text-white font-bold text-lg mb-3 flex items-center gap-2">
                       <BookOpen className="w-5 h-5" />
                       What You'll Learn:
@@ -712,19 +714,136 @@ const BooksManagement = () => {
                         placeholder="Enter book title"
                         required 
                       />
+
+                      <div className="mt-2">
+                    <h3 className="text-white text-lg font-semibold mb-3 flex items-center gap-2">
+                      <Eye className="w-5 h-5" />
+                      Overview Description *
+                    </h3>
+                    <div>
+                      <label className="block text-white/70 mb-2 text-sm">Main Description (50-200 characters)</label>
+                      <textarea 
+                        value={overviewDescription} 
+                        onChange={e => setOverviewDescription(e.target.value)} 
+                        className="w-full bg-[#2D1B3D]/30 text-white p-3 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-sm" 
+                        rows={4}
+                        placeholder="Transform your mindset and unlock the secrets to wealth and success..."
+                        minLength={50}
+                        maxLength={200}
+                        required
+                      />
+                      <div className="flex justify-between items-center mt-2">
+                        <span className={`text-xs ${
+                          overviewDescription.length < 50 ? 'text-red-400' : 
+                          overviewDescription.length > 200 ? 'text-red-400' : 
+                          'text-green-400'
+                        }`}>
+                          {overviewDescription.length < 50 ? `Need ${50 - overviewDescription.length} more characters` : 
+                           overviewDescription.length > 200 ? `${overviewDescription.length - 200} characters over limit` :
+                           '✓ Valid length'}
+                        </span>
+                        <span className={`text-xs ${
+                          overviewDescription.length < 50 || overviewDescription.length > 200 ? 'text-red-400' : 'text-white/60'
+                        }`}>
+                          {overviewDescription.length}/200
+                        </span>
+                      </div>
                     </div>
+                  </div>
+
+                  <div className="bg-[#9B7BB8]/10 rounded-lg p-4 mt-2">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-white text-lg font-semibold flex items-center gap-2">
+                        <BookOpen className="w-5 h-5" />
+                        What You'll Learn
+                      </h3>
+        
+                    </div>
+
+                    <div className="space-y-2">
+                      {learningPoints.map((point, index) => (
+                        <div key={index} className="flex items-center gap-2">
+                          <input 
+                            type="text" 
+                            value={point} 
+                            onChange={e => handleLearningPointChange(index, e.target.value)} 
+                            className="flex-1 bg-[#2D1B3D]/30 text-white p-2 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-sm" 
+                            placeholder={`Learning point ${index + 1}`}
+                          />
+                          {learningPoints.length > 1 && (
+                            <button 
+                              type="button" 
+                              onClick={() => handleRemoveLearningPoint(index)} 
+                              className="text-red-400 hover:text-red-600 p-2"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                    </div>
+
+                    
                     
                     <div>
                       <label className="block text-white/70 mb-1 text-sm">Category *</label>
-                      <select 
-                        value={basicInfo.category} 
-                        onChange={e => handleBasicInfoChange('category', e.target.value)} 
-                        className="w-full bg-[#2D1B3D] text-white p-2 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-sm" 
-                        required
-                      >
-                        <option value="">Select Category</option>
-                        {categories.slice(1).map(cat => (<option key={cat} value={cat}>{cat}</option>))}
-                      </select>
+                      {!isCustomCategory ? (
+  <select
+    value={basicInfo.category}
+    onChange={(e) => {
+      if (e.target.value === '__custom__') {
+        setIsCustomCategory(true);
+        handleBasicInfoChange('category', '');
+      } else {
+        handleBasicInfoChange('category', e.target.value);
+      }
+    }}
+    className="w-full bg-[#2D1B3D] text-white p-2 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-sm"
+    required
+  >
+    <option value="">Select Category</option>
+
+    {categories.slice(1).map((cat) => (
+      <option key={cat} value={cat}>
+        {cat}
+      </option>
+    ))}
+
+    {/* ADD CATEGORY OPTION */}
+    <option value="__custom__">➕ Add new category</option>
+  </select>
+) : (
+  <div className="flex gap-2">
+    <input
+      type="text"
+      value={customCategory}
+      onChange={(e) => {
+        setCustomCategory(e.target.value);
+        handleBasicInfoChange('category', e.target.value);
+      }}
+      placeholder="Enter new category"
+      className="flex-1 bg-[#2D1B3D] text-white p-2 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-sm"
+      autoFocus
+      required
+    />
+
+    <button
+      type="button"
+      onClick={() => {
+        setIsCustomCategory(false);
+        setCustomCategory('');
+        handleBasicInfoChange('category', '');
+      }}
+      className="px-3 rounded-lg bg-[#9B7BB8]/20 text-white hover:bg-[#9B7BB8]/40 transition"
+      title="Cancel"
+    >
+      ✕
+    </button>
+  </div>
+)}
+
                     </div>
                     
                     {/* FIX 1: Removed up/down arrows, added min="0" to prevent negatives */}
@@ -841,41 +960,7 @@ const BooksManagement = () => {
                     </p>
                   </div>
 
-                  <div className="bg-[#9B7BB8]/10 rounded-lg p-4">
-                    <h3 className="text-white text-lg font-semibold mb-3 flex items-center gap-2">
-                      <Eye className="w-5 h-5" />
-                      Overview Description *
-                    </h3>
-                    <div>
-                      <label className="block text-white/70 mb-2 text-sm">Main Description (50-200 characters)</label>
-                      <textarea 
-                        value={overviewDescription} 
-                        onChange={e => setOverviewDescription(e.target.value)} 
-                        className="w-full bg-[#2D1B3D]/30 text-white p-3 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-sm" 
-                        rows={4}
-                        placeholder="Transform your mindset and unlock the secrets to wealth and success..."
-                        minLength={50}
-                        maxLength={200}
-                        required
-                      />
-                      <div className="flex justify-between items-center mt-2">
-                        <span className={`text-xs ${
-                          overviewDescription.length < 50 ? 'text-red-400' : 
-                          overviewDescription.length > 200 ? 'text-red-400' : 
-                          'text-green-400'
-                        }`}>
-                          {overviewDescription.length < 50 ? `Need ${50 - overviewDescription.length} more characters` : 
-                           overviewDescription.length > 200 ? `${overviewDescription.length - 200} characters over limit` :
-                           '✓ Valid length'}
-                        </span>
-                        <span className={`text-xs ${
-                          overviewDescription.length < 50 || overviewDescription.length > 200 ? 'text-red-400' : 'text-white/60'
-                        }`}>
-                          {overviewDescription.length}/200
-                        </span>
-                      </div>
-                    </div>
-                  </div>
+                  
 
                   <div className="bg-[#9B7BB8]/10 rounded-lg p-4">
                     <h3 className="text-white text-lg font-semibold mb-3 flex items-center gap-2">
@@ -947,45 +1032,7 @@ const BooksManagement = () => {
                     </p>
                   </div>
 
-                  <div className="bg-[#9B7BB8]/10 rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="text-white text-lg font-semibold flex items-center gap-2">
-                        <BookOpen className="w-5 h-5" />
-                        What You'll Learn
-                      </h3>
-                      <button 
-                        type="button" 
-                        onClick={handleAddLearningPoint} 
-                        className="px-3 py-1 bg-[#9B7BB8] hover:bg-[#8A6AA7] text-white rounded-lg text-xs flex items-center gap-1"
-                      >
-                        <Plus className="w-3 h-3" />
-                        Add Point
-                      </button>
-                    </div>
-
-                    <div className="space-y-2">
-                      {learningPoints.map((point, index) => (
-                        <div key={index} className="flex items-center gap-2">
-                          <input 
-                            type="text" 
-                            value={point} 
-                            onChange={e => handleLearningPointChange(index, e.target.value)} 
-                            className="flex-1 bg-[#2D1B3D]/30 text-white p-2 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-sm" 
-                            placeholder={`Learning point ${index + 1}`}
-                          />
-                          {learningPoints.length > 1 && (
-                            <button 
-                              type="button" 
-                              onClick={() => handleRemoveLearningPoint(index)} 
-                              className="text-red-400 hover:text-red-600 p-2"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                  
 
                   <div className="bg-[#9B7BB8]/10 rounded-lg p-4">
                     <div className="flex items-center justify-between mb-3">

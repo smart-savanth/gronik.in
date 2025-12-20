@@ -320,6 +320,8 @@ useEffect(() => {
     }
   };
 
+
+
   const getSuggestionIcon = (type) => {
     switch (type) {
       case 'book':
@@ -552,6 +554,16 @@ const floatingLogoVisible =
             {/* ACCOUNT MENU */}
             <div className="border-t border-white/20 pt-4 space-y-3">
 
+            <Link
+                to="/my-library"
+                onClick={() => setIsMenuOpen(false)}
+                className="flex justify-between text-gronik-light hover:text-gronik-accent"
+              >
+                <span className="flex items-center gap-2">
+                  <BookOpen className="w-5 h-5" /> My Library
+                </span>
+              </Link>
+
               <Link
                 to="/wishlist"
                 onClick={() => setIsMenuOpen(false)}
@@ -592,15 +604,16 @@ const floatingLogoVisible =
               </Link>
 
               {/* ADMIN BUTTON */}
-              {user && (
-                <Link
-                  to="/admin"
-                  onClick={() => setIsMenuOpen(false)}
-                  className="block bg-gradient-to-r from-gronik-accent to-gronik-secondary text-white px-4 py-2 rounded-lg font-medium text-center"
-                >
-                  Admin
-                </Link>
-              )}
+              {user?.role_name === "ADMIN" && (
+  <Link
+    to="/admin"
+    onClick={() => setIsMenuOpen(false)}
+    className="block bg-gradient-to-r from-gronik-accent to-gronik-secondary text-white px-4 py-2 rounded-lg font-medium text-center"
+  >
+    Admin
+  </Link>
+)}
+
             </div>
 
           </div>
@@ -663,6 +676,12 @@ const floatingLogoVisible =
 
 {/* Icons */}
 <Link
+to="/my-library"
+className="relative p-2 rounded-lg  transition-transform duration-200 hover:-translate-y-2"
+>
+<BookOpen className="w-5 h-5 text-gronik-light" />          
+</Link>
+<Link
   to="/wishlist"
   className="relative p-2 rounded-lg  transition-transform duration-200 hover:-translate-y-2"
 >
@@ -696,14 +715,21 @@ const floatingLogoVisible =
 
                 {/* Login/Admin Button */}
                 {!user ? (
-                  <button onClick={() => navigate("/login")} className="px-6 py-2 bg-gradient-to-r from-gronik-accent to-gronik-secondary text-white rounded-lg shadow-lg transition-transform hover:scale-105">
-                    Login
-                  </button>
-                ) : (
-                  <Link to="/admin" className="px-6 py-2 bg-gradient-to-r from-gronik-accent to-gronik-secondary text-white rounded-lg shadow-lg transition-transform hover:scale-105">
-                    Admin
-                  </Link>
-                )}
+  <button
+    onClick={() => navigate("/login")}
+    className="px-6 py-2 bg-gradient-to-r from-gronik-accent to-gronik-secondary text-white rounded-lg shadow-lg transition-transform hover:scale-105"
+  >
+    Login
+  </button>
+) : user.role_name === "ADMIN" ? (
+  <Link
+    to="/admin"
+    className="px-6 py-2 bg-gradient-to-r from-gronik-accent to-gronik-secondary text-white rounded-lg shadow-lg transition-transform hover:scale-105"
+  >
+    Admin
+  </Link>
+) : null}
+
               </div>
             </div>
           </nav>

@@ -2,98 +2,93 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
 export const cartApi = createApi({
   reducerPath: 'cartApi',
-  baseQuery: fetchBaseQuery({ baseUrl: process.env.REACT_APP_BASE_URL }),
+
+  baseQuery: fetchBaseQuery({
+    baseUrl: process.env.REACT_APP_BASE_URL,
+  }),
+
   tagTypes: ['Cart'],
+
   endpoints: (builder) => ({
+    // ========================
+    // GET CART BY USER ID
+    // ========================
     getCartByUserId: builder.query({
       query: (userId) => `/cart/getCartByUserId/${userId}`,
+
       providesTags: ['Cart'],
+
       transformResponse: (response) => {
-        // Handle cases where response.data might not exist or not be an array
-        if (!response || !response.data || !Array.isArray(response.data)) {
-          console.warn('Cart API response missing or invalid data:', response);
-          return {
-            ...response,
-            data: [],
-          };
+        if (!response?.data || !Array.isArray(response.data)) {
+          return [];
         }
 
-        // API shape: data is an array of cart entries, each with product_details (array)
-        const normalized = response.data.flatMap((entry) => {
-          const products = Array.isArray(entry.product_details)
-            ? entry.product_details
-            : entry.product_details
-              ? [entry.product_details]
-              : [];
+        // Flatten product_details[] into cart items
+        return response.data.flatMap((entry) => {
+          if (!Array.isArray(entry.product_details)) return [];
 
-          if (products.length === 0) return [];
+          return entry.product_details.map((product) => ({
+            id: product._id || product.id,
+            productId: product._id || product.id,
 
-          return products.map((p) => ({
-            ...p,
-            product: p, // keep a reference for UI fallbacks
-            cartGuid: entry.guid,
-            _id: p._id || p.id || entry.productId || entry._id || entry.id,
-            productId: p._id || p.id || entry.productId || entry._id || entry.id,
-            quantity: p.quantity || entry.quantity || 1,
-            price: p.final_price || p.price || entry.price || entry.final_price || 0,
+            title: product.title,
+            author: product.author,
+            rating: product.rating ?? 4.5,
+
+            image: product.coverImageUrl || null,
+
+            price: product.final_price ?? product.price ?? 0,
             originalPrice:
-              p.original_price ||
-              p.mrp ||
-              p.price ||
-              entry.original_price ||
-              entry.originalPrice ||
+              product.original_price ??
+              product.mrp ??
+              product.price ??
               0,
+
+            quantity: product.quantity ?? 1,
+
+            cartGuid: entry.guid,
           }));
         });
-
-        return {
-          ...response,
-          data: normalized,
-        };
       },
     }),
-    saveCart: builder.mutation({
-      query: ({ userId, productId, type }) => ({
-        url: '/cart/saveCart',
-        method: 'POST',
-        body: {
-          user_id: userId,
-          product_details: [productId],
-          type_of_cart: type,
-          quantity: 1, // Default quantity for saveCart
-        },
-      }),
-      invalidatesTags: ['Cart'],
-    }),
+
+    // ========================
+    // ADD TO CART
+    // ========================
     addToCart: builder.mutation({
-      query: ({ userId, productId, quantity }) => ({
+      query: ({ userId, productId, quantity = 1 }) => ({
         url: '/cart/saveCart',
         method: 'POST',
         body: {
           user_id: userId,
           product_details: [productId],
           type_of_cart: 'save',
-          quantity: quantity || 1,
+          quantity,
         },
       }),
       invalidatesTags: ['Cart'],
     }),
+
+    // ========================
+    // REMOVE FROM CART
+    // ========================
     removeFromCart: builder.mutation({
-      query: ({ userId, itemId }) => ({
-        url: `/cart/remove/${userId}/${itemId}`,
-        method: 'DELETE',
-      }),
-      invalidatesTags: ['Cart'],
-    }),
-    updateCartQuantity: builder.mutation({
-      query: ({ userId, itemId, quantity }) => ({
-        url: '/cart/updateQuantity',
-        method: 'PUT',
-        body: { userId, itemId, quantity },
+      query: ({ userId, productId }) => ({
+        url: '/cart/saveCart',
+        method: 'POST',
+        body: {
+          user_id: userId,
+          product_details: [productId],
+          type_of_cart: 'remove',
+        },
       }),
       invalidatesTags: ['Cart'],
     }),
   }),
 });
 
-export const { useGetCartByUserIdQuery, useSaveCartMutation, useAddToCartMutation, useRemoveFromCartMutation, useUpdateCartQuantityMutation } = cartApi;
+export const {
+  useGetCartByUserIdQuery,
+  useAddToCartMutation,
+  useRemoveFromCartMutation,
+} = cartApi;

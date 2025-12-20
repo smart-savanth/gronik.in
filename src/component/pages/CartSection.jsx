@@ -1,7 +1,7 @@
 import React from 'react';
 import { Trash2, ShoppingBag, ArrowLeft, Heart, Star } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useGetCartByUserIdQuery, useRemoveFromCartMutation } from '../../utils/cartService';
+import { useRemoveFromCartMutation } from '../../utils/cartService';
 
 const toNumber = (raw) => {
   if (raw === null || raw === undefined) return NaN;
@@ -37,9 +37,11 @@ const resolveOriginalPrice = (item) =>
     item?.price
   );
 const CartSection = ({
-  removeFromCart, // Keep for backward compatibility, but we'll use API mutation directly
+   cart = [],
+  removeFromCart,
   addToWishlist,
-  wishlist = []
+ wishlist = []
+
 }) => {
   // cart = (cart || []).map(item => ({
   //   ...item,
@@ -51,58 +53,21 @@ const CartSection = ({
 const user = JSON.parse(localStorage.getItem("user"));
 const userId = user?.guid;
 
-const [localCartState, setLocalCartState] = React.useState(0);
-
-const { data: cartResponse } = useGetCartByUserIdQuery(userId, { skip: !userId });
-
-console.log("CART RESPONSE:", cartResponse);
 
 
-const [cart, setCart] = React.useState([]);
+
+
 
 // ---------------------------
 // Load Cart (backend or local)
 // ---------------------------
-React.useEffect(() => {
-  if (userId && Array.isArray(cartResponse?.data)) {
-    // Logged-in user → backend cart (already normalized in service)
-    setCart(
-      cartResponse.data.map(item => {
-        const p = item.product || {};
 
-        return {
-          id: item.productId || item._id || item.id,
-          title: p.title || item.title,
-          author: p.author || item.author,
-          image: p.coverImageUrl || p.image || item.image,
-          price: resolvePrice(item),
-          originalPrice: resolveOriginalPrice(item),
-          quantity: item.quantity ?? 1,
-        };
-      })
-    );
-  } else {
-    // Logged-out user → localStorage cart
-    const local = JSON.parse(localStorage.getItem("cart")) || [];
-    setCart(
-      local.map(item => ({
-        ...item,
-        price: normalizeCurrency(item.price, item.final_price, item.finalPrice, item.salePrice, item.originalPrice),
-        originalPrice: normalizeCurrency(item.originalPrice, item.mrp, item.price),
-        quantity: item.quantity ?? 1,
-      }))
-    );
-  }
-}, [userId, cartResponse, localCartState]);
+
 
 // ---------------------------
 // Listen for storage updates
 // ---------------------------
-React.useEffect(() => {
-  const update = () => setLocalCartState(x => x + 1);
-  window.addEventListener("storage", update);
-  return () => window.removeEventListener("storage", update);
-}, []);
+
 
 const handleCardClick = (book) => {
     navigate(`/product/${book.id}`, { state: { from: 'featured' } });
@@ -139,10 +104,10 @@ const handleRemove = async (id) => {
     try {
       await removeFromCartMutation({
         userId,
-        itemId: id,
+        productId: id,
       }).unwrap();
       // Cart will auto-refresh via RTK Query invalidation
-      window.dispatchEvent(new Event("cart-updated"));
+      // No need to call removeFromCart prop - cart state will sync automatically
     } catch (error) {
       console.error('Error removing from cart:', error);
       // Fallback to prop function if API fails
@@ -155,21 +120,10 @@ const handleRemove = async (id) => {
     if (removeFromCart) {
       removeFromCart(id);
     }
-    window.dispatchEvent(new Event("cart-updated"));
   }
 };
 
-React.useEffect(() => {
-  const refresh = () => setLocalCartState(x => x + 1);
 
-  window.addEventListener("cart-updated", refresh);
-  window.addEventListener("wishlist-updated", refresh);
-
-  return () => {
-    window.removeEventListener("cart-updated", refresh);
-    window.removeEventListener("wishlist-updated", refresh);
-  };
-}, []);
 
 
   return (
@@ -242,7 +196,7 @@ React.useEffect(() => {
                             src={
                               item.image ||
                               item.coverImageUrl ||
-                              "https://via.placeholder.com/300x400?text=No+Image"
+                              "/images/no-image.png"
                             }
                             alt={item.title}
                             className="w-full h-full object-cover"
@@ -284,7 +238,7 @@ React.useEffect(() => {
                           <button 
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleRemove(item.id);
+                              handleRemove(item.productId || item.id);
                             }}
                             className="p-2 text-white/60 hover:text-red-400 hover:bg-red-400/20 rounded-lg transition-all duration-200"
                           >
@@ -382,9 +336,8 @@ React.useEffect(() => {
                             src={
                               item.image ||
                               item.coverImageUrl ||
-                              "https://via.placeholder.com/300x400?text=No+Image"
+                              "/images/no-image.png"
                             }
-
                             alt={item.title}
                             className="w-full h-full object-cover"
                           />
@@ -420,7 +373,8 @@ React.useEffect(() => {
                           <button
                           onClick={(e) => {
                               e.stopPropagation();
-                              handleRemove(item.id);
+                              handleRemove(item.productId || item.id);
+
                             }}
                           
                             className="p-2 text-white/60 hover:text-red-400 hover:bg-red-400/20 rounded-lg transition-all duration-200"

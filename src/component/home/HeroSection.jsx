@@ -4,15 +4,16 @@ import { ArrowRight, Star, Play } from 'lucide-react';
 import { centralizedBooksData } from '../pages/LibrarySection';
 import { useGetAllBooksQuery } from '../../utils/booksService';
 
-const HeroSection = ({ cart = [], wishlist = [], onAddToCart, onAddToWishlist, onRemoveFromCart, onRemoveFromWishlist }) => {
+const HeroSection = () => {
   const [activeBook, setActiveBook] = useState(0); // Start with first book
   const [isAnimating, setIsAnimating] = useState(false);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [imagesLoaded, setImagesLoaded] = useState(false);
+
+
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const touchStartX = React.useRef(0);
   const touchEndX = React.useRef(0);
   const imagesLoadedCount = React.useRef(0);
+  const hasAnimated = React.useRef(false);
 
   const navigate = useNavigate();
   const { data: booksResponse, isLoading, isError } = useGetAllBooksQuery({
@@ -39,8 +40,7 @@ const HeroSection = ({ cart = [], wishlist = [], onAddToCart, onAddToWishlist, o
     if (heroBooks.length === 0) return;
     
     imagesLoadedCount.current = 0;
-    setImagesLoaded(false);
-    setIsInitialLoad(true);
+    
     
     const imagePromises = heroBooks.map((book) => {
       if (!book.image) {
@@ -53,7 +53,7 @@ const HeroSection = ({ cart = [], wishlist = [], onAddToCart, onAddToWishlist, o
         img.onload = () => {
           imagesLoadedCount.current += 1;
           if (imagesLoadedCount.current >= heroBooks.length) {
-            setImagesLoaded(true);
+            
             // Small delay to ensure smooth transition and prevent flicker
             setTimeout(() => setIsInitialLoad(false), 150);
           }
@@ -62,7 +62,7 @@ const HeroSection = ({ cart = [], wishlist = [], onAddToCart, onAddToWishlist, o
         img.onerror = () => {
           imagesLoadedCount.current += 1;
           if (imagesLoadedCount.current >= heroBooks.length) {
-            setImagesLoaded(true);
+            
             setTimeout(() => setIsInitialLoad(false), 150);
           }
           resolve(); // Resolve even on error to not block rendering
@@ -73,7 +73,7 @@ const HeroSection = ({ cart = [], wishlist = [], onAddToCart, onAddToWishlist, o
     
     // If no images, mark as loaded immediately
     if (imagePromises.length === 0 || heroBooks.every(book => !book.image)) {
-      setImagesLoaded(true);
+      
       setTimeout(() => setIsInitialLoad(false), 150);
     }
   }, [heroBooks]);
@@ -114,6 +114,11 @@ const handleTouchEnd = () => {
   }
 };
 
+useEffect(() => {
+  if (!isLoading && heroBooks.length > 0) {
+    hasAnimated.current = true;
+  }
+}, [isLoading, heroBooks.length]);
 
   const handleBookClick = (index) => {
     if (index !== activeBook && !isAnimating) {
@@ -238,7 +243,7 @@ lg:min-h-[calc(100vh-6rem)]">
             <div className="flex flex-col justify-center space-y-4 lg:space-y-5 max-w-full text-center lg:text-left w-full lg:pr-8 xl:pr-12 lg:ml-4">
               
               {/* Main Heading - DECREASED FONT SIZE TO KEEP ON 2 LINES */}
-              <div className={isInitialLoad ? '' : 'animate-smooth-entry'}>
+              <div className={!hasAnimated.current ? 'animate-smooth-entry' : ''}>
                 <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-3xl xl:text-4xl 2xl:text-5xl font-bold leading-tight text-[#2D1B3D]">
                   Where every page
                 </h1>
@@ -248,14 +253,14 @@ lg:min-h-[calc(100vh-6rem)]">
               </div>
 
               {/* Description */}
-              <div className={isInitialLoad ? '' : 'animate-smooth-entry'} style={{ animationDelay: '0.1s' }}>
+              <div className={!hasAnimated.current ? 'animate-smooth-entry' : ''} style={{ animationDelay: '0.1s' }}>
                 <p className="text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl text-[#2D1B3D]/80 leading-relaxed font-medium max-w-lg mx-auto lg:mx-0">
                   Discover endless knowledge and imagination in our curated digital library with interactive reading experience.
                 </p>
               </div>
               
               {/* Feature Badges */}
-              <div className={`flex flex-wrap items-center justify-center lg:justify-start gap-2 lg:gap-3 ${isInitialLoad ? '' : 'animate-smooth-entry'}`} style={{ animationDelay: '0.2s' }}>
+              <div className={`flex flex-wrap items-center justify-center lg:justify-start gap-2 lg:gap-3 ${!hasAnimated.current ? 'animate-smooth-entry' : ''}`} style={{ animationDelay: '0.2s' }}>
                 <div className="flex items-center space-x-2 bg-white/20 backdrop-blur-sm rounded-full px-3 py-2 lg:px-4 lg:py-2 border border-white/30 hover:bg-white/30 transition-all duration-300 group">
                   <div className="w-2 h-2 bg-[#2D1B3D] rounded-full animate-pulse"></div>
                   <span className="text-[#2D1B3D] font-semibold text-xs lg:text-sm group-hover:text-[#1A0F26]">Premium Quality</span>
@@ -267,7 +272,7 @@ lg:min-h-[calc(100vh-6rem)]">
               </div>
               
               {/* Featured Book Card */}
-              <div className={isInitialLoad ? '' : 'animate-smooth-entry'} style={{ animationDelay: '0.3s' }}>
+              <div className={!hasAnimated.current ? 'animate-smooth-entry' : ''} style={{ animationDelay: '0.3s' }}>
                 <div
                   className="bg-white/20 backdrop-blur-md rounded-2xl p-4 lg:p-5 xl:p-6 border border-white/30 hover:bg-white/25 transition-all duration-300 group max-w-md mx-auto lg:mx-0 cursor-pointer"
                   onClick={() => {
@@ -306,7 +311,7 @@ lg:min-h-[calc(100vh-6rem)]">
               </div>
                 
               {/* CTA Button - EXPLORE NOW */}
-              <div className={isInitialLoad ? '' : 'animate-smooth-entry'} style={{ animationDelay: '0.4s' }}>
+              <div className={!hasAnimated.current ? 'animate-smooth-entry' : ''} style={{ animationDelay: '0.4s' }}>
                 <button 
                   onClick={() => {
                     if (!currentBook) return;
@@ -453,13 +458,10 @@ lg:min-h-[calc(100vh-6rem)]">
         }
         
         .animate-smooth-entry {
-          animation: smooth-entry 0.6s ease-out forwards;
-          opacity: 0;
+        animation: smooth-entry 0.6s ease-out forwards;
         }
         
-        .animate-smooth-entry[style*="animation-delay"] {
-          opacity: 0;
-        }
+       
         
         .animate-float {
           animation: float 6s ease-in-out infinite;

@@ -35,7 +35,7 @@ import { useSelector } from 'react-redux';
 import { useNotification } from './hooks/useNotification';
 import { useGetAllBooksQuery } from './utils/booksService';
 import { fetchWishlistProductIds, updateWishlistItems } from './utils/wishListService';
-import { useAddToCartMutation, useRemoveFromCartMutation, useUpdateCartQuantityMutation, useGetCartByUserIdQuery } from './utils/cartService';
+import { useAddToCartMutation, useRemoveFromCartMutation, useGetCartByUserIdQuery } from './utils/cartService';
 import TermsAndConditions from './component/pages/TermsAndConditions';
 import PrivacyPolicy from './component/pages/PrivacyPolicy';
 
@@ -60,7 +60,7 @@ function App() {
   // Cart API mutations and query
   const [addToCartMutation] = useAddToCartMutation();
   const [removeFromCartMutation] = useRemoveFromCartMutation();
-  const [updateCartQuantityMutation] = useUpdateCartQuantityMutation();
+
   const { data: cartResponse } = useGetCartByUserIdQuery(userId, { skip: !userId });
 
   const booksIndex = useMemo(() => {
@@ -221,27 +221,13 @@ function App() {
 
   // Sync cart from backend (for logged-in users) or localStorage (for logged-out users)
   useEffect(() => {
-    console.log('Cart sync effect:', { userId, hasCartResponse: !!cartResponse, cartDataLength: cartResponse?.data?.length });
-    
-    if (userId && cartResponse?.data && Array.isArray(cartResponse.data)) {
+    // cartResponse is already an array (transformed by cartService.js transformResponse)
+    if (userId && Array.isArray(cartResponse)) {
       // For logged-in users: sync from backend
-      const backendCart = cartResponse.data.map(item => {
-        const p = item.product_details || item.product || {};
-        return {
-          id: item.productId || item._id || item.id,
-          _id: item.productId || item._id || item.id,
-          title: p.title || item.title,
-          author: p.author || item.author,
-          image: p.coverImageUrl || p.image || item.image,
-          price: p.final_price || p.price || item.price || 0,
-          originalPrice: p.original_price || p.mrp || item.originalPrice || item.original_price || 0,
-          quantity: item.quantity || 1,
-        };
-      });
-      console.log('Syncing cart from backend:', backendCart);
-      setCart(backendCart);
+      // cartResponse is already transformed to array of cart items
+      setCart(cartResponse);
       // Also update localStorage for consistency
-      localStorage.setItem('cart', JSON.stringify(backendCart));
+      localStorage.setItem('cart', JSON.stringify(cartResponse));
     } else if (!userId) {
       // For logged-out users: sync from localStorage
       const syncCartFromStorage = () => {
@@ -288,7 +274,6 @@ function App() {
   // ENHANCED HANDLERS WITH NOTIFICATIONS
 const handleAddToCart = async (book) => {
   const productId = book._id || book.id || book.productId;
-  console.log('handleAddToCart called:', { book, productId, userId });
   
   if (!productId) {
     console.error('Cannot add to cart: missing product ID', book);
@@ -299,13 +284,11 @@ const handleAddToCart = async (book) => {
   // For logged-in users: sync with backend
   if (userId) {
     try {
-      console.log('Adding to cart via API:', { userId, productId });
-      const result = await addToCartMutation({
+      await addToCartMutation({
         userId,
         productId,
         quantity: 1,
       }).unwrap();
-      console.log('Add to cart API success:', result);
       notification.addToCart(book.title);
       // Cart will auto-refresh via RTK Query invalidation, which will trigger the useEffect above
       // No need to manually update cart state - it will sync from cartResponse
@@ -347,9 +330,9 @@ const handleRemoveFromCart = async (id) => {
   if (userId) {
     try {
       await removeFromCartMutation({
-        userId,
-        itemId: id,
-      }).unwrap();
+  userId,
+  productId: id,
+}).unwrap();
       notification.removeFromCart();
       // Cart will auto-refresh via RTK Query invalidation, which will trigger the useEffect above
       // No need to manually update cart state - it will sync from cartResponse
@@ -370,40 +353,7 @@ const handleRemoveFromCart = async (id) => {
 };
 
 
-  const handleUpdateCartItemQuantity = async (id, newQuantity) => {
-    if (newQuantity <= 0) {
-      // If quantity is 0 or less, remove the item
-      await handleRemoveFromCart(id);
-      return;
-    }
-
-    // For logged-in users: sync with backend
-    if (userId) {
-      try {
-        await updateCartQuantityMutation({
-          userId,
-          itemId: id,
-          quantity: newQuantity,
-        }).unwrap();
-        notification.custom('Cart updated successfully!', 'success');
-        // Cart will auto-refresh via RTK Query invalidation, which will trigger the useEffect above
-        // No need to manually update cart state - it will sync from cartResponse
-      } catch (error) {
-        console.error('Error updating cart quantity (backend):', error);
-        notification.custom('Failed to update cart quantity. Please try again.', 'error');
-      }
-    } else {
-      // For logged-out users: use localStorage only
-      const local = JSON.parse(localStorage.getItem("cart")) || [];
-      const updated = local.map(item =>
-        item.id === id ? { ...item, quantity: newQuantity } : item
-      );
-      localStorage.setItem("cart", JSON.stringify(updated));
-      setCart(updated);
-      window.dispatchEvent(new Event("cart-updated"));
-      notification.custom('Cart updated successfully!', 'success');
-    }
-  };
+  
 
 const handleAddToWishlist = async (book) => {
   const formatted = formatBookForWishlist(book, book?._id || book?.id);
@@ -548,7 +498,7 @@ const handleAddToWishlist = async (book) => {
           <CartSection
             cart={cart}
             removeFromCart={handleRemoveFromCart}
-            updateCartItemQuantity={handleUpdateCartItemQuantity}
+           
             addToWishlist={handleAddToWishlist}
             wishlist={wishlist}
           />
