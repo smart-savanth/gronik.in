@@ -1,112 +1,30 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Package, Eye, Calendar, CreditCard, Truck, CheckCircle, XCircle, Clock as ClockIcon } from 'lucide-react';
+import { useGetAllOrdersByUserIdQuery } from '../../utils/orderServices'; 
+import { getCurrentUser } from '../../utils/auth';
+
+
 
 const OrderHistorySection = () => {
+  const user = getCurrentUser();
+const userId = user?._id;
+
+
+  const {
+  data,
+  isLoading,
+  isError,
+} = useGetAllOrdersByUserIdQuery(userId, {
+  skip: !userId,
+});
+const orders = data?.data || [];
+
   const navigate = useNavigate();
   const [selectedOrder, setSelectedOrder] = useState(null);
 
-  // Mock order data - in real app this would come from API
-  const [orders] = useState([
-    {
-      id: 'ORD-2024-001',
-      date: '2024-01-15',
-      status: 'Delivered',
-      total: 450,
-      items: [
-        {
-          id: 1,
-          title: "Think and Grow Rich",
-          author: "Napoleon Hill",
-          price: 150,
-          image: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=300&h=400&fit=crop",
-          format: "E-Book"
-        },
-        {
-          id: 2,
-          title: "48 Laws of Power",
-          author: "Robert Greene",
-          price: 200,
-          image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&h=400&fit=crop",
-          format: "E-Book"
-        },
-        {
-          id: 3,
-          title: "Atomic Habits",
-          author: "James Clear",
-          price: 175,
-          image: "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=300&h=400&fit=crop",
-          format: "E-Book"
-        }
-      ],
-      tracking: {
-        number: 'TRK-123456789',
-        status: 'Delivered',
-        updates: [
-          { date: '2024-01-15 10:30', status: 'Order Placed', description: 'Your order has been confirmed' },
-          { date: '2024-01-15 14:20', status: 'Processing', description: 'Your books are being prepared' },
-          { date: '2024-01-15 16:45', status: 'Ready for Download', description: 'Your e-books are ready to download' },
-          { date: '2024-01-15 17:00', status: 'Delivered', description: 'All files have been delivered to your library' }
-        ]
-      }
-    },
-    {
-      id: 'ORD-2024-002',
-      date: '2024-01-10',
-      status: 'Processing',
-      total: 325,
-      items: [
-        {
-          id: 4,
-          title: "The 7 Habits of Highly Effective People",
-          author: "Stephen Covey",
-          price: 180,
-          image: "https://images.unsplash.com/photo-1532012197267-da84d127e765?w=300&h=400&fit=crop",
-          format: "E-Book"
-        },
-        {
-          id: 5,
-          title: "Mindset: The New Psychology of Success",
-          author: "Carol Dweck",
-          price: 160,
-          image: "https://images.unsplash.com/photo-1553729459-efe14ef6055d?w=300&h=400&fit=crop",
-          format: "E-Book"
-        }
-      ],
-      tracking: {
-        number: 'TRK-987654321',
-        status: 'Processing',
-        updates: [
-          { date: '2024-01-10 09:15', status: 'Order Placed', description: 'Your order has been confirmed' },
-          { date: '2024-01-10 11:30', status: 'Processing', description: 'Your books are being prepared' }
-        ]
-      }
-    },
-    {
-      id: 'ORD-2024-003',
-      date: '2024-01-05',
-      status: 'Cancelled',
-      total: 200,
-      items: [
-        {
-          id: 6,
-          title: "Getting Things Done",
-          author: "David Allen",
-          price: 200,
-          image: "https://images.unsplash.com/photo-1589829085413-56de8ae18c73?w=300&h=400&fit=crop",
-          format: "E-Book"
-        }
-      ],
-      tracking: {
-        number: 'TRK-456789123',
-        status: 'Cancelled',
-        updates: [
-          { date: '2024-01-05 15:20', status: 'Order Placed', description: 'Your order has been confirmed' },
-          { date: '2024-01-05 16:45', status: 'Cancelled', description: 'Order was cancelled by customer' }
-        ]
-      }
-    }
-  ]);
+
+
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -134,8 +52,10 @@ const OrderHistorySection = () => {
     setSelectedOrder(null);
   };
 
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#9B7BB8] to-[#8A6AA7] px-3 py-8 mt-24">
+    
+    <div className="min-h-screen bg-gradient-to-br from-[#9B7BB8] to-[#8A6AA7] px-3 py-8 ">
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header - No Background, Dark Text */}
         <div className="flex items-center justify-between mb-8">
@@ -169,7 +89,17 @@ const OrderHistorySection = () => {
             </div>
           </div>
         </div>
+{isLoading && (
+  <div className="text-center py-10 text-white">
+    Loading orders...
+  </div>
+)}
 
+{isError && (
+  <div className="text-center py-10 text-red-400">
+    Failed to load orders
+  </div>
+)}
         {/* Orders List */}
         <div className="bg-[#2D1B3D]/95 backdrop-blur-sm rounded-3xl shadow-2xl overflow-hidden p-0">
           <div className="divide-y divide-[#9B7BB8]/30">
