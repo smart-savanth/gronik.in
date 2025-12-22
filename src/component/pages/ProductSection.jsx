@@ -918,7 +918,7 @@ const handleSuggestedBookClick = (book) => {
           </div>
 
           <span className="text-sm text-white">
-            {section.chapters?.length || 0} lectures • {totalPages} pages
+            {section.chapters?.length || 0} Chapters • {totalPages} pages
           </span>
         </button>
 
