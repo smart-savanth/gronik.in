@@ -5,6 +5,7 @@ import adminAuthReducer from './slices/adminAuthSlice';
 import notificationReducer from './slices/notificationSlice';
 import { booksApi } from './utils/booksService';
 import { cartApi } from './utils/cartService';
+import { productApi } from './utils/productServices';
 
 const store = configureStore({
   reducer: {
@@ -14,11 +15,13 @@ const store = configureStore({
     notifications: notificationReducer,
     [booksApi.reducerPath]: booksApi.reducer,
     [cartApi.reducerPath]: cartApi.reducer, 
+    [productApi.reducerPath]: productApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware()
       .concat(booksApi.middleware)
-      .concat(cartApi.middleware),
+      .concat(cartApi.middleware)
+      .concat(productApi.middleware),
 });
 
 export default store;

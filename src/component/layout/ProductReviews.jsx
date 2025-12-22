@@ -3,6 +3,11 @@ import { useSelector } from "react-redux";
 import { Star, Quote, Plus, X, Send } from "lucide-react";
 import { saveReview, getAllReviews } from "../../utils/reviewservice";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useMemo } from "react";
+
+
+
+
 
 const FALLBACK_REVIEWS = [
   { id: "fallback-1", rating: 5, review: "Hands down the most immersive reading experience I have ever had online. The curation is on point!", name: "Sahana Devi" },
@@ -16,6 +21,7 @@ const ProductReviews = ({ initialReviews = [], productId = null, onReviewAdded =
   const location=useLocation()
   const navigate = useNavigate();
   const user = useSelector((state) => state.userAuth?.user);
+const initializedRef = useRef(false);
 
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -35,53 +41,62 @@ const ProductReviews = ({ initialReviews = [], productId = null, onReviewAdded =
   const lastDeltaRef = useRef(0);
 
   // show fallback when real reviews empty so the loop always has nodes
-  const sourceReviews = (reviews && reviews.length) ? reviews : FALLBACK_REVIEWS;
-  const duplicatedReviews = [...sourceReviews, ...sourceReviews, ...sourceReviews];
-  const hasReviews = sourceReviews.length > 0;
 
-  // fetch
-useEffect(() => {
-  let mounted = true;
 
-  const normalize = (list = []) =>
-    (list || []).map((r, idx) => ({
-      id: r._id || r.id || `local-${idx}`,
-      rating: Number(r.rating) || 5,
-      review: r.review || r.text || "",
-      name: r.name || r.user_name || "Anonymous",
-    }));
+const sourceReviews = reviews;
+const duplicatedReviews = reviews.length
+  ? [...reviews, ...reviews, ...reviews,...reviews,...reviews]
+  : [];
+const hasReviews = sourceReviews.length > 0;
 
-  // 1️⃣ If parent passed reviews → use them directly
-  if (initialReviews && initialReviews.length > 0) {
-    setReviews(normalize(initialReviews));
+const fetchProductReviews = async () => {
+  try {
+    setLoading(true);
+
+    const res = await getAllReviews({
+  type: "product",
+  product_id:  String(productId), // ✅ STRING
+  page: 1,
+  pageSize: 50,
+});
+
+
+    const list = res?.data?.data || [];
+    setReviews(
+      list.map((r, idx) => ({
+        id: r._id || `review-${idx}`,
+        rating: Number(r.rating) || 5,
+        review: r.review || "",
+        name: r.user_name || r.name || "Anonymous",
+      }))
+    );
+  } catch (err) {
+    console.error("Product reviews fetch failed:", err);
+    setReviews([]);
+  } finally {
+    setLoading(false);
+  }
+};
+
+
+ useEffect(() => {
+  if (!productId) {
+    setReviews([]);
     setLoading(false);
     return;
   }
 
-  // 2️⃣ Otherwise load general reviews (fallback usage continues)
-  const fetchReviews = async () => {
-    try {
-      setLoading(true);
-      const res = await getAllReviews({ page: 1, pageSize: 100 });
-      const list = res?.data?.data?.list || res?.data?.data || [];
-      if (mounted) setReviews(normalize(list));
-    } catch (err) {
-      console.error("Review fetch failed:", err);
-      // keep reviews empty → fallback used automatically
-    } finally {
-      if (mounted) setLoading(false);
-    }
-  };
+  fetchProductReviews();
+}, [productId]);
 
-  fetchReviews();
-  return () => { mounted = false };
-}, [initialReviews]);
+
 
 
 
 
   // Animation loop (continuous leftward movement)
   useEffect(() => {
+    if (!hasReviews || loading) return;
     // 1. Check if we are ready to animate
     const container = scrollRef.current;
     if (loading || !container || !hasReviews) return;
@@ -98,8 +113,12 @@ useEffect(() => {
     if (totalWidth === 0) return; 
 
     // Center on the middle copy immediately
-    transformRef.current = -chunk;
-    container.style.transform = `translateX(${transformRef.current}px)`;
+    if (!initializedRef.current) {
+  transformRef.current = -chunk;
+  container.style.transform = `translateX(${transformRef.current}px)`;
+  initializedRef.current = true;
+}
+
 
     // 4. Animation Logic
     const speedPxPerSecond = 36;
@@ -118,7 +137,7 @@ useEffect(() => {
 
         // Boundary Check:
         // If we have scrolled past the 2nd copy (middle), jump back to start of 2nd copy
-        if (transformRef.current <= -chunk * 2) {
+        if (transformRef.current <= -chunk * 1) {
           transformRef.current += chunk; 
         } 
         // If we drift too far right (into 1st copy), jump to start of 2nd copy
@@ -153,8 +172,7 @@ useEffect(() => {
     };
 
   // DEPENDENCY FIX: Include 'loading' so the effect runs when the DOM element appears
-  }, [loading, duplicatedReviews.length, hasReviews]);
-
+  },[hasReviews, loading]);
 
 
   // pointer / touch handlers (drag + momentum)
@@ -242,38 +260,37 @@ const onPointerUp = (e) => {
   const handleTouchEnd = (e) => onPointerUp({ pointerId: 1 });
 
   // submit review (unchanged)
-  const handleSubmitReview = async () => {
-    if (!newReview.text.trim()) return;
-    if (!user?.guid) {
-      navigate("/login", { state: { from: "/#reviews" } });
-      return;
-    }
+const handleSubmitReview = async () => {
+  if (!newReview.text.trim() || newReview.text.trim().length < 10) {
+    alert("Review must be at least 10 characters");
+    return;
+  }
 
+  if (!user?.guid) {
+    navigate("/login");
+    return;
+  }
 
-
-    try {
-      const payload = { type: "site", product: null, user_id: user.guid, rating: newReview.rating, review: newReview.text.trim() };
-      const res = await saveReview(payload);
-      const saved = res?.data?.data;
-      if (saved) {
-        const formatted = {
-          id: saved._id || saved.id || saved.guid || Date.now().toString(),
-          rating: Number(saved.rating) || newReview.rating,
-          review: saved.review || newReview.text,
-          name: saved.user_name || saved.name || saved.full_name || user?.full_name || "You",
-        };
-        setReviews((prev) => [formatted, ...prev]);
-        if (typeof onReviewAdded === "function") {
-  onReviewAdded(formatted);
-}
-      }
-      setShowForm(false);
-      setNewReview({ rating: 5, text: "", name: "" });
-    } catch (err) {
-      console.log("Error saving review:", err);
-      alert("Something went wrong while submitting your review. Please try again.");
-    }
+  const payload = {
+    type: "product",
+    product:  String(productId),     // ✅ Mongo ObjectId string
+    user_id: user.guid,             // ✅ REQUIRED by backend
+    rating: Number(newReview.rating),
+    review: newReview.text.trim(),  // ✅ min length satisfied
   };
+
+  console.log("📤 FINAL REVIEW PAYLOAD:", payload);
+
+  try {
+    await saveReview(payload);
+    await fetchProductReviews();
+    setShowForm(false);
+    setNewReview({ rating: 5, text: "" });
+  } catch (err) {
+    console.error("❌ Review save failed:", err.response?.data);
+    alert("Review failed. Check console.");
+  }
+};
 
 
   return (
@@ -319,18 +336,10 @@ const onPointerUp = (e) => {
             {error}
           </div>
         ) : !hasReviews ? (
-          <div className="text-center bg-white/40 border border-white/70 rounded-2xl py-8 px-6 text-[#2D1B3D]">
-            <p className="text-lg font-semibold mb-2">Be the first to share your experience!</p>
-            <p className="text-sm mb-4">Your review helps other readers discover Gronik.</p>
-            <button
-              onClick={() => setShowForm(true)}
-              className="inline-flex items-center space-x-2 bg-[#2D1B3D] text-white px-4 py-2 rounded-full hover:bg-[#3D2A54] transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95 font-semibold text-sm"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Add Your Review</span>
-            </button>
-          </div>
-        ) : (
+  <div className="text-center text-[#2D1B3D] py-10 font-medium">
+    Be the first to share your experience!
+  </div>
+): (
           <div 
             className="relative overflow-hidden touch-pan-y" 
             style={{ height: '280px', paddingTop: '20px', paddingBottom: '20px' }}
@@ -461,7 +470,7 @@ const onPointerUp = (e) => {
         </div> 
       )}
 
-      <style jsx>{`
+      <style >{`
         .line-clamp-3 {
           display: -webkit-box;
           -webkit-line-clamp: 3;
