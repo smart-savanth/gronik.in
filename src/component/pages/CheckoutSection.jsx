@@ -126,61 +126,61 @@ const handlePlaceOrder = async () => {
 
 
 
-  // Function to save order after successful payment
-React.useEffect(() => {
-  const verifyPayment = async () => {
-    const pendingStr = localStorage.getItem("pendingPayment");
-    if (!pendingStr) return;
+//   // Function to save order after successful payment
+// React.useEffect(() => {
+//   const verifyPayment = async () => {
+//     const pendingStr = localStorage.getItem("pendingPayment");
+//     if (!pendingStr) return;
 
-    const pending = JSON.parse(pendingStr);
+//     const pending = JSON.parse(pendingStr);
 
-    setIsCheckingPayment(true);
-    setTransactionError("");
+//     setIsCheckingPayment(true);
+//     setTransactionError("");
 
-    try {
-      const res = await fetch(
-        `https://dev-api.gronik.in/payment/checkStatus/${pending.orderId}/userId/${pending.userId}`
-      );
-      const result = await res.json();
+//     try {
+//       const res = await fetch(
+//         `https://dev-api.gronik.in/payment/checkStatus/${pending.orderId}/userId/${pending.userId}`
+//       );
+//       const result = await res.json();
 
-      // ✅ PAYMENT SUCCESS
-      if (result?.success && result?.data?.status === "COMPLETED") {
-        // 👉 Move to SUCCESS tab
-        setStep(3);
-        setOrderPlaced(true);
+//       // ✅ PAYMENT SUCCESS
+//       if (result?.success && result?.data?.status === "COMPLETED") {
+//         // 👉 Move to SUCCESS tab
+//         setStep(3);
+//         setOrderPlaced(true);
 
-        // 🔥 SAVE ORDER ONLY HERE
-        await saveOrder({
-          userId: pending.userId,
-          paymentId: pending.orderId,
-          productIds: pending.productIds,
-        }).unwrap();
+//         // 🔥 SAVE ORDER ONLY HERE
+//         await saveOrder({
+//           userId: pending.userId,
+//           paymentId: pending.orderId,
+//           productIds: pending.productIds,
+//         }).unwrap();
 
-        localStorage.removeItem("pendingPayment");
-        localStorage.setItem("cart", JSON.stringify([]));
-        window.dispatchEvent(new Event("storage"));
-      }
+//         localStorage.removeItem("pendingPayment");
+//         localStorage.setItem("cart", JSON.stringify([]));
+//         window.dispatchEvent(new Event("storage"));
+//       }
 
-      // ❌ PAYMENT FAILED
-      else {
-        localStorage.removeItem("pendingPayment");
-        setStep(2);
-        setTransactionError("Payment failed or was cancelled.");
-      }
-    } catch (err) {
-      console.error(err);
-      localStorage.removeItem("pendingPayment");
-      setStep(2);
-      setTransactionError("Unable to verify payment. Please try again.");
-    } finally {
-      setIsCheckingPayment(false);
-    }
-  };
+//       // ❌ PAYMENT FAILED
+//       else {
+//         localStorage.removeItem("pendingPayment");
+//         setStep(2);
+//         setTransactionError("Payment failed or was cancelled.");
+//       }
+//     } catch (err) {
+//       console.error(err);
+//       localStorage.removeItem("pendingPayment");
+//       setStep(2);
+//       setTransactionError("Unable to verify payment. Please try again.");
+//     } finally {
+//       setIsCheckingPayment(false);
+//     }
+//   };
 
-  if (location.pathname === "/checkout") {
-    verifyPayment();
-  }
-}, [location.pathname, saveOrder]);
+//   if (location.pathname === "/checkout") {
+//     verifyPayment();
+//   }
+// }, [location.pathname, saveOrder]);
 
 
 
