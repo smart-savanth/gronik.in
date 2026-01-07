@@ -1,14 +1,9 @@
 import React, { useState } from 'react';
 import { ShoppingCart, Search, Check, X, Filter, Calendar, Download, Clock, MoreVertical } from 'lucide-react';
 import AdminLayout from './Adminlayout';
+import { useGetAllOrdersQuery } from '../../utils/orderServices';
 
-const sampleOrders = [
-  { id: '#ORD-001', customer: 'Alice Johnson', book: 'Think and Grow Rich', amount: '$29.99', status: 'completed', date: '2024-06-08', email: 'alice@example.com' },
-  { id: '#ORD-002', customer: 'Bob Smith', book: 'Digital Marketing Mastery', amount: '$34.99', status: 'processing', date: '2024-06-08', email: 'bob@example.com' },
-  { id: '#ORD-003', customer: 'Carol Brown', book: 'Mysteries of Universe', amount: '$24.99', status: 'completed', date: '2024-06-07', email: 'carol@example.com' },
-  { id: '#ORD-004', customer: 'David Wilson', book: 'JavaScript Complete Guide', amount: '$39.99', status: 'pending', date: '2024-06-06', email: 'david@example.com' },
-  { id: '#ORD-005', customer: 'Emma Davis', book: 'AI Revolution', amount: '$44.99', status: 'cancelled', date: '2024-06-05', email: 'emma@example.com' },
-];
+
 
 const statusColors = {
   completed: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-emerald-500/20',
@@ -20,7 +15,24 @@ const statusColors = {
 const OrdersManagement = () => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [orders, setOrders] = useState(sampleOrders);
+ const { data, isLoading, isError } = useGetAllOrdersQuery({
+  page: 1,
+  pageSize: 10,
+});
+
+const orders = (data?.data || []).map(order => ({
+  id: order.guid,
+  customer: order.user_id,          // until user details are joined
+  email: '—',                       // API doesn’t provide email
+  book: '—',                        // API doesn’t provide product info
+  amount: `₹${order.final_amount}`,
+  status: order.payment_type === 'UPI' || order.payment_type === 'WALLET'
+    ? 'completed'
+    : 'pending',
+  date: order.created_at
+    ? new Date(order.created_at).toISOString().split('T')[0]
+    : '—',
+}));
 
   const filteredOrders = orders.filter(order => {
     const matchesSearch =
@@ -46,6 +58,26 @@ const OrdersManagement = () => {
     link.click();
     document.body.removeChild(link);
   };
+
+if (isLoading) {
+  return (
+    <AdminLayout currentPage="Orders">
+      <div className="text-center text-white py-20 text-lg">
+        Loading orders…
+      </div>
+    </AdminLayout>
+  );
+}
+
+if (isError) {
+  return (
+    <AdminLayout currentPage="Orders">
+      <div className="text-center text-red-400 py-20 text-lg">
+        Failed to load orders
+      </div>
+    </AdminLayout>
+  );
+}
 
   return (
     <AdminLayout currentPage="Orders">

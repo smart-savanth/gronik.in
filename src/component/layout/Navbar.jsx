@@ -32,6 +32,7 @@ const [hoveringNavbar, setHoveringNavbar] = useState(false);
 
   // Redux/Auth Hooks
   const user = useSelector((state) => state.userAuth.user);
+
   // Destructuring booksResponse is kept for completeness, though not strictly used in the UI logic here
   const { data: booksResponse, isLoading, isError } = useGetAllBooksQuery({
       page: 1,
@@ -41,36 +42,14 @@ const [hoveringNavbar, setHoveringNavbar] = useState(false);
 
 
   // ---- CART BADGE STATE (LOCAL STORAGE + LISTENERS) ----
-  const [localCartCount, setLocalCartCount] = useState(() => {
-    try {
-      const local = JSON.parse(localStorage.getItem("cart")) || [];
-      return local.length;
-    } catch {
-      return 0;
-    }
-  });
 
-  useEffect(() => {
-    const update = () => {
-      try {
-        const local = JSON.parse(localStorage.getItem("cart")) || [];
-        setLocalCartCount(local.length);
-      } catch {
-        setLocalCartCount(0);
-      }
-    };
 
-    window.addEventListener("cart-updated", update);
-    window.addEventListener("storage", update);
 
-    return () => {
-      window.removeEventListener("cart-updated", update);
-      window.removeEventListener("storage", update);
-    };
-  }, []);
 
   // FINAL COUNT TO SHOW IN BADGE
-  const finalCartCount = localCartCount || cartCount;
+const cartItems = useSelector((state) => state.cart.items);
+
+
 
 
   // --- SCROLL & MOBILE HANDLERS ---
@@ -182,6 +161,7 @@ useEffect(() => {
         });
       }
       
+
       // Author matches
       if (book.author.toLowerCase().includes(q) && !allSuggestions.find(s => s.text === book.author && s.type === 'author')) {
         allSuggestions.push({
@@ -468,6 +448,33 @@ const floatingLogoVisible =
     </div>
   );
 
+  const IconWithTooltip = ({ children, label }) => {
+  return (
+    <div className="relative group flex items-center justify-center">
+      {children}
+
+      {/* Tooltip */}
+      <div
+        className="
+          absolute -bottom-9 left-1/2 -translate-x-1/2
+          whitespace-nowrap
+          
+          bg-[#9B7BB8] text-white text-xs font-medium
+          px-2 py-1 rounded-md
+          opacity-0 scale-95
+          group-hover:opacity-100 group-hover:scale-100
+          transition-all duration-200
+          pointer-events-none
+          hidden lg:block
+        "
+      >
+        {label}
+      </div>
+    </div>
+  );
+};
+
+
   return (
     <>
       {/* Mobile Navbar */}
@@ -502,6 +509,7 @@ const floatingLogoVisible =
         <div className="flex items-center gap-2">
           
           {/* CART */}
+          <IconWithTooltip label="cart">
           <Link
             to="/cart"
             onClick={() => setIsMenuOpen(false)}
@@ -509,12 +517,13 @@ const floatingLogoVisible =
           >
             <ShoppingCart className="w-6 h-6" />
 
-            {finalCartCount > 0 && (
+            {cartCount > 0 && (
               <span className="absolute -top-1 -right-1 bg-gronik-accent text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">
-                {finalCartCount}
+                {cartCount}
               </span>
             )}
           </Link>
+          </IconWithTooltip>
 
           {/* MENU */}
           <button
@@ -587,9 +596,9 @@ const floatingLogoVisible =
                 <span className="flex items-center gap-2">
                   <ShoppingCart className="w-5 h-5" /> Cart
                 </span>
-                {finalCartCount > 0 && (
+                {cartCount > 0 && (
                   <span className="bg-gronik-accent text-white text-xs rounded-full px-2 py-0.5">
-                    {finalCartCount}
+                    {cartCount}
                   </span>
                 )}
               </Link>
@@ -604,7 +613,7 @@ const floatingLogoVisible =
               </Link>
 
               {/* ADMIN BUTTON */}
-              {user?.role_name === "ADMIN" && (
+              {user?.role_name.toUpperCase() === "ADMIN" && (
   <Link
     to="/admin"
     onClick={() => setIsMenuOpen(false)}
@@ -675,12 +684,15 @@ const floatingLogoVisible =
                 </div>
 
 {/* Icons */}
+<IconWithTooltip label="my library">
 <Link
 to="/my-library"
 className="relative p-2 rounded-lg  transition-transform duration-200 hover:-translate-y-2"
 >
 <BookOpen className="w-5 h-5 text-gronik-light" />          
 </Link>
+</IconWithTooltip>
+<IconWithTooltip label="wishlist">
 <Link
   to="/wishlist"
   className="relative p-2 rounded-lg  transition-transform duration-200 hover:-translate-y-2"
@@ -692,26 +704,28 @@ className="relative p-2 rounded-lg  transition-transform duration-200 hover:-tra
     </span>
   )}
 </Link>
-
+</IconWithTooltip>
+<IconWithTooltip label="Cart">
 <Link
   to="/cart"
   className="relative p-2 rounded-lg transition-transform duration-200 hover:-translate-y-2"
 >
   <ShoppingCart className="w-5 h-5 text-gronik-light" />
-  {finalCartCount > 0 && (
+  {cartCount > 0 && (
     <span className="absolute -top-1 -right-1 bg-gronik-accent text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-      {finalCartCount}
+      {cartCount}
     </span>
   )}
 </Link>
-
+</IconWithTooltip>
+<IconWithTooltip label="profile">
 <Link
   to={user ? "/profile" : "/login"}
   className="relative p-2 rounded-lg  transition-transform duration-200 hover:-translate-y-2"
 >
   <User className="w-5 h-5 text-gronik-light" />
 </Link>
-
+</IconWithTooltip>
 
                 {/* Login/Admin Button */}
                 {!user ? (
@@ -721,7 +735,7 @@ className="relative p-2 rounded-lg  transition-transform duration-200 hover:-tra
   >
     Login
   </button>
-) : user.role_name === "ADMIN" ? (
+) : user.role_name.toUpperCase() === "ADMIN" ? (
   <Link
     to="/admin"
     className="px-6 py-2 bg-gradient-to-r from-gronik-accent to-gronik-secondary text-white rounded-lg shadow-lg transition-transform hover:scale-105"

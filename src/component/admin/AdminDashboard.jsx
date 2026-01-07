@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   BookOpen, 
   Users, 
@@ -10,64 +10,122 @@ import {
   TrendingDown
 } from 'lucide-react';
 import AdminLayout from './Adminlayout';
+import { useGetAllBooksQuery } from '../../utils/booksService';
+import { useGetAllOrdersQuery } from '../../utils/orderServices';
+import { useGetAllTransactionsQuery } from '../../utils/paymentService';
+import { getAllUsers } from '../../utils/userServices';
 
 const AdminDashboard = () => {
   const [isLoaded, setIsLoaded] = useState(false);
+  const [usersData, setUsersData] = useState(null);
+  const [usersLoading, setUsersLoading] = useState(true);
 
+  // Fetch data from APIs
+  const { data: booksData, isLoading: booksLoading } = useGetAllBooksQuery({ page: 1, pageSize: 1000 });
+  const { data: ordersData, isLoading: ordersLoading } = useGetAllOrdersQuery({ page: 1, pageSize: 1000 });
+  const { data: transactionsData, isLoading: transactionsLoading } = useGetAllTransactionsQuery({ page: 1, pageSize: 1000 });
+
+  // Fetch users (not using RTK Query)
   useEffect(() => {
-    setIsLoaded(true);
+    const fetchUsers = async () => {
+      try {
+        setUsersLoading(true);
+        const response = await getAllUsers({ page: 1, pageSize: 1000 });
+        setUsersData(response.data);
+      } catch (error) {
+        console.error('Error fetching users:', error);
+      } finally {
+        setUsersLoading(false);
+      }
+    };
+    fetchUsers();
   }, []);
 
-  const stats = [
-    {
-      id: 'books',
-      title: 'Total Books',
-      value: '2,847',
-      change: '+12%',
-      trend: 'up',
-      icon: BookOpen,
-      color: 'from-blue-500 to-blue-600',
-      lightColor: 'bg-blue-500/10',
-      textColor: 'text-blue-400',
-      description: 'Books in library'
-    },
-    {
-      id: 'users',
-      title: 'Active Users',
-      value: '1,234',
-      change: '+8%',
-      trend: 'up',
-      icon: Users,
-      color: 'from-green-500 to-green-600',
-      lightColor: 'bg-green-500/10',
-      textColor: 'text-green-400',
-      description: 'Registered users'
-    },
-    {
-      id: 'sales',
-      title: 'Total Sales',
-      value: '$45,678',
-      change: '+23%',
-      trend: 'up',
-      icon: DollarSign,
-      color: 'from-purple-500 to-purple-600',
-      lightColor: 'bg-purple-500/10',
-      textColor: 'text-purple-400',
-      description: 'Revenue generated'
-    },
-    {
-      id: 'orders',
-      title: 'Orders',
-      value: '856',
-      change: '-3%',
-      trend: 'down',
-      icon: ShoppingCart,
-      color: 'from-orange-500 to-orange-600',
-      lightColor: 'bg-orange-500/10',
-      textColor: 'text-orange-400',
-      description: 'Total orders'
+  useEffect(() => {
+    if (!booksLoading && !ordersLoading && !transactionsLoading && !usersLoading) {
+      setIsLoaded(true);
     }
-  ];
+  }, [booksLoading, ordersLoading, transactionsLoading, usersLoading]);
+
+  // Calculate stats from API data
+  const stats = useMemo(() => {
+    const books = booksData?.data || [];
+    const orders = ordersData?.data || [];
+    const transactions = transactionsData?.data || [];
+    const users = usersData?.data || [];
+
+    // Calculate total sales from transactions
+    const totalSales = transactions.reduce((sum, txn) => {
+      // Amount is in paise, convert to rupees
+      const amountInRupees = (txn.amount || 0) / 100;
+      return sum + amountInRupees;
+    }, 0);
+
+    // Calculate active users (users with is_active === true)
+    const activeUsers = users.filter(user => user.is_active === true).length;
+
+    // Calculate average order value
+    const avgOrderValue = orders.length > 0 
+      ? orders.reduce((sum, order) => sum + (order.final_amount || 0), 0) / orders.length 
+      : 0;
+
+    return [
+      {
+        id: 'books',
+        title: 'Total Books',
+        value: books.length.toLocaleString(),
+        change: '+0%',
+        trend: 'up',
+        icon: BookOpen,
+        color: 'from-blue-500 to-blue-600',
+        lightColor: 'bg-blue-500/10',
+        textColor: 'text-blue-400',
+        description: 'Books in library'
+      },
+      {
+        id: 'users',
+        title: 'Active Users',
+        value: activeUsers.toLocaleString(),
+        change: '+0%',
+        trend: 'up',
+        icon: Users,
+        color: 'from-green-500 to-green-600',
+        lightColor: 'bg-green-500/10',
+        textColor: 'text-green-400',
+        description: 'Registered users'
+      },
+      {
+        id: 'sales',
+        title: 'Total Sales',
+        value: `₹${totalSales.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`,
+        change: '+0%',
+        trend: 'up',
+        icon: DollarSign,
+        color: 'from-purple-500 to-purple-600',
+        lightColor: 'bg-purple-500/10',
+        textColor: 'text-purple-400',
+        description: 'Revenue generated'
+      },
+      {
+        id: 'orders',
+        title: 'Orders',
+        value: orders.length.toLocaleString(),
+        change: '+0%',
+        trend: 'up',
+        icon: ShoppingCart,
+        color: 'from-orange-500 to-orange-600',
+        lightColor: 'bg-orange-500/10',
+        textColor: 'text-orange-400',
+        description: 'Total orders'
+      }
+    ];
+  }, [booksData, ordersData, transactionsData, usersData]);
+
+  const avgOrderValue = useMemo(() => {
+    const orders = ordersData?.data || [];
+    if (orders.length === 0) return 0;
+    return orders.reduce((sum, order) => sum + (order.final_amount || 0), 0) / orders.length;
+  }, [ordersData]);
 
   return (
     <AdminLayout currentPage="Dashboard">
@@ -134,27 +192,33 @@ const AdminDashboard = () => {
               <div className={`mt-12 bg-[#2D1B3D]/90 backdrop-blur-sm rounded-3xl p-8 border-2 border-white/10 transition-all duration-700 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`} style={{ transitionDelay: '600ms' }}>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
                   <div>
-                    <div className="text-white/60 text-sm font-semibold uppercase tracking-wider mb-2">Monthly Growth</div>
-                    <div className="text-3xl font-bold text-white mb-1">+15.3%</div>
+                    <div className="text-white/60 text-sm font-semibold uppercase tracking-wider mb-2">Total Transactions</div>
+                    <div className="text-3xl font-bold text-white mb-1">
+                      {transactionsData?.data?.length || 0}
+                    </div>
                     <div className="flex items-center justify-center space-x-1 text-green-400 text-sm">
                       <ArrowUpRight className="w-4 h-4" />
-                      <span>vs last month</span>
+                      <span>All time</span>
                     </div>
                   </div>
                   <div>
-                    <div className="text-white/60 text-sm font-semibold uppercase tracking-wider mb-2">Conversion Rate</div>
-                    <div className="text-3xl font-bold text-white mb-1">3.2%</div>
+                    <div className="text-white/60 text-sm font-semibold uppercase tracking-wider mb-2">Total Users</div>
+                    <div className="text-3xl font-bold text-white mb-1">
+                      {usersData?.data?.length || 0}
+                    </div>
                     <div className="flex items-center justify-center space-x-1 text-green-400 text-sm">
                       <ArrowUpRight className="w-4 h-4" />
-                      <span>+0.8% increase</span>
+                      <span>Registered</span>
                     </div>
                   </div>
                   <div>
                     <div className="text-white/60 text-sm font-semibold uppercase tracking-wider mb-2">Avg Order Value</div>
-                    <div className="text-3xl font-bold text-white mb-1">$53.40</div>
+                    <div className="text-3xl font-bold text-white mb-1">
+                      ₹{avgOrderValue.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                    </div>
                     <div className="flex items-center justify-center space-x-1 text-orange-400 text-sm">
                       <ArrowDownRight className="w-4 h-4" />
-                      <span>-2.1% decrease</span>
+                      <span>Per order</span>
                     </div>
                   </div>
                 </div>

@@ -26,6 +26,7 @@ import OrdersManagement from './component/admin/OrdersManagement';
 import Transactions from './component/admin/Transactions'; // ADD THIS
 import SettingsPage from './component/admin/Settings';
 import CheckoutSection from './component/pages/CheckoutSection';
+import PaymentCallback from './component/pages/PaymentCallback';
 import AdminLogin from './component/admin/AdminLogin';
 import NotFound from './component/pages/NotFound';
 import LoadingSpinner from './component/layout/LoadingSpinner';
@@ -518,6 +519,7 @@ const handleAddToWishlist = async (book) => {
         <Route path="/my-library" element={<MyLibrarySection />} />
         <Route path="/login" element={<LoginSection />} />
         <Route path="/checkout" element={<CheckoutSection cart={cart} />} />
+        <Route path="/payment-callback/:orderId/userId/:userId" element={<PaymentCallback />} />
         <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
         <Route path="/privacy-policy" element={<PrivacyPolicy/>} />
         
@@ -525,12 +527,60 @@ const handleAddToWishlist = async (book) => {
         <Route path="/admin-login" element={<AdminLogin />} />
         
         {/* Admin Routes */}
-        <Route path="/admin" element={<AdminDashboard />} />
-        <Route path="/admin/books" element={<BooksManagement />} />
-        <Route path="/admin/users" element={<UsersManagement />} />
-        <Route path="/admin/orders" element={<OrdersManagement />} />
-        <Route path="/admin/transactions" element={<Transactions />} /> {/* ADD THIS LINE */}
-        <Route path="/admin/settings" element={<SettingsPage />} />
+       <Route
+  path="/admin"
+  element={
+    user?.role_name === "Admin"
+      ? <AdminDashboard />
+      : <AccessDenied />
+  }
+/>
+
+<Route
+  path="/admin/books"
+  element={
+    user?.role_name === "Admin"
+      ? <BooksManagement />
+      : <AccessDenied />
+  }
+/>
+
+<Route
+  path="/admin/users"
+  element={
+    user?.role_name === "Admin"
+      ? <UsersManagement />
+      : <AccessDenied />
+  }
+/>
+
+<Route
+  path="/admin/orders"
+  element={
+    user?.role_name === "Admin"
+      ? <OrdersManagement />
+      : <AccessDenied />
+  }
+/>
+
+<Route
+  path="/admin/transactions"
+  element={
+    user?.role_name === "Admin"
+      ? <Transactions />
+      : <AccessDenied />
+  }
+/>
+
+<Route
+  path="/admin/settings"
+  element={
+    user?.role_name === "Admin"
+      ? <SettingsPage />
+      : <AccessDenied />
+  }
+/>
+
         
         <Route path="/access-denied" element={<AccessDenied />} />
         <Route path="*" element={<NotFound />} />

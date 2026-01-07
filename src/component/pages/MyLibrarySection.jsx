@@ -1,34 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, BookOpen, Play, Bookmark, Share2, Star, XCircle, Download } from 'lucide-react';
 import { useRef } from 'react';
+import { useSelector } from 'react-redux';
 
 
-const sectionChapters = {
-  s1: [
-    {
-      id: 'c1',
-      title: 'Overview',
-      pages: 12,
-      image: 'https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?w=300'
-    },
-    {
-      id: 'c2',
-      title: 'Background',
-      pages: 18,
-      image: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?w=300'
-    },
-  ],
 
-  s2: [
-    {
-      id: 'c1',
-      title: 'Desire Defined',
-      pages: 10,
-      image: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=300'
-    },
-  ],
-};
 
 
 const ViewToggle = ({ value, onChange }) => {
@@ -108,125 +85,39 @@ const [currentBook, setCurrentBook] = useState(null); // null = library view
   const [reviewText, setReviewText] = useState('');
   const [reviewSuccess, setReviewSuccess] = useState(false);
   const reviewInputRef = useRef();
+const [books, setBooks] = useState([]);
+const [loading, setLoading] = useState(true);
+const [error, setError] = useState(null);
 
+ const user = useSelector(state => state.userAuth.user);
+  const userId = user?.guid;
 
-const bookSections = {
-  1: [
-    { id: 's1', title: 'Introduction', pages: 30 },
-    { id: 's2', title: 'Desire', pages: 22 },
-    { id: 's3', title: 'Faith', pages: 28 },
-  ],
-};
+  
 
+ useEffect(() => {
+  async function fetchOrders() {
+    try {
+      setLoading(true);
 
+      const res = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/order/getAllOrdersByUserId/${userId}`
+      );
+      const json = await res.json();
 
-  // Mock library data - in real app this would come from API
-  const [libraryBooks] = useState([
-    {
-      id: 1,
-      title: "Think and Grow Rich",
-      author: "Napoleon Hill",
-      category: "Self Development",
-      image: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=300&h=400&fit=crop",
-      format: "E-Book",
-      fileSize: "2.4 MB",
-      pages: 320,
-      rating: 4.8,
-      reviews: 234,
-      purchaseDate: "2024-01-15",
-      lastRead: "2024-01-20",
-      progress: 65, // percentage read
-      isBookmarked: true,
-      readUrl: "#",
-      downloadUrl: "#",
-      description: "Transform your mindset and unlock the secrets to wealth and success.",
-      tags: ["Success", "Mindset", "Wealth", "Motivation"]
-    },
-    {
-      id: 2,
-      title: "48 Laws of Power",
-      author: "Robert Greene",
-      category: "Psychology",
-      image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&h=400&fit=crop",
-      format: "E-Book",
-      fileSize: "3.1 MB",
-      pages: 452,
-      rating: 4.6,
-      reviews: 189,
-      purchaseDate: "2024-01-15",
-      lastRead: "2024-01-18",
-      progress: 45,
-      isBookmarked: false,
-      readUrl: "#",
-      // no downloadUrl for this one
-      description: "Master the art of power and influence in every aspect of life.",
-      tags: ["Power", "Influence", "Strategy", "Leadership"]
-    },
-    {
-      id: 3,
-      title: "Atomic Habits",
-      author: "James Clear",
-      category: "Productivity",
-      image: "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=300&h=400&fit=crop",
-      format: "E-Book",
-      fileSize: "2.8 MB",
-      pages: 320,
-      rating: 4.9,
-      reviews: 456,
-      purchaseDate: "2024-01-15",
-      lastRead: "2024-01-22",
-      progress: 85,
-      isBookmarked: true,
-      readUrl: "#",
-      downloadUrl: "#",
-      description: "Build good habits, break bad ones, and get 1% better every day.",
-      tags: ["Habits", "Productivity", "Self-Improvement", "Behavior"]
-    },
-    {
-      id: 4,
-      title: "The 7 Habits of Highly Effective People",
-      author: "Stephen Covey",
-      category: "Self Development",
-      image: "https://images.unsplash.com/photo-1532012197267-da84d127e765?w=300&h=400&fit=crop",
-      format: "E-Book",
-      fileSize: "2.9 MB",
-      pages: 381,
-      rating: 4.7,
-      reviews: 312,
-      purchaseDate: "2024-01-10",
-      lastRead: "2024-01-12",
-      progress: 30,
-      isBookmarked: false,
-      // no readUrl or downloadUrl
-      description: "A powerful lesson in personal change and effectiveness.",
-      tags: ["Effectiveness", "Leadership", "Personal Development", "Success"]
-    },
-    {
-      id: 5,
-      title: "Mindset: The New Psychology of Success",
-      author: "Carol Dweck",
-      category: "Psychology",
-      image: "https://images.unsplash.com/photo-1553729459-efe14ef6055d?w=300&h=400&fit=crop",
-      format: "E-Book",
-      fileSize: "2.2 MB",
-      pages: 288,
-      rating: 4.5,
-      reviews: 278,
-      purchaseDate: "2024-01-10",
-      lastRead: "2024-01-15",
-      progress: 55,
-      isBookmarked: true,
-      // only downloadUrl
-      downloadUrl: "#",
-      description: "Learn how to fulfill your potential with the right mindset.",
-      tags: ["Mindset", "Psychology", "Growth", "Success"]
+      console.log("ORDERS RESPONSE:", json);
+
+    } catch (err) {
+      console.error(err);
+      setError("Failed to fetch orders");
+    } finally {
+      setLoading(false);
     }
-  ]);
+  }
 
-  // Sort by purchase date (most recent first)
-  const sortedBooks = [...libraryBooks].sort((a, b) => {
-    return new Date(b.purchaseDate) - new Date(a.purchaseDate);
-  });
+  fetchOrders();
+}, []);
+
+
 
   // const handleReadBook = (book) => {
   //   // Navigate to a reading interface or open book viewer
@@ -305,14 +196,37 @@ const bookSections = {
 
 
         {/* Books List or Empty State */}
-      {!currentBook ? (
+    {!currentBook ? (
   <div className="bg-[#2D1B3D]/95 rounded-3xl shadow-2xl overflow-hidden">
-    {viewMode === 'grid'
-      ? <GridView books={sortedBooks} onSelect={openBook} />
-      : <ListView books={sortedBooks} onSelect={openBook} />
-    }
+
+    {/* EMPTY STATE */}
+    {!loading && books.length === 0 ? (
+      <div className="flex flex-col items-center justify-center py-24 text-center px-6">
+        <BookOpen className="w-16 h-16 text-white/40 mb-4" />
+        <h2 className="text-xl font-semibold text-white mb-2">
+          Your library is empty
+        </h2>
+        <p className="text-white/60 mb-6 max-w-md">
+          You haven’t purchased any books yet. Explore our collection and start learning.
+        </p>
+        <button
+          onClick={() => navigate('/library')}
+          className="px-6 py-3 rounded-xl
+                     bg-[#9B7BB8] text-white font-medium
+                     hover:bg-[#8A6AA7] transition"
+        >
+          Explore Library
+        </button>
+      </div>
+    ) : (
+      viewMode === 'grid'
+        ? <GridView books={books} onSelect={openBook} />
+        : <ListView books={books} onSelect={openBook} />
+    )}
+
   </div>
 ) : (
+
   <>
     {/* Breadcrumb */}
     <div className="flex items-center justify-between mb-4">
@@ -356,20 +270,20 @@ const bookSections = {
 {!currentSection ? (
   viewMode === 'grid' ? (
     <SectionGrid
-      sections={bookSections[currentBook.id] || []}
+      sections={currentBook.sections || []}
       setCurrentSection={setCurrentSection}
     />
   ) : (
     <SectionList
-      sections={bookSections[currentBook.id] || []}
+      sections={currentBook.sections || []}
       setCurrentSection={setCurrentSection}
     />
   )
 ) : (
   viewMode === 'grid' ? (
-    <ChapterGrid chapters={sectionChapters[currentSection.id] || []} />
+    <ChapterGrid chapters={currentSection.chapters || []} />
   ) : (
-    <ChapterList chapters={sectionChapters[currentSection.id] || []} />
+    <ChapterList chapters={currentSection.chapters || []} />
   )
 )}
 
@@ -659,7 +573,7 @@ const ChapterGrid = ({ chapters }) => {
     <div className="grid grid-cols-[repeat(auto-fill,150px)] gap-6">
       {chapters.map((chapter, index) => (
         <div
-          key={chapter.id}
+         key={chapter._id}
           className="bg-[#3A2450] rounded-xl hover:bg-[#4A2F66]
                      transition cursor-pointer"
         >
@@ -700,7 +614,7 @@ const ChapterList = ({ chapters }) => {
     <div className="space-y-2">
       {chapters.map((chapter, index) => (
         <div
-          key={chapter.id}
+          key={chapter._id}
           className="w-full flex items-center gap-4
                      px-4 py-4 rounded-xl
                      bg-[#3A2450]/70 hover:bg-[#4A2F66]

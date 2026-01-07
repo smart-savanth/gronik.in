@@ -7,6 +7,7 @@ import { booksApi } from './utils/booksService';
 import { cartApi } from './utils/cartService';
 import { productApi } from './utils/productServices';
 import { orderApi } from './utils/orderServices';
+import { paymentApi } from './utils/paymentService';
 
 
 const store = configureStore({
@@ -19,13 +20,15 @@ const store = configureStore({
     [cartApi.reducerPath]: cartApi.reducer, 
     [productApi.reducerPath]: productApi.reducer,
     [orderApi.reducerPath]: orderApi.reducer,
+     [paymentApi.reducerPath]: paymentApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware()
       .concat(booksApi.middleware)
       .concat(cartApi.middleware)
       .concat(productApi.middleware)
-      .concat(orderApi.middleware),
+      .concat(orderApi.middleware)
+      .concat(paymentApi.middleware),
 });
 
 export default store;

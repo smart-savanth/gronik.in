@@ -1,5 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
+import { useSelector } from 'react-redux';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { ShoppingBag, CheckCircle, ArrowLeft, ArrowRight, Smile } from 'lucide-react';
+import { useSavePaymentMutation } from '../../utils/paymentService';
+import { useSaveOrderMutation } from '../../utils/orderServices';
+
 
 // 3 steps: Cart → Review → Success (Payment removed)
 const steps = [
@@ -9,8 +14,22 @@ const steps = [
 ];
 
 const CheckoutSection = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
+
   const [cart, setCart] = useState([]);
   const [transactionError, setTransactionError] = useState("");
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [isCheckingPayment, setIsCheckingPayment] = useState(false);
+
+  // Get user ID from Redux (same as App.js)
+  const user = useSelector(state => state.userAuth.user);
+  const userId = user?.guid;
+
+  // API hooks
+  const [savePayment] = useSavePaymentMutation();
+  const [saveOrder] = useSaveOrderMutation();
 
   React.useEffect(() => {
     const stored = JSON.parse(localStorage.getItem("cart")) || [];
@@ -28,52 +47,144 @@ const CheckoutSection = () => {
   const [step, setStep] = useState(1);
   const [orderPlaced, setOrderPlaced] = useState(false);
 
-  const subtotal = cart.reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0);
-  const savings = cart.reduce((sum, item) => sum + ((item.originalPrice - item.price) * (item.quantity || 1)), 0);
-  const total = subtotal;
+  const subtotal = cart.reduce((sum, item) => {
+    const price = parseFloat(item.price) || 0;
+    const quantity = parseInt(item.quantity) || 1;
+    return sum + (price * quantity);
+  }, 0);
+  const savings = cart.reduce((sum, item) => {
+    const originalPrice = parseFloat(item.originalPrice) || 0;
+    const price = parseFloat(item.price) || 0;
+    const quantity = parseInt(item.quantity) || 1;
+    return sum + ((originalPrice - price) * quantity);
+  }, 0);
+  // Calculate total as a number (don't use toFixed here - that returns a string)
+  const total = Math.round(subtotal * 100) / 100; // Round to 2 decimals without converting to string
 
   const handleNext = () => {
     setStep(s => Math.min(s + 1, steps.length));
   };
   
   const handleBack = () => setStep(s => Math.max(s - 1, 1));
- const handlePlaceOrder = async () => {
+const handlePlaceOrder = async () => {
   setTransactionError("");
+  setIsProcessing(true);
 
-  // 1) Start fake payment
-  const payment = await simulateTransaction();
+  try {
+    if (!userId) {
+      setTransactionError("Please login to place an order.");
+      return;
+    }
 
-  if (payment.status === "success") {
-    // 2) Clear cart
-    localStorage.setItem("cart", JSON.stringify([]));
-    window.dispatchEvent(new Event("storage"));
+    if (!cart.length) {
+      setTransactionError("Your cart is empty.");
+      return;
+    }
 
-    // 3) Go to success screen
-    setOrderPlaced(true);
-    setStep(3);
-    
-  } else {
-    // 4) Payment failed (do NOT clear cart)
-    setTransactionError("Transaction failed. Please try again.");
+    const productIds = cart
+      .map(i => i.id || i.productId || i._id)
+      .filter(Boolean);
+
+    const amount = Number(total);
+    if (!amount || amount <= 0) {
+      setTransactionError("Invalid order total.");
+      return;
+    }
+
+    const res = await savePayment({
+      userId,
+      amount,
+      productId: productIds[0],
+    }).unwrap();
+
+    if (!res?.success || !res?.data) {
+      setTransactionError("Unable to start payment.");
+      return;
+    }
+
+    // 🔐 Store data BEFORE redirect
+    localStorage.setItem(
+      "pendingPayment",
+      JSON.stringify({
+        userId,
+        productIds,
+        orderId: res.data, // backend orderId
+        createdAt: Date.now(),
+      })
+    );
+
+    // 🚀 Redirect to PhonePe
+    window.location.href = res.data;
+
+  } catch (e) {
+    console.error(e);
+    setTransactionError("Payment initiation failed.");
+  } finally {
+    setIsProcessing(false);
   }
 };
 
 
-  const simulateTransaction = async () => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
 
-        const success = false; // transaction api should be added here
-  
-        if (success) {
-          resolve({ status: "success", transactionId: "TXN" + Date.now() });
-        } else {
-          resolve({ status: "failed" });
-        }
-      }, 1500); 
-    });
+  // Function to save order after successful payment
+React.useEffect(() => {
+  const verifyPayment = async () => {
+    const pendingStr = localStorage.getItem("pendingPayment");
+    if (!pendingStr) return;
+
+    const pending = JSON.parse(pendingStr);
+
+    setIsCheckingPayment(true);
+    setTransactionError("");
+
+    try {
+      const res = await fetch(
+        `https://dev-api.gronik.in/payment/checkStatus/${pending.orderId}/userId/${pending.userId}`
+      );
+      const result = await res.json();
+
+      // ✅ PAYMENT SUCCESS
+      if (result?.success && result?.data?.status === "COMPLETED") {
+        // 👉 Move to SUCCESS tab
+        setStep(3);
+        setOrderPlaced(true);
+
+        // 🔥 SAVE ORDER ONLY HERE
+        await saveOrder({
+          userId: pending.userId,
+          paymentId: pending.orderId,
+          productIds: pending.productIds,
+        }).unwrap();
+
+        localStorage.removeItem("pendingPayment");
+        localStorage.setItem("cart", JSON.stringify([]));
+        window.dispatchEvent(new Event("storage"));
+      }
+
+      // ❌ PAYMENT FAILED
+      else {
+        localStorage.removeItem("pendingPayment");
+        setStep(2);
+        setTransactionError("Payment failed or was cancelled.");
+      }
+    } catch (err) {
+      console.error(err);
+      localStorage.removeItem("pendingPayment");
+      setStep(2);
+      setTransactionError("Unable to verify payment. Please try again.");
+    } finally {
+      setIsCheckingPayment(false);
+    }
   };
-  
+
+  if (location.pathname === "/checkout") {
+    verifyPayment();
+  }
+}, [location.pathname, saveOrder]);
+
+
+
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#9B7BB8] to-[#8A6AA7] w-full px-2 sm:px-4 md:px-6 lg:px-8 flex flex-col items-center pt-24 sm:pt-28 md:pt-32 pb-12 sm:pb-16 md:pb-20">
@@ -190,6 +301,12 @@ const CheckoutSection = () => {
               Review & Confirm
             </h2>
             
+            {isCheckingPayment && (
+              <div className="bg-blue-500/20 border border-blue-500/40 text-blue-300 p-3 rounded-lg text-center mb-4">
+                Verifying payment status...
+              </div>
+            )}
+            
             <div className="space-y-4 mb-6">
               {/* Order Items */}
               <div className="bg-[#9B7BB8]/10 rounded-xl p-4">
@@ -208,6 +325,11 @@ const CheckoutSection = () => {
               {transactionError && (
                 <div className="bg-red-500/20 border border-red-500/40 text-red-300 p-3 rounded-lg text-center mt-3">
                   {transactionError}
+                </div>
+              )}
+              {!userId && (
+                <div className="bg-yellow-500/20 border border-yellow-500/40 text-yellow-300 p-3 rounded-lg text-center mt-3">
+                  Please login to place an order.
                 </div>
               )}
               <div className="bg-[#9B7BB8]/10 rounded-xl p-4">
@@ -249,10 +371,11 @@ const CheckoutSection = () => {
                 Back
               </button>
               <button 
-                onClick={handlePlaceOrder} 
-                className="flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 rounded-lg bg-gradient-to-r from-green-500 to-green-600 text-white font-bold hover:from-green-600 hover:to-green-700 transition text-sm sm:text-base"
+                onClick={handlePlaceOrder}
+                disabled={isProcessing || !userId}
+                className="flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 rounded-lg bg-gradient-to-r from-green-500 to-green-600 text-white font-bold hover:from-green-600 hover:to-green-700 transition text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Place Order
+                {isProcessing ? "Processing..." : "Place Order"}
                 <CheckCircle className="w-4 h-4" />
               </button>
             </div>

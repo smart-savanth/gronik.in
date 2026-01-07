@@ -1,14 +1,8 @@
 import React, { useState } from 'react';
 import { Receipt, Search, Check, X, Filter, Calendar, Download, Clock, CreditCard, Eye } from 'lucide-react';
 import AdminLayout from './Adminlayout';
+import { useGetAllTransactionsQuery } from '../../utils/paymentService';
 
-const sampleTransactions = [
-  { id: 'TXN-001', orderId: '#ORD-001', customer: 'Alice Johnson', amount: '$29.99', method: 'Credit Card', cardLast4: '4242', status: 'completed', date: '2024-06-08', email: 'alice@example.com' },
-  { id: 'TXN-002', orderId: '#ORD-002', customer: 'Bob Smith', amount: '$34.99', method: 'PayPal', cardLast4: null, status: 'pending', date: '2024-06-08', email: 'bob@example.com' },
-  { id: 'TXN-003', orderId: '#ORD-003', customer: 'Carol Brown', amount: '$24.99', method: 'Credit Card', cardLast4: '5555', status: 'completed', date: '2024-06-07', email: 'carol@example.com' },
-  { id: 'TXN-004', orderId: '#ORD-004', customer: 'David Wilson', amount: '$39.99', method: 'Debit Card', cardLast4: '1234', status: 'failed', date: '2024-06-06', email: 'david@example.com' },
-  { id: 'TXN-005', orderId: '#ORD-005', customer: 'Emma Davis', amount: '$44.99', method: 'Credit Card', cardLast4: '9876', status: 'completed', date: '2024-06-05', email: 'emma@example.com' },
-];
 
 const statusColors = {
   completed: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-emerald-500/20',
@@ -19,16 +13,37 @@ const statusColors = {
 const Transactions = () => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [transactions, setTransactions] = useState(sampleTransactions);
+const { data, isLoading, isError } = useGetAllTransactionsQuery({
+  page: 1,
+  pageSize: 10,
+});
+const transactions = (data?.data || []).map((txn) => ({
+  id: txn.guid,
+  orderId: txn.payment_gateway_id,
+  customer: txn.user_id.slice(0, 8) + '…',
+  email: '—',
+  amount: `₹${txn.amount}`,
+  method: txn.payment_mode,
+  cardLast4: null,
+  status: txn.status,
+  date: txn.created_at
+    ? new Date(txn.created_at).toISOString().split('T')[0]
+    : '—',
+}));
 
-  const filteredTransactions = transactions.filter(transaction => {
-    const matchesSearch =
-      transaction.customer.toLowerCase().includes(search.toLowerCase()) ||
-      transaction.id.toLowerCase().includes(search.toLowerCase()) ||
-      transaction.orderId.toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || transaction.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+
+  const filteredTransactions = transactions.filter((transaction) => {
+  const matchesSearch =
+    transaction.customer.toLowerCase().includes(search.toLowerCase()) ||
+    transaction.id.toLowerCase().includes(search.toLowerCase()) ||
+    transaction.orderId.toLowerCase().includes(search.toLowerCase());
+
+  const matchesStatus =
+    statusFilter === 'all' || transaction.status === statusFilter;
+
+  return matchesSearch && matchesStatus;
+});
+
 
   const getStatusIcon = (status) => {
     switch (status) {
@@ -42,6 +57,27 @@ const Transactions = () => {
   const handleViewTransaction = (transaction) => {
     alert(`Transaction Details:\n\nID: ${transaction.id}\nOrder: ${transaction.orderId}\nCustomer: ${transaction.customer}\nEmail: ${transaction.email}\nAmount: ${transaction.amount}\nMethod: ${transaction.method}${transaction.cardLast4 ? `\nCard: •••• ${transaction.cardLast4}` : ''}\nStatus: ${transaction.status}\nDate: ${transaction.date}`);
   };
+
+  if (isLoading) {
+  return (
+    <AdminLayout currentPage="Transactions">
+      <div className="text-center text-white py-20 text-lg">
+        Loading transactions…
+      </div>
+    </AdminLayout>
+  );
+}
+
+if (isError) {
+  return (
+    <AdminLayout currentPage="Transactions">
+      <div className="text-center text-red-400 py-20 text-lg">
+        Failed to load transactions
+      </div>
+    </AdminLayout>
+  );
+}
+
 
   return (
     <AdminLayout currentPage="Transactions">

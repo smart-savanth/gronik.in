@@ -52,6 +52,7 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
   const ensureArray = (val) => Array.isArray(val) ? val : [];
 
 
+const learningObjectives = ensureArray(raw.what_you_will_learn);
 
 
 
@@ -77,14 +78,33 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
   const title = safeText(raw.title || raw.book_name, "Untitled Book");
   const author = safeText(raw.author || raw.author_name, "Unknown Author");
 
+  // Resolve absolute URLs for images (cover + carousels)
+  const toAbsoluteUrl = (url) => {
+    if (!url) return null;
+    if (/^https?:\/\//i.test(url)) return url;
+    const base = process.env.REACT_APP_BASE_URL || '';
+    const trimmedBase = base.replace(/\/$/, '');
+    const trimmedUrl = url.replace(/^\//, '');
+    return `${trimmedBase}/${trimmedUrl}`;
+  };
+
   const image =
-    raw.coverImageUrl ||
-    raw.image ||
+    toAbsoluteUrl(raw.coverImageUrl) ||
+    toAbsoluteUrl(raw.image) ||
     "/images/book-placeholder.jpg";
-const images =
-  ensureArray(raw.carousels).length
-    ? raw.carousels
-    : [image];
+
+// normalize carousels WITH description
+const carousels = ensureArray(raw.carousels)
+  .map(c => ({
+    image: toAbsoluteUrl(c.courselImageUrl),
+    description: safeText(c.description, ""),
+  }))
+  .filter(c => c.image);
+
+// keep images array ONLY for thumbnails
+const images = carousels.map(c => c.image);
+
+
 
   const price = safeNumber(
     raw.final_price || raw.price || raw.sellingPrice,
@@ -130,13 +150,7 @@ const pages = safeNumber(raw.totalPages, 200);
   // Normalize Chapters
   // (from raw.chapters)
   // -----------------------------
-  const chapters = ensureArray(raw.chapters).map((c, i) => ({
-    chapterNumber: c.chapterNumber || i + 1,
-    title: safeText(c.title, `Chapter ${i + 1}`),
-    pdfUrl: c.pdfUrl || c.pdf || null,
-    thumbnail: c.thumbnail || null,
-    pages: Number(c.pages) || 0,   
-  }));
+ 
 
   const defaultChapters = [
     {
@@ -148,7 +162,7 @@ const pages = safeNumber(raw.totalPages, 200);
     },
   ];
 
-  const normalizedChapters = chapters.length ? chapters : defaultChapters;
+
 
   // -----------------------------
   // Normalize Table of Contents
@@ -156,13 +170,10 @@ const pages = safeNumber(raw.totalPages, 200);
   // -----------------------------
 const tableOfContents = ensureArray(raw.sections).map((section, i) => ({
   sectionTitle: safeText(section.title, `Section ${i + 1}`),
-
   chapters: ensureArray(section.chapters).map((ch, j) => ({
     chapterNumber: j + 1,
     title: safeText(ch.title, `Chapter ${j + 1}`),
-    pages: Number(ch.pages) || 0,          // ✅ THIS WAS MISSING
-    pdfUrl: ch.pdfUrl || ch.pdf || null,
-    thumbnail: ch.thumbnail || null,
+    pages: Number(ch.pages ?? 0), // ✅ KEEP ZERO
   })),
 }));
 
@@ -187,30 +198,34 @@ const tableOfContents = ensureArray(raw.sections).map((section, i) => ({
   // FINAL NORMALIZED OBJECT
   // -----------------------------
 
-  return {
-    id,
-    title,
-    author,
-    image,
-    images,
-    price,
-    originalPrice,
-    rating,
-    category,
-    description,
-    fullDescription,
-    pages,
-    readingTime,
-    language,
-    publishDate,
-    format,
-    chapters: normalizedChapters,
-    tableOfContents: normalizedToC,
+return {
+  id,
+  title,
+  author,
+  image,
 
-    // extra safe flags
-    inStock: raw.inStock ?? true,
-    totalSales: raw.totalSales || Math.floor(Math.random() * 20000) + 5000,
-  };
+  // ✅ ADD THESE TWO LINES
+  images,
+  carousels,
+
+  price,
+  originalPrice,
+  rating,
+  category,
+  description,
+  fullDescription,
+  pages,
+  readingTime,
+  language,
+  publishDate,
+  format,
+  tableOfContents: normalizedToC,
+  learningObjectives,
+  inStock: raw.inStock ?? true,
+  totalSales: raw.totalSales || Math.floor(Math.random() * 20000) + 5000,
+};
+
+
 };
 
   // Carousel data
@@ -231,9 +246,22 @@ const { data: productData, isLoading } = useGetBookByIdQuery(productId);
   // Get product data from centralized books data
  
   const enhancedProductData = normalizeProduct(productData, productId);
+  useEffect(() => {
+  if (!enhancedProductData?.tableOfContents?.length) return;
+
+  const initialExpanded = {};
+  enhancedProductData.tableOfContents.forEach((_, index) => {
+    initialExpanded[index] = true;
+  });
+
+  setExpandedSections(initialExpanded);
+}, [enhancedProductData?.tableOfContents?.length]);
 
 
-const carouselImages = enhancedProductData?.images || [];
+console.log(enhancedProductData)
+const carouselItems = enhancedProductData?.carousels || [];
+const carouselImages = carouselItems.map(c => c.image);
+
 
 
  const suggestedBooks =
@@ -445,8 +473,8 @@ const handleSuggestedBookClick = (book) => {
   window.matchMedia("(hover: none), (pointer: coarse)").matches;
 
 
-
-
+const currentCarousel = carouselItems[currentCarouselIndex];
+console.log(currentCarousel)
   return (
     <div className="-mt-16 min-h-screen bg-gradient-to-br from-[#2D1B3D] via-[#4A3B5C] to-[#9B7BB8] relative">
       {/* Background Pattern */}
@@ -593,7 +621,12 @@ const handleSuggestedBookClick = (book) => {
                   <div className="absolute -inset-4 bg-black/20 rounded-3xl blur-2xl transform rotate-1"></div>
                   <div className="relative bg-gradient-to-br from-white to-gray-100 rounded-2xl overflow-hidden shadow-2xl transform hover:scale-105 transition-all duration-500 hover:shadow-3xl">
                     <div className="aspect-[3/4] relative">
-                      <img src={enhancedProductData.images[selectedImageIndex]} alt={enhancedProductData.title} className="w-full h-full object-cover" />
+                     <img
+                        src={enhancedProductData.image}
+                        alt={enhancedProductData.title}
+                        className="w-full h-full object-cover"
+                      />
+
                       <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent"></div>
                     </div>
                   </div>
@@ -602,7 +635,8 @@ const handleSuggestedBookClick = (book) => {
 
               {/* Thumbs */}
               <div className="flex justify-center space-x-2 mt-2">
-                {enhancedProductData.images.map((image, index) => (
+                {enhancedProductData.images.length > 0 &&
+  enhancedProductData.images.map((image, index) => (
                   <button
                     key={index}
                     onClick={() => setSelectedImageIndex(index)}
@@ -785,7 +819,7 @@ const handleSuggestedBookClick = (book) => {
                                  boxShadow: '0 6px 24px rgba(255, 233, 179, 0.4), 0 10px 48px rgba(255, 233, 179, 0.3), 0 3px 12px rgba(255, 247, 193, 0.35)'
                                }}>
                             <img 
-                             src={enhancedProductData.images[currentCarouselIndex]}
+                             src={currentCarousel?.image}
                               alt="Book"
                               className="w-full h-full object-cover"
                             />
@@ -796,7 +830,7 @@ const handleSuggestedBookClick = (book) => {
                       {/* Book Description - Right Side */}
                       <div className="flex-1 text-center lg:text-left max-w-2xl">
                         <p className="text-base sm:text-lg lg:text-xl text-white leading-relaxed font-medium">
-                          {enhancedProductData.description}
+                          {currentCarousel?.description || enhancedProductData.description}
                         </p>
                       </div>
                     </div>
@@ -841,14 +875,7 @@ const handleSuggestedBookClick = (book) => {
                 <div className="w-20 sm:w-24 h-1 bg-[#2D1B3D]/60 mx-auto"></div>
               </div>
               <div className="space-y-3 sm:space-y-6">
-                {(enhancedProductData.learningObjectives || [
-                  "Master modern web development frameworks and tools",
-                  "Learn responsive design principles and best practices",
-                  "Understand advanced JavaScript concepts and ES6+ features",
-                  "Build scalable and maintainable applications",
-                  "Implement security best practices in web applications",
-                  "Deploy applications to production environments"
-                ]).map((objective, index) => (
+                {enhancedProductData.learningObjectives.map((objective, index) => (
                   <div key={index} className="bg-[#2D1B3D]/70 backdrop-blur-md border-[#2D1B3D]/30 shadow-xl rounded-xl sm:rounded-2xl p-4 sm:p-6 border transition-all duration-300">
                     <div className="flex items-start space-x-3 sm:space-x-4">
                       <div className="bg-[#9B7BB8] text-[#2D1B3D] w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-bold text-xs sm:text-sm flex-shrink-0">{index + 1}</div>
@@ -866,7 +893,7 @@ const handleSuggestedBookClick = (book) => {
     <div className="flex justify-between items-center mb-4 text-sm text-[#2D1B3D]/80">
       <span>
         {enhancedProductData.tableOfContents.length||0} sections •{" "}
-        {enhancedProductData.totalPages} pages
+        {enhancedProductData.pages} pages
       </span>
 
       <button

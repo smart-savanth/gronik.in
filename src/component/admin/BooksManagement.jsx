@@ -1,5 +1,16 @@
 import React, { useState } from 'react';
 import AdminLayout from './Adminlayout';
+import { useUpdateBookWithCarousalMutation } from '../../utils/productServices';
+import {
+  useGetAllBooksQuery,
+  useGetBookByIdQuery,
+  useUpdateBookMutation,
+  useSaveBookMutation,
+  useUploadCoverMutation,
+   useUploadCarouselMutation,
+   useUploadAssetsMutation,
+   useDeleteBookMutation,
+}  from '../../utils/booksService'
 import {
   BookOpen,
   Plus,
@@ -17,42 +28,40 @@ import {
   FileText,
   Image as ImageIcon
 } from 'lucide-react';
+const logFormData = (label, formData) => {
+  console.group(`🧾 ${label}`);
+  for (let pair of formData.entries()) {
+    console.log(pair[0], pair[1]);
+  }
+  console.groupEnd();
+};
 
 const categories = ['All', 'Self Development', 'Technology', 'Business', 'Science', 'Health'];
 
 // DUMMY DATA
-const initialBooks = [
-  {
-    id: 1,
-    title: 'Think and Grow Rich',
-    author: 'Napoleon Hill',
-    category: 'Self Development',
-    price: 150,
-    originalPrice: 200,
-    pages: 211,
-    rating: 4.8,
-    mainImagePdf: null,
-    mainImagePdfName: 'book-cover.pdf',
-    isFeatured: true,
-    isHero: false,
-    overviewDescription: 'Transform your mindset and unlock the secrets to wealth and success.',
-    carouselItems: [
-      { imagePdf: null, imagePdfName: 'carousel1.pdf', description: 'Master the art of power and influence.' }
-    ],
-    learningPoints: ['Master modern development', 'Learn responsive design'],
-    sections: [
-      {
-        title: 'Introduction',
-        chapters: [
-          { title: 'Chapter 1', thumbnailPdf: null, thumbnailPdfName: 'thumb1.pdf', chapterPdf: null, chapterPdfName: 'chapter1.pdf' }
-        ]
-      }
-    ]
-  }
-];
 
 const BooksManagement = () => {
-  const [books, setBooks] = useState(initialBooks);
+  
+  const { data, isLoading } = useGetAllBooksQuery({ page: 1, pageSize: 50 });
+const [updateBook] = useUpdateBookMutation();
+const [deleteBook] = useDeleteBookMutation();
+
+const books = data?.data || [];
+
+  const [uploadAssets] = useUploadAssetsMutation();
+  const [uploadCarousel] = useUploadCarouselMutation();
+  const [createdBook, setCreatedBook] = useState({
+  id: null,
+  slug: null,
+});
+  const [saveBook] = useSaveBookMutation();
+const [uploadCover] = useUploadCoverMutation();
+
+  // NEW – required for saveBook API
+const [oneLineDescription, setOneLineDescription] = useState('');
+
+  const [updateBookWithCarousal] = useUpdateBookWithCarousalMutation();
+
   const [filterCategory, setFilterCategory] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddEditModal, setShowAddEditModal] = useState(false);
@@ -65,17 +74,18 @@ const [customCategory, setCustomCategory] = useState('');
   const [currentPhase, setCurrentPhase] = useState(1);
   const [priceError, setPriceError] = useState(''); // NEW: For price validation error
   
-  const [basicInfo, setBasicInfo] = useState({
-    title: '',
-    category: '',
-    price: '',
-    originalPrice: '',
-    pages: 200,
-    mainImagePdf: null,
-    mainImagePdfName: '',
-    isFeatured: false,
-    isHero: false
-  });
+const [basicInfo, setBasicInfo] = useState({
+  title: '',
+  author: '',
+  category: '',
+  price: '',
+  originalPrice: '',
+  pages: 200,
+  isFeatured: false,
+  isHero: false,
+  coverImageFile: null,
+});
+
   
   const [overviewDescription, setOverviewDescription] = useState('');
   const [carouselItems, setCarouselItems] = useState([
@@ -100,61 +110,74 @@ const [customCategory, setCustomCategory] = useState('');
   });
 
   const openAddModal = () => {
-    setBasicInfo({
-      title: '',
-      category: '',
-      price: '',
-      originalPrice: '',
-      pages: 200,
-      mainImagePdf: null,
-      mainImagePdfName: '',
-      isFeatured: false,
-      isHero: false
-    });
-    setOverviewDescription('');
-    setCarouselItems([
-      { imagePdf: null, imagePdfName: '', description: '' },
-      { imagePdf: null, imagePdfName: '', description: '' },
-      { imagePdf: null, imagePdfName: '', description: '' },
-      { imagePdf: null, imagePdfName: '', description: '' },
-      { imagePdf: null, imagePdfName: '', description: '' }
-    ]);
-    setLearningPoints(['']);
-    setSections([]);
-    setCurrentPhase(1);
-    setPriceError('');
-    setIsEdit(false);
-    setShowAddEditModal(true);
-  };
+  
+setBasicInfo({
+  title: '',
+  author: '',
+  category: '',
+  price: '',
+  originalPrice: '',
+  pages: 200,
+  isFeatured: false,
+  isHero: false,
+  coverImageFile: null,
+});
 
-  const openEditModal = (book) => {
+
+  setOverviewDescription('');
+  setOneLineDescription('');     // ✅ NEW
+     // ✅ NEW
+
+  setCarouselItems([
+    { imagePdf: null, imagePdfName: '', description: '' },
+    { imagePdf: null, imagePdfName: '', description: '' },
+    { imagePdf: null, imagePdfName: '', description: '' },
+    { imagePdf: null, imagePdfName: '', description: '' },
+    { imagePdf: null, imagePdfName: '', description: '' }
+  ]);
+
+  setLearningPoints(['']);
+  setSections([]);
+  setCurrentPhase(1);
+  setPriceError('');
+  setIsEdit(false);
+  setShowAddEditModal(true);
+};
+
+
+const openEditModal = async (bookId) => {
+  try {
+    const res = await fetch(
+      `${process.env.REACT_APP_BASE_URL}/product/getBookById/${bookId}`
+    );
+    const json = await res.json();
+    const book = json.data;
+
     setBasicInfo({
       title: book.title,
+      author: book.author,
       category: book.category,
-      price: book.price,
-      originalPrice: book.originalPrice,
-      pages: book.pages,
-      mainImagePdf: book.mainImagePdf,
-      mainImagePdfName: book.mainImagePdfName || '',
-      isFeatured: book.isFeatured,
-      isHero: book.isHero
+      price: book.final_price,
+      originalPrice: book.original_price,
+      pages: book.totalPages,
+      isFeatured: book.featured,
+      isHero: book.hero,
+      coverImageFile: null,
     });
-    setOverviewDescription(book.overviewDescription || '');
-    setCarouselItems(book.carouselItems || [
-      { imagePdf: null, imagePdfName: '', description: '' },
-      { imagePdf: null, imagePdfName: '', description: '' },
-      { imagePdf: null, imagePdfName: '', description: '' },
-      { imagePdf: null, imagePdfName: '', description: '' },
-      { imagePdf: null, imagePdfName: '', description: '' }
-    ]);
-    setLearningPoints(book.learningPoints || ['']);
+
+    setOverviewDescription(book.description || '');
+    setOneLineDescription(book.one_line_description || '');
+    setLearningPoints(book.what_you_will_learn || []);
     setSections(book.sections || []);
-    setCurrentPhase(1);
-    setPriceError('');
     setModalBook(book);
     setIsEdit(true);
     setShowAddEditModal(true);
-  };
+    setCurrentPhase(1);
+  } catch (err) {
+    console.error(err);
+    alert('Failed to load book');
+  }
+};
 
   const closeAddEditModal = () => {
     setShowAddEditModal(false);
@@ -201,19 +224,20 @@ const [customCategory, setCustomCategory] = useState('');
     
     setBasicInfo(prev => ({ ...prev, [field]: value }));
   };
+const handleCoverImageChange = (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
 
-  const handleMainImageUpload = (e) => {
-    const file = e.target.files[0];
-    if (file && file.type === 'application/pdf') {
-      setBasicInfo(prev => ({
-        ...prev,
-        mainImagePdf: file,
-        mainImagePdfName: file.name
-      }));
-    } else {
-      alert('Please upload a PDF file');
-    }
-  };
+  if (!file.type.startsWith('image/')) {
+    alert('Please upload an image file');
+    return;
+  }
+
+  setBasicInfo(prev => ({
+    ...prev,
+    coverImageFile: file
+  }));
+};
 
   const goToPhase2 = (e) => {
     e.preventDefault();
@@ -229,30 +253,87 @@ const [customCategory, setCustomCategory] = useState('');
     }
     
     setPriceError('');
-    setCurrentPhase(3); // Go to Phase 3
+    setCurrentPhase(2); // Go to Phase 3
   };
 
-  const goToPhase3 = (e) => {
-    e.preventDefault();
+const goToPhase3 = async (e) => {
+  e.preventDefault();
+
+  const { id: bookId, slug } = createdBook;
+  if (!bookId || !slug) {
+    alert("Book not ready");
+    return;
+  }
+
+  try {
+    const uploadedUrls = [];
+
+    // 1️⃣ Upload images
+    for (const item of carouselItems) {
+      if (!item.imagePdf) continue;
+
+      const formData = new FormData();
+      formData.append("carouselImage", item.imagePdf);
+
+      const res = await uploadCarousel({
+        bookId,
+        slug,
+        data: formData,
+      }).unwrap();
+
+      uploadedUrls.push(res.data);
+    }
+
+    console.log("🖼️ Uploaded carousel URLs:", uploadedUrls);
+
+    if (uploadedUrls.length === 0) {
+      alert("No carousel images uploaded");
+      return;
+    }
+
+    // 2️⃣ Build payload USING uploadedUrls (not state)
+    const carouselsPayload = uploadedUrls.map((url, index) => ({
+      courselImageUrl: url, // backend spelling
+      description: carouselItems[index]?.description || '',
+    }));
+
+    console.log("📦 Carousel payload:", carouselsPayload);
+
+    // 3️⃣ Save carousel data
+    await updateBookWithCarousal({
+      id: bookId,
+      carousels: carouselsPayload,
+    }).unwrap();
+
     setCurrentPhase(3);
-  };
+
+  } catch (err) {
+    console.error("❌ Carousel flow failed:", err);
+    alert("Carousel upload/save failed");
+  }
+};
+
+
+
+
 
   const goBackToPhase1 = () => {
     setCurrentPhase(1);
   };
-
   const goBackToPhase2 = () => {
-    setCurrentPhase(2);
+ setCurrentPhase(2);
   };
+
+  
 
   const handleCarouselImageChange = (index, e) => {
     const file = e.target.files[0];
-    if (file && file.type === 'application/pdf') {
+    if (file && file.type.startsWith('image/')) {
       setCarouselItems(prev => prev.map((item, i) => 
         i === index ? { ...item, imagePdf: file, imagePdfName: file.name } : item
       ));
     } else {
-      alert('Please upload a PDF file');
+    alert('Please upload an image file');
     }
   };
 
@@ -288,14 +369,29 @@ const [customCategory, setCustomCategory] = useState('');
     setSections(prev => prev.filter((_, i) => i !== idx));
   };
 
-  const handleAddChapter = (secIdx) => {
-    setSections(prev => prev.map((sec, i) =>
-      i === secIdx ? { 
-        ...sec, 
-        chapters: [...sec.chapters, { title: '', thumbnailPdf: null, thumbnailPdfName: '', chapterPdf: null, chapterPdfName: '' }] 
-      } : sec
-    ));
-  };
+const handleAddChapter = (secIdx) => {
+  setSections(prev =>
+    prev.map((sec, i) =>
+      i === secIdx
+        ? {
+            ...sec,
+            chapters: [
+              ...sec.chapters,
+              {
+                title: '',
+                pages: '',
+                thumbnailImage: null,
+                thumbnailImageName: '',
+                chapterPdf: null,
+                chapterPdfName: '',
+              },
+            ],
+          }
+        : sec
+    )
+  );
+};
+
 
   const handleChapterTitleChange = (secIdx, chapIdx, value) => {
     setSections(prev => prev.map((sec, i) =>
@@ -306,21 +402,84 @@ const [customCategory, setCustomCategory] = useState('');
     ));
   };
 
-  const handleChapterThumbnailChange = (secIdx, chapIdx, e) => {
-    const file = e.target.files[0];
-    if (file && file.type === 'application/pdf') {
-      setSections(prev => prev.map((sec, i) =>
-        i === secIdx ? {
-          ...sec,
-          chapters: sec.chapters.map((ch, j) => 
-            j === chapIdx ? { ...ch, thumbnailPdf: file, thumbnailPdfName: file.name } : ch
-          )
-        } : sec
-      ));
-    } else {
-      alert('Please upload a PDF file');
+const handleChapterThumbnailChange = (secIdx, chapIdx, e) => {
+  const file = e.target.files[0];
+
+  if (!file || !file.type.startsWith('image/')) {
+    alert('Please upload an image file');
+    return;
+  }
+
+  console.log('🖼️ Chapter thumbnail selected:', file);
+
+  setSections(prev =>
+    prev.map((sec, i) =>
+      i === secIdx
+        ? {
+            ...sec,
+            chapters: sec.chapters.map((ch, j) =>
+              j === chapIdx
+                ? {
+                    ...ch,
+                    thumbnailImage: file,
+                    thumbnailImageName: file.name,
+                  }
+                : ch
+            ),
+          }
+        : sec
+    )
+  );
+};
+
+const uploadSingleSection = async (secIdx) => {
+  console.log("📘 Section debug:", sections[secIdx]);
+  const { id: bookId, slug } = createdBook;
+  const section = sections[secIdx];
+
+  if (!section.title) {
+    alert("Section title is required");
+    return;
+  }
+
+  if (section.chapters.length === 0) {
+    alert("Add at least one chapter");
+    return;
+  }
+
+  const formData = new FormData();
+
+  // SECTION TITLE (once)
+  formData.append("sectionsTitle", section.title);
+
+  // ARRAYS (order matters)
+  section.chapters.forEach((chapter, index) => {
+    if (!chapter.chapterPdf || !chapter.thumbnailImage || !chapter.pages) {
+      throw new Error(`Missing data in chapter ${index + 1}`);
     }
-  };
+
+    formData.append("chapters", chapter.chapterPdf);
+    formData.append("chapterCover", chapter.thumbnailImage);
+   // formData.append("pages", chapter.pages);
+  });
+
+  logFormData("SECTION UPLOAD", formData);
+
+  try {
+    await uploadAssets({
+      bookId,
+      slug,
+      data: formData,
+    }).unwrap();
+
+    alert(`✅ Section "${section.title}" uploaded successfully`);
+  } catch (err) {
+    console.error(err);
+    alert("❌ Section upload failed");
+  }
+};
+
+
 
   const handleChapterPDFChange = (secIdx, chapIdx, e) => {
     const file = e.target.files[0];
@@ -344,37 +503,40 @@ const [customCategory, setCustomCategory] = useState('');
     ));
   };
 
-  const handleFinalSubmit = (e) => {
-    e.preventDefault();
-    
-    // Generate author automatically from book title
-    const generatedAuthor = basicInfo.title.split(' ').slice(0, 2).join(' ') + ' (Auto)';
-    
-    // Auto-calculate rating (between 4.0 - 5.0)
-    const autoRating = (Math.random() * (5.0 - 4.0) + 4.0).toFixed(1);
-    
-    const bookData = {
-      ...basicInfo,
-      author: generatedAuthor,
-      rating: parseFloat(autoRating),
-      overviewDescription,
-      carouselItems,
-      learningPoints: learningPoints.filter(point => point.trim() !== ''),
-      sections
-    };
-    
-    if (isEdit) {
-      setBooks(books.map(book => book.id === modalBook.id ? { ...bookData, id: modalBook.id } : book));
-    } else {
-      setBooks([...books, { ...bookData, id: Date.now() }]);
-    }
-    
-    closeAddEditModal();
-  };
+const handleFinalSubmit = async (e) => {
+  e.preventDefault();
 
-  const handleDelete = (book) => {
+  const { id: bookId, slug } = createdBook;
+
+  if (!bookId || !slug) {
+    alert("Book not initialized");
+    return;
+  }
+
+  try {
+    
+
+    alert("🎉 Book created completely!");
+    closeAddEditModal();
+
+  } catch (err) {
+    console.error("❌ Upload failed:", err);
+    alert("Failed to upload sections/chapters");
+  }
+};
+
+
+
+  const handleDelete = async (book) => {
     if(window.confirm(`Are you sure you want to delete "${book.title}"?`)) {
-      setBooks(books.filter(b => b.id !== book.id));
+      try {
+        await deleteBook(book._id || book.id).unwrap();
+        alert('Book deleted successfully');
+        // The query will automatically refetch due to invalidatesTags
+      } catch (error) {
+        console.error('Error deleting book:', error);
+        alert(error?.data?.msg || 'Failed to delete book. Please try again.');
+      }
     }
   };
 
@@ -440,31 +602,94 @@ const [customCategory, setCustomCategory] = useState('');
                 </tr>
               ) : (
                 filteredBooks.map(book => (
-                  <tr key={book.id} className="hover:bg-white/5 transition-colors">
-                    <td className="px-4 py-3">
-                      <div className="w-10 h-14 bg-gradient-to-br from-[#9B7BB8] to-[#8A6AA7] rounded-lg flex items-center justify-center text-white font-bold">
-                        {book.mainImagePdfName ? 'PDF' : book.title.charAt(0)}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-white font-medium">{book.title}</td>
-                    <td className="px-4 py-3 text-white/80">{book.author || 'N/A'}</td>
-                    <td className="px-4 py-3 text-white/80">{book.category}</td>
-                    <td className="px-4 py-3 text-white/80">${book.price}</td>
-                    <td className="px-4 py-3 text-white/80">{book.rating}</td>
-                    <td className="px-4 py-3">{book.isFeatured ? <Star className="w-4 h-4 text-yellow-400 fill-current" /> : '-'}</td>
-                    <td className="px-4 py-3">{book.isHero ? <Zap className="w-4 h-4 text-blue-400" /> : '-'}</td>
-                    <td className="px-4 py-3 flex items-center space-x-2">
-                      <button onClick={() => openViewModal(book)} className="p-2 rounded-lg hover:bg-white/10 text-white/60 hover:text-white transition-colors">
-                        <Eye className="w-4 h-4" />
-                      </button>
-                      <button onClick={() => openEditModal(book)} className="p-2 rounded-lg hover:bg-blue-500/20 text-blue-400 hover:text-blue-300 transition-colors">
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      <button onClick={() => handleDelete(book)} className="p-2 rounded-lg hover:bg-red-500/20 text-red-400 hover:text-red-300 transition-colors">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </td>
-                  </tr>
+                  <tr key={book._id} className="hover:bg-white/5 transition-colors">
+  {/* COVER */}
+  <td className="px-4 py-3">
+    <div className="w-10 h-14 bg-gradient-to-br from-[#9B7BB8] to-[#8A6AA7] rounded-lg flex items-center justify-center text-white font-bold">
+      {book.coverImage ? 'IMG' : book.title?.charAt(0)}
+    </div>
+  </td>
+
+  {/* TITLE */}
+  <td className="px-4 py-3 text-white font-medium">
+    {book.title}
+  </td>
+
+  {/* AUTHOR */}
+  <td className="px-4 py-3 text-white/80">
+    {book.author || 'N/A'}
+  </td>
+
+  {/* CATEGORY */}
+  <td className="px-4 py-3 text-white/80">
+    {book.category}
+  </td>
+
+  {/* PRICE (₹ RUPEES) */}
+  <td className="px-4 py-3 text-white/80">
+    ₹{book.final_price}
+    {book.original_price > book.final_price && (
+      <span className="ml-2 text-xs text-white/40 line-through">
+        ₹{book.original_price}
+      </span>
+    )}
+  </td>
+
+  {/* ⭐ RATING */}
+  <td className="px-4 py-3 text-white/80 flex items-center gap-1">
+    {book.rating ? (
+      <>
+        <Star className="w-4 h-4 text-yellow-400 fill-current" />
+        <span>{book.rating.toFixed(1)}</span>
+      </>
+    ) : (
+      <span className="text-white/40">N/A</span>
+    )}
+  </td>
+
+  {/* FEATURED */}
+  <td className="px-4 py-3 text-center">
+    {book.featured ? (
+      <Star className="w-4 h-4 text-yellow-400 fill-current" />
+    ) : (
+      '-'
+    )}
+  </td>
+
+  {/* HERO */}
+  <td className="px-4 py-3 text-center">
+    {book.hero ? (
+      <Zap className="w-4 h-4 text-blue-400" />
+    ) : (
+      '-'
+    )}
+  </td>
+
+  {/* ACTIONS */}
+  <td className="px-4 py-3 flex items-center space-x-2">
+    <button
+      onClick={() => openViewModal(book)}
+      className="p-2 rounded-lg hover:bg-white/10 text-white/60 hover:text-white transition-colors"
+    >
+      <Eye className="w-4 h-4" />
+    </button>
+
+    <button
+      onClick={() => openEditModal(book._id)}
+      className="p-2 rounded-lg hover:bg-blue-500/20 text-blue-400 hover:text-blue-300 transition-colors"
+    >
+      <Edit className="w-4 h-4" />
+    </button>
+
+    <button
+      onClick={() => handleDelete(book)}
+      className="p-2 rounded-lg hover:bg-red-500/20 text-red-400 hover:text-red-300 transition-colors"
+    >
+      <Trash2 className="w-4 h-4" />
+    </button>
+  </td>
+</tr>
+
                 ))
               )}
             </tbody>
@@ -685,24 +910,124 @@ const [customCategory, setCustomCategory] = useState('');
 
               {/* PHASE 1 - BASIC INFO */}
               {currentPhase === 1 && (
-                <form onSubmit={(e) => { 
-                    e.preventDefault(); 
-                    
-                    // Validate Phase 1 fields
-                    if (!basicInfo.title || !basicInfo.category || !basicInfo.price) {
-                      alert('Please fill in all required fields (Title, Category, Price)');
-                      return;
-                    }
-                    
-                    // Validate prices
-                    if (basicInfo.originalPrice && parseFloat(basicInfo.originalPrice) <= parseFloat(basicInfo.price)) {
-                      alert('Original price must be greater than discounted price');
-                      return;
-                    }
-                    
-                    setPriceError('');
-                    setCurrentPhase(2); 
-                  }} className="space-y-4">
+                <form
+  onSubmit={async (e) => {
+    e.preventDefault();
+
+    if (!basicInfo.title || !basicInfo.category || !basicInfo.price) {
+      alert('Please fill required fields');
+      return;
+    }
+
+    if (!basicInfo.coverImageFile) {
+      alert('Cover image is required');
+      return;
+    }
+
+    try {
+  // 1️⃣ SAVE BASIC BOOK INFO
+  const payload = {
+    title: basicInfo.title,
+    author: basicInfo.author,
+    overview: overviewDescription,
+    description: overviewDescription,
+    what_you_will_learn: learningPoints.filter(p => p.trim()),
+    one_line_description: oneLineDescription,
+    original_price: Number(basicInfo.originalPrice) || 0,
+    final_price: Number(basicInfo.price),
+    category: basicInfo.category,
+    featured: basicInfo.isFeatured,
+    hero: basicInfo.isHero,
+    belongs_to: '453a352b-5972-487b-9296-d4ba2ae78ed0',
+    totalPages: Number(basicInfo.pages) || 0,
+    isActive: true,
+  };
+
+  if (isEdit) {
+  await updateBook({
+    id: modalBook._id,
+    body: {
+      title: basicInfo.title,
+      author: basicInfo.author,
+      description: overviewDescription,
+      one_line_description: oneLineDescription,
+      what_you_will_learn: learningPoints.filter(p => p.trim()),
+      final_price: Number(basicInfo.price),
+      original_price: Number(basicInfo.originalPrice) || 0,
+      category: basicInfo.category,
+      featured: basicInfo.isFeatured,
+      hero: basicInfo.isHero,
+      totalPages: Number(basicInfo.pages),
+      isActive: true,
+    },
+  }).unwrap();
+
+  alert('✅ Book updated successfully');
+  closeAddEditModal();
+  return; // ⛔ stop add flow
+}
+
+
+
+  const res = await saveBook(payload).unwrap();
+
+
+
+const bookId = res?.data?._id || res?.data?.id;
+const slug =
+  res?.data?.slug ||
+  basicInfo.title
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/\s+/g, '-');  
+
+console.log('🆔 bookId:', bookId);
+console.log('🔗 slug:', slug);
+
+ 
+
+if (!bookId || !slug) {
+  throw new Error("Backend did not return bookId or slug");
+}
+
+
+  // 2️⃣ UPLOAD COVER IMAGE
+  const formData = new FormData();
+  formData.append('coverImage', basicInfo.coverImageFile);
+
+
+logFormData('COVER IMAGE FORM DATA', formData);
+
+  const uploadRes = await uploadCover({
+    bookId,
+    slug,
+    data: formData,
+  }).unwrap();
+
+
+
+  // 3️⃣ STORE BOOK INFO
+  setCreatedBook({ id: bookId, slug });
+  console.log('📌 Created book stored in state:', { id: bookId, slug });
+
+  console.log('➡️ moving to Phase 2');
+  setCurrentPhase(2);
+
+} catch (err) {
+  console.error('❌ ERROR OCCURRED:', err);
+
+  if (err?.data) {
+    console.error('❌ Backend error data:', err.data);
+  }
+
+  alert('Failed to save basic info — check console');
+}
+
+  }}
+  className="space-y-4"
+>
+
                   <div className="grid grid-cols-2 gap-4">
                     <div className="col-span-2">
                       <label className="block text-white/70 mb-1 text-sm">Title *</label>
@@ -714,6 +1039,37 @@ const [customCategory, setCustomCategory] = useState('');
                         placeholder="Enter book title"
                         required 
                       />
+
+                      <div>
+  <label className="block text-white/70 mb-1 text-sm">
+    Author *
+  </label>
+  <input
+    type="text"
+    value={basicInfo.author}
+    onChange={(e) => handleBasicInfoChange('author', e.target.value)}
+    className="w-full bg-[#9B7BB8]/10 text-white p-2 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-sm"
+    placeholder="e.g. Robert Greene"
+    required
+  />
+</div>
+
+
+                      <div>
+  <label className="block text-white/70 mb-1 text-sm">
+    One-line Description *
+  </label>
+  <input
+    type="text"
+    value={oneLineDescription}
+    onChange={(e) => setOneLineDescription(e.target.value)}
+    className="w-full bg-[#9B7BB8]/10 text-white p-2 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-sm"
+    placeholder="Learn React from beginner to expert"
+    maxLength={120}
+    required
+  />
+</div>
+
 
                       <div className="mt-2">
                     <h3 className="text-white text-lg font-semibold mb-3 flex items-center gap-2">
@@ -757,7 +1113,14 @@ const [customCategory, setCustomCategory] = useState('');
                         <BookOpen className="w-5 h-5" />
                         What You'll Learn
                       </h3>
-        
+        <button 
+                        type="button" 
+                        onClick={handleAddLearningPoint} 
+                        className="px-3 py-1 bg-[#9B7BB8] hover:bg-[#8A6AA7] text-white rounded-lg text-xs flex items-center gap-1"
+                      >
+                        <Plus className="w-3 h-3" />
+                        Add Point
+                      </button>
                     </div>
 
                     <div className="space-y-2">
@@ -899,19 +1262,24 @@ const [customCategory, setCustomCategory] = useState('');
                   </div>
 
                   <div>
-                    <label className="block text-white/70 mb-2 text-sm flex items-center gap-2">
-                      <Upload className="w-4 h-4" />
-                      Main Book Cover (PDF)
-                    </label>
-                    <input 
-                      type="file" 
-                      accept="application/pdf" 
-                      onChange={handleMainImageUpload} 
-                      className="w-full bg-[#9B7BB8]/10 text-white p-2 rounded-lg border border-[#9B7BB8]/30 text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:bg-[#9B7BB8] file:text-white hover:file:bg-[#8A6AA7] file:cursor-pointer" 
-                    />
-                    {basicInfo.mainImagePdfName && (
-                      <p className="text-green-400 text-xs mt-2">✓ {basicInfo.mainImagePdfName}</p>
-                    )}
+                    
+                   
+                    <label className="block text-white/70 mb-2 text-sm">
+  Cover Image *
+</label>
+<input
+  type="file"
+  accept="image/*"
+  onChange={handleCoverImageChange}
+  className="w-full bg-[#9B7BB8]/10 text-white p-2 rounded-lg"
+/>
+
+{basicInfo.coverImageFile && (
+  <p className="text-green-400 text-xs mt-1">
+    ✓ {basicInfo.coverImageFile.name}
+  </p>
+)}
+
                   </div>
 
                   <div className="flex items-center gap-6">
@@ -953,10 +1321,10 @@ const [customCategory, setCustomCategory] = useState('');
 
               {/* PHASE 2 - OVERVIEW */}
               {currentPhase === 2 && (
-                <form onSubmit={goToPhase2} className="space-y-6">
+                <form onSubmit={goToPhase3} className="space-y-6">
                   <div className="bg-white/5 rounded-lg p-4 mb-4">
                     <p className="text-white/80 text-sm">
-                      <strong>Book:</strong> {basicInfo.title} by {basicInfo.title.split(' ').slice(0, 2).join(' ')} (Auto)
+                      <strong>Book:</strong> {basicInfo.title} by {basicInfo.author}
                     </p>
                   </div>
 
@@ -975,11 +1343,11 @@ const [customCategory, setCustomCategory] = useState('');
                           <div className="mb-3">
                             <label className="block text-white/60 text-xs mb-1 flex items-center gap-1">
                               <Upload className="w-3 h-3" />
-                              Book Image (PDF)
+                              Book Image (png)
                             </label>
                             <input 
                               type="file" 
-                              accept="application/pdf" 
+                              accept="image/*" 
                               onChange={e => handleCarouselImageChange(index, e)} 
                               className="w-full bg-[#9B7BB8]/10 text-white p-2 rounded-lg text-xs file:mr-2 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:bg-[#9B7BB8] file:text-white hover:file:bg-[#8A6AA7] file:cursor-pointer" 
                             />
@@ -1059,6 +1427,8 @@ const [customCategory, setCustomCategory] = useState('');
 
                     {sections.map((section, secIdx) => (
                       <div key={secIdx} className="bg-[#2D1B3D]/30 rounded-lg p-4 mb-4">
+                      
+
                         <div className="flex items-center gap-2 mb-3">
                           <input 
                             type="text" 
@@ -1115,21 +1485,33 @@ const [customCategory, setCustomCategory] = useState('');
                               </div>
 
                               <div className="grid grid-cols-2 gap-2">
+  
+
                                 <div>
-                                  <label className="text-white/60 text-xs block mb-1 flex items-center gap-1">
-                                    <FileText className="w-3 h-3" />
-                                    Thumbnail (PDF)
-                                  </label>
-                                  <input 
-                                    type="file" 
-                                    accept="application/pdf" 
-                                    onChange={e => handleChapterThumbnailChange(secIdx, chapIdx, e)} 
-                                    className="w-full bg-[#2D1B3D]/30 text-white p-1.5 rounded-lg text-[10px] file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[10px] file:bg-[#9B7BB8] file:text-white hover:file:bg-[#8A6AA7] file:cursor-pointer" 
-                                  />
-                                  {chapter.thumbnailPdfName && (
-                                    <p className="text-green-400 text-[9px] mt-1">✓ {chapter.thumbnailPdfName}</p>
-                                  )}
-                                </div>
+  <label className="text-white/60 text-xs block mb-1 flex items-center gap-1">
+    <ImageIcon className="w-3 h-3" />
+    Thumbnail Image
+  </label>
+
+  <input 
+    type="file"
+    accept="image/png, image/jpeg, image/webp"
+    onChange={e => handleChapterThumbnailChange(secIdx, chapIdx, e)}
+    className="w-full bg-[#2D1B3D]/30 text-white p-1.5 rounded-lg text-[10px]
+      file:mr-2 file:py-1 file:px-2 file:rounded
+      file:border-0 file:text-[10px]
+      file:bg-[#9B7BB8] file:text-white
+      hover:file:bg-[#8A6AA7]
+      file:cursor-pointer"
+  />
+
+  {chapter.thumbnailImageName && (
+    <p className="text-green-400 text-[9px] mt-1">
+      ✓ {chapter.thumbnailImageName}
+    </p>
+  )}
+</div>
+
 
                                 <div>
                                   <label className="text-white/60 text-xs block mb-1 flex items-center gap-1">
@@ -1146,10 +1528,48 @@ const [customCategory, setCustomCategory] = useState('');
                                     <p className="text-green-400 text-[9px] mt-1">✓ {chapter.chapterPdfName}</p>
                                   )}
                                 </div>
+                                <div>
+  <label className="text-white/60 text-xs block mb-1 flex items-center gap-1">
+    <ImageIcon className="w-3 h-3" />
+    pages *
+  </label>
+<input
+  type="number"
+  min="1"
+  placeholder="Pages"
+  value={chapter.pages}
+  onChange={(e) =>
+    setSections(prev =>
+      prev.map((sec, i) =>
+        i === secIdx
+          ? {
+              ...sec,
+              chapters: sec.chapters.map((ch, j) =>
+                j === chapIdx ? { ...ch, pages: e.target.value } : ch
+              ),
+            }
+          : sec
+      )
+    )
+  }
+  className="w-24 bg-[#2D1B3D]/30 text-white p-2 rounded-lg text-xs border border-[#9B7BB8]/30"
+  required
+/>
+</div>
                               </div>
+                              
                             </div>
+                            
                           ))}
+                          <button
+                        type="button"
+                        onClick={() => uploadSingleSection(secIdx)}
+                        className="ml-auto px-3 py-1 bg-[#9B7BB8] hover:bg-[#8A6AA7] text-white rounded-lg text-xs"
+                      >
+                        Upload This Section
+                      </button>
                         </div>
+
                       </div>
                     ))}
                   </div>
@@ -1182,3 +1602,4 @@ const [customCategory, setCustomCategory] = useState('');
 };
 
 export default BooksManagement;
+
