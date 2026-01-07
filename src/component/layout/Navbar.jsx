@@ -613,7 +613,7 @@ const floatingLogoVisible =
               </Link>
 
               {/* ADMIN BUTTON */}
-              {user?.role_name.toUpperCase() === "ADMIN" && (
+              {user?.role_name?.toUpperCase() === "ADMIN" && (
   <Link
     to="/admin"
     onClick={() => setIsMenuOpen(false)}
@@ -735,7 +735,7 @@ className="relative p-2 rounded-lg  transition-transform duration-200 hover:-tra
   >
     Login
   </button>
-) : user.role_name.toUpperCase() === "ADMIN" ? (
+) : user?.role_name?.toUpperCase() === "ADMIN" ? (
   <Link
     to="/admin"
     className="px-6 py-2 bg-gradient-to-r from-gronik-accent to-gronik-secondary text-white rounded-lg shadow-lg transition-transform hover:scale-105"
