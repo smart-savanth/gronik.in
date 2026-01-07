@@ -11,6 +11,8 @@ import ProductReviews from '../layout/ProductReviews';
 
 
 const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCart, onAddToWishlist, onRemoveFromWishlist }) => {
+  const [allExpanded, setAllExpanded] = useState(false);
+
   const { productId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -897,17 +899,20 @@ console.log(currentCarousel)
       </span>
 
       <button
-        onClick={() => {
-          const allExpanded = {};
-          enhancedProductData.tableOfContents.forEach((_, i) => {
-            allExpanded[i] = true;
-          });
-          setExpandedSections(allExpanded);
-        }}
-        className="text-purple-700 font-semibold hover:underline"
-      >
-        Expand all sections
-      </button>
+  onClick={() => {
+    const expanded = {};
+    enhancedProductData.tableOfContents.forEach((_, i) => {
+      expanded[i] = !allExpanded;
+    });
+
+    setExpandedSections(expanded);
+    setAllExpanded(prev => !prev);
+  }}
+  className="text-purple-700 font-semibold hover:underline"
+>
+  {allExpanded ? "Collapse all sections" : "Expand all sections"}
+</button>
+
     </div>
 
     {/* Sections Container */}
