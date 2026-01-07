@@ -1248,17 +1248,7 @@ logFormData('COVER IMAGE FORM DATA', formData);
                         <p className="text-red-400 text-xs mt-1">❌ {priceError}</p>
                       )}
                     </div>
-                    
-                    <div>
-                      <label className="block text-white/70 mb-1 text-sm">Pages</label>
-                      <input 
-                        type="number" 
-                        min="0"
-                        value={basicInfo.pages} 
-                        onChange={e => handleBasicInfoChange('pages', e.target.value)} 
-                        className="w-full bg-[#9B7BB8]/10 text-white p-2 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-sm" 
-                      />
-                    </div>
+                  
                   </div>
 
                   <div>
@@ -1529,32 +1519,7 @@ logFormData('COVER IMAGE FORM DATA', formData);
                                   )}
                                 </div>
                                 <div>
-  <label className="text-white/60 text-xs block mb-1 flex items-center gap-1">
-    <ImageIcon className="w-3 h-3" />
-    pages *
-  </label>
-<input
-  type="number"
-  min="1"
-  placeholder="Pages"
-  value={chapter.pages}
-  onChange={(e) =>
-    setSections(prev =>
-      prev.map((sec, i) =>
-        i === secIdx
-          ? {
-              ...sec,
-              chapters: sec.chapters.map((ch, j) =>
-                j === chapIdx ? { ...ch, pages: e.target.value } : ch
-              ),
-            }
-          : sec
-      )
-    )
-  }
-  className="w-24 bg-[#2D1B3D]/30 text-white p-2 rounded-lg text-xs border border-[#9B7BB8]/30"
-  required
-/>
+  
 </div>
                               </div>
                               
