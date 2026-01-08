@@ -7,6 +7,8 @@ import api from '../../utils/api';
 
 const LoginPage = () => {
   const location=useLocation()
+  const [whatsappConsent, setWhatsappConsent] = useState(false);
+
   const from = location.state?.from || "/";
   const [currentStep, setCurrentStep] = useState('login'); // 'choice', 'signup', 'login', 'otp', 'forgot', 'reset'
   const [loginMethod, setLoginMethod] = useState('email'); // 'email' or 'mobile'
@@ -172,7 +174,9 @@ const LoginPage = () => {
   // Handle signup
 const handleSignup = async () => {
   const newErrors = {};
-
+if (!whatsappConsent) {
+  newErrors.whatsappConsent = "Please agree to receive WhatsApp messages to continue";
+}
   if (!formData.fullName) newErrors.fullName = 'Full name is required';
 
   if (!signupOtpVerified) {
@@ -406,6 +410,7 @@ const verifySignupOtp = () => {
     alert("Invalid OTP, Try 123456");
   }
 };
+
 
 
 
@@ -659,10 +664,31 @@ const verifySignupOtp = () => {
                     </p>
                   )}
                 </div>
+{/* WhatsApp Consent Checkbox */}
+<div className="flex items-start gap-2 mt-4">
+  <input
+    type="checkbox"
+    checked={whatsappConsent}
+    onChange={(e) => setWhatsappConsent(e.target.checked)}
+    className="mt-1 accent-yellow-400"
+  />
+  <label className="text-xs text-white/80 leading-snug">
+    I agree to receive transactional and promotional messages from Gronik via WhatsApp.
+  </label>
+</div>
+
+{errors.whatsappConsent && (
+  <p className="text-red-400 text-xs mt-1 flex items-center gap-1">
+    <X className="w-3 h-3" />
+    {errors.whatsappConsent}
+  </p>
+)}
+
+
 
                 <button
                   onClick={handleSignup}
-                  disabled={isLoading}
+                  disabled={isLoading || !whatsappConsent}
                   className="w-full bg-gradient-to-r from-[#FFD700]/90 to-[#9B7BB8]/80 text-[#2D1B3D] font-semibold py-3 px-6 rounded-xl transition-all duration-200 flex items-center justify-center space-x-2 mt-6 gold-glow-cta disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isLoading ? (
