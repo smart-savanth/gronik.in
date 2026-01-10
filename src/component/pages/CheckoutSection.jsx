@@ -14,6 +14,8 @@ const steps = [
 ];
 
 const CheckoutSection = () => {
+  console.log("change 1");
+  
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -22,9 +24,11 @@ const CheckoutSection = () => {
   const [transactionError, setTransactionError] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [isCheckingPayment, setIsCheckingPayment] = useState(false);
-  const isReturningFromPayment =
+ const isReturningFromPayment = Boolean(
   localStorage.getItem("paymentFlow") === "IN_PROGRESS" &&
-  localStorage.getItem("pendingPayment");
+  localStorage.getItem("pendingPayment")
+);
+
   // Get user ID from Redux (same as App.js)
   const user = useSelector(state => state.userAuth.user);
   const userId = user?.guid;
@@ -32,6 +36,12 @@ const CheckoutSection = () => {
   // API hooks
   const [savePayment] = useSavePaymentMutation();
   const [saveOrder] = useSaveOrderMutation();
+React.useEffect(() => {
+  if (isReturningFromPayment) {
+    console.log("🟢 Hard forcing Review step BEFORE render");
+    setStep(2);
+  }
+}, []); // 👈 run only once on mount
 
   React.useEffect(() => {
     const stored = JSON.parse(localStorage.getItem("cart")) || [];
@@ -209,7 +219,7 @@ React.useEffect(() => {
         localStorage.removeItem("paymentFlow");
 
         setTransactionError("Payment failed or cancelled.");
-        setStep(2);
+        
       }
     } catch (err) {
       console.error("❌ Verification error:", err);
