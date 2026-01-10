@@ -14,9 +14,9 @@ const steps = [
 ];
 
 const CheckoutSection = () => {
-  console.log("change 1");
+  console.log("change 2");
   
-  const navigate = useNavigate();
+const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -39,7 +39,7 @@ const CheckoutSection = () => {
 React.useEffect(() => {
   if (isReturningFromPayment) {
     console.log("🟢 Hard forcing Review step BEFORE render");
-    setStep(2);
+ 
   }
 }, []); // 👈 run only once on mount
 
@@ -56,8 +56,20 @@ React.useEffect(() => {
     window.addEventListener("storage", update);
     return () => window.removeEventListener("storage", update);
   }, []);
-  const [step, setStep] = useState(1);
+  const paymentResult = searchParams.get("payment"); 
   const [orderPlaced, setOrderPlaced] = useState(false);
+const step = (() => {
+  if (paymentResult === "success") return 3;
+  if (paymentResult === "failed") return 2;
+
+  const isReturningFromPayment =
+    localStorage.getItem("paymentFlow") === "IN_PROGRESS" &&
+    localStorage.getItem("pendingPayment");
+
+  if (isReturningFromPayment) return 2;
+
+  return 1;
+})();
 
   const subtotal = cart.reduce((sum, item) => {
     const price = parseFloat(item.price) || 0;
@@ -73,11 +85,9 @@ React.useEffect(() => {
   // Calculate total as a number (don't use toFixed here - that returns a string)
   const total = Math.round(subtotal * 100) / 100; // Round to 2 decimals without converting to string
 
-  const handleNext = () => {
-    setStep(s => Math.min(s + 1, steps.length));
-  };
+ 
   
-  const handleBack = () => setStep(s => Math.max(s - 1, 1));
+
 const handlePlaceOrder = async () => {
   console.log("🟡 handlePlaceOrder clicked");
 
@@ -166,39 +176,27 @@ localStorage.setItem("paymentFlow", "IN_PROGRESS");
 React.useEffect(() => {
   if (isReturningFromPayment) {
     console.log("🟢 Forcing Review step (returned from gateway)");
-    setStep(2);
+  
   }
 }, [isReturningFromPayment]);
 
 
 React.useEffect(() => {
-  if (!isReturningFromPayment) return;
-  if (location.pathname !== "/checkout") return;
-
   const pendingStr = localStorage.getItem("pendingPayment");
   if (!pendingStr) return;
 
   const pending = JSON.parse(pendingStr);
 
-  if (pending.status !== "PENDING") return;
-
-  console.log("🔍 Verifying payment:", pending.orderId);
-
   const verifyPayment = async () => {
     setIsCheckingPayment(true);
-    setTransactionError("");
 
     try {
       const res = await fetch(
         `https://dev-api.gronik.in/payment/checkStatus/${pending.orderId}/userId/${pending.userId}`
       );
-
       const result = await res.json();
-      console.log("📦 checkStatus response:", result);
 
       if (result?.success && result?.data?.status === "COMPLETED") {
-        console.log("✅ Payment SUCCESS");
-
         await saveOrder({
           userId: pending.userId,
           paymentId: pending.orderId,
@@ -210,32 +208,23 @@ React.useEffect(() => {
         localStorage.setItem("cart", JSON.stringify([]));
         window.dispatchEvent(new Event("storage"));
 
-        setOrderPlaced(true);
-        setStep(3);
+        navigate("/checkout?payment=success", { replace: true });
       } else {
-        console.log("❌ Payment FAILED");
-
         localStorage.removeItem("pendingPayment");
         localStorage.removeItem("paymentFlow");
 
-        setTransactionError("Payment failed or cancelled.");
-        
+        navigate("/checkout?payment=failed", { replace: true });
       }
     } catch (err) {
-      console.error("❌ Verification error:", err);
-
-      localStorage.removeItem("pendingPayment");
-      localStorage.removeItem("paymentFlow");
-
-      setTransactionError("Unable to verify payment.");
-      setStep(2);
+      navigate("/checkout?payment=failed", { replace: true });
     } finally {
       setIsCheckingPayment(false);
     }
   };
 
   verifyPayment();
-}, [isReturningFromPayment, location.pathname, saveOrder]);
+}, []);
+
 
 
 
@@ -338,9 +327,9 @@ React.useEffect(() => {
                 <ArrowLeft className="w-4 h-4" />
                 Back
               </button>
-              <button 
-                onClick={handleNext} 
-                disabled={cart.length === 0} 
+          <button
+  onClick={() => navigate("/checkout")}
+  disabled={cart.length === 0}
                 className="flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 rounded-lg bg-[#9B7BB8] text-white font-bold hover:bg-[#8A6AA7] transition disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
               >
                 Next
@@ -421,7 +410,7 @@ React.useEffect(() => {
 
             <div className="flex justify-between items-center mt-6 sm:mt-8">
               <button 
-                onClick={handleBack} 
+                onClick={() => navigate(-1)}
                 className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg bg-[#9B7BB8]/80 text-white font-semibold hover:bg-[#8A6AA7] transition text-sm sm:text-base"
               >
                 <ArrowLeft className="w-4 h-4" />
