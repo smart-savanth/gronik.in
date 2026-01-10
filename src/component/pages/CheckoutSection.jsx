@@ -14,7 +14,7 @@ const steps = [
 ];
 
 const CheckoutSection = () => {
-  console.log("change 3");
+  console.log("change 4");
   
 const navigate = useNavigate();
   const location = useLocation();
@@ -192,6 +192,11 @@ React.useEffect(() => {
 
 
 React.useEffect(() => {
+  // ⛔ DO NOT re-verify if result already known
+  if (paymentResult === "success" || paymentResult === "failed") {
+    return;
+  }
+
   const pendingStr = localStorage.getItem("pendingPayment");
   if (!pendingStr) return;
 
@@ -233,13 +238,7 @@ React.useEffect(() => {
   };
 
   verifyPayment();
-}, []);
-
-
-
-
-
-
+}, [paymentResult, navigate, saveOrder]);
 
 
   return (
