@@ -63,91 +63,28 @@ export const paymentApi = createApi({
     /* --------------------------------
      * SAVE PAYMENT
      * -------------------------------- */
-    savePayment: builder.mutation({
-      query: ({ userId, amount, productId }) => {
-        // Ensure amount is a number, not a string
-        // Use parseFloat to handle decimals properly
-        let numericAmount;
-        if (typeof amount === 'string') {
-          numericAmount = parseFloat(amount);
-        } else if (typeof amount === 'number') {
-          numericAmount = amount;
-        } else {
-          numericAmount = parseFloat(String(amount));
-        }
-        
-        // Validate it's a valid number
-        if (isNaN(numericAmount) || !isFinite(numericAmount)) {
-          throw new Error('Invalid amount value');
-        }
-        
-        // Ensure it's definitely a number primitive
-        // Create a fresh number from the numeric value to avoid any type issues
-        let finalAmount = typeof numericAmount === 'number' 
-          ? numericAmount 
-          : parseFloat(String(numericAmount));
-        
-        // Validate it's a valid number
-        if (isNaN(finalAmount) || !isFinite(finalAmount)) {
-          throw new Error('Invalid amount value after conversion');
-        }
-        
-        // Backend might expect amount in paise (smallest currency unit)
-        // Convert rupees to paise: multiply by 100 and round to integer
-        // This ensures we send an integer value that the backend can parse
-        finalAmount = Math.round(finalAmount * 100);
-        
-        // Ensure it's an integer (not a float)
-        if (!Number.isInteger(finalAmount)) {
-          finalAmount = Math.round(finalAmount);
-        }
-        
-        // product_details should be a string (single product ID), not an array
-        const productDetailsString = typeof productId === 'string' 
-          ? productId 
-          : (Array.isArray(productId) ? productId[0] : String(productId));
-        
-        // Create the payload - ensure amount is an integer
-        const payload = {
-          user_id: userId,
-          amount: finalAmount, // Integer (in paise)
-          product_details: productDetailsString,
-        };
-        
-        // Double-check the type before sending - should be a number (integer)
-        if (typeof payload.amount !== 'number' || !Number.isInteger(payload.amount)) {
-          console.error('CRITICAL: Amount is not an integer!', {
-            original: amount,
-            numericAmount,
-            finalAmount,
-            type: typeof payload.amount,
-            isInteger: Number.isInteger(payload.amount),
-            payload
-          });
-          throw new Error(`Amount type error: expected integer, got ${typeof payload.amount}`);
-        }
-        
-        // Log the exact payload that will be sent
-        const payloadString = JSON.stringify(payload);
-        console.log('Payment service - final payload:', {
-          originalAmount: amount,
-          convertedToPaise: finalAmount,
-          payload,
-          payloadString,
-          amountType: typeof payload.amount,
-          amountValue: payload.amount,
-          parsedBack: JSON.parse(payloadString).amount,
-          parsedBackType: typeof JSON.parse(payloadString).amount
-        });
-        
-        return {
-          url: '/payment/savePayment',
-          method: 'POST',
-          data: payload,
-        };
-      },
-      invalidatesTags: ['Payments'],
-    }),
+   savePayment: builder.mutation({
+  query: ({ userId, amount, productId }) => {
+    const finalAmount = Math.round(Number(amount) * 100);
+
+    const payload = {
+      user_id: userId,
+      amount: finalAmount,
+      product_details: Array.isArray(productId)
+        ? productId
+        : [productId],
+    };
+
+    console.log("✅ FINAL PAYMENT PAYLOAD:", payload);
+
+    return {
+      url: '/payment/savePayment',
+      method: 'POST',
+      data: payload, // ✅ MUST be `data`
+    };
+  },
+  invalidatesTags: ['Payments'],
+}),
 
     /* --------------------------------
      * GET ALL TRANSACTIONS (ADMIN)

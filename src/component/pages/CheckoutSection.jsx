@@ -67,6 +67,8 @@ const CheckoutSection = () => {
   
   const handleBack = () => setStep(s => Math.max(s - 1, 1));
 const handlePlaceOrder = async () => {
+  console.log("🟡 handlePlaceOrder clicked");
+
   setTransactionError("");
   setIsProcessing(true);
 
@@ -82,8 +84,13 @@ const handlePlaceOrder = async () => {
     }
 
     const productIds = cart
-      .map(i => i.id || i.productId || i._id)
+      .map(item => item.id || item.productId || item._id)
       .filter(Boolean);
+
+    if (!productIds.length) {
+      setTransactionError("Invalid cart items.");
+      return;
+    }
 
     const amount = Number(total);
     if (!amount || amount <= 0) {
@@ -91,33 +98,45 @@ const handlePlaceOrder = async () => {
       return;
     }
 
+    console.log("🚀 Calling savePayment API...");
+
     const res = await savePayment({
       userId,
       amount,
-      productId: productIds[0],
+      productId: productIds,
     }).unwrap();
 
-    if (!res?.success || !res?.data) {
-      setTransactionError("Unable to start payment.");
+    console.log("✅ savePayment response FULL:", res);
+
+    // 🔑 IMPORTANT FIX
+    const redirectUrl = res?.data?.redirectUrl;
+    const orderId = res?.data?.orderId;
+
+    console.log("🔗 redirectUrl:", redirectUrl);
+    console.log("🆔 orderId:", orderId);
+
+    if (!redirectUrl || !orderId) {
+      console.error("❌ redirectUrl or orderId missing");
+      setTransactionError("Unable to initiate payment.");
       return;
     }
 
-    // 🔐 Store data BEFORE redirect
+    // 🔐 Save pending payment
     localStorage.setItem(
       "pendingPayment",
       JSON.stringify({
         userId,
         productIds,
-        orderId: res.data, // backend orderId
+        orderId,
         createdAt: Date.now(),
       })
     );
 
-    // 🚀 Redirect to PhonePe
-    window.location.href = res.data;
+    console.log("➡️ Redirecting to PhonePe...");
+    window.location.href = redirectUrl;
 
-  } catch (e) {
-    console.error(e);
+  } catch (err) {
+    console.error("❌ Payment init error:", err);
     setTransactionError("Payment initiation failed.");
   } finally {
     setIsProcessing(false);
@@ -126,8 +145,14 @@ const handlePlaceOrder = async () => {
 
 
 
+
+
+
   // Function to save order after successful payment
 React.useEffect(() => {
+  if (location.pathname !== "/checkout") return;
+  if (step !== 2) return; // ❗ prevent duplicate calls
+
   const verifyPayment = async () => {
     const pendingStr = localStorage.getItem("pendingPayment");
     if (!pendingStr) return;
@@ -141,26 +166,27 @@ React.useEffect(() => {
       const res = await fetch(
         `https://dev-api.gronik.in/payment/checkStatus/${pending.orderId}/userId/${pending.userId}`
       );
+
       const result = await res.json();
 
       // ✅ PAYMENT SUCCESS
       if (result?.success && result?.data?.status === "COMPLETED") {
-        // 👉 Move to SUCCESS tab
-        setStep(3);
-        setOrderPlaced(true);
-
-        // 🔥 SAVE ORDER ONLY HERE
+        // 🔥 Save order ONLY after success
         await saveOrder({
           userId: pending.userId,
           paymentId: pending.orderId,
           productIds: pending.productIds,
         }).unwrap();
 
+        // ✅ Cleanup
         localStorage.removeItem("pendingPayment");
         localStorage.setItem("cart", JSON.stringify([]));
         window.dispatchEvent(new Event("storage"));
-      }
 
+        setOrderPlaced(true);
+        setStep(3); // 🎉 SUCCESS TAB
+        setTransactionError("");
+      }
       // ❌ PAYMENT FAILED
       else {
         localStorage.removeItem("pendingPayment");
@@ -168,7 +194,7 @@ React.useEffect(() => {
         setTransactionError("Payment failed or was cancelled.");
       }
     } catch (err) {
-      console.error(err);
+      console.error("Payment verify error:", err);
       localStorage.removeItem("pendingPayment");
       setStep(2);
       setTransactionError("Unable to verify payment. Please try again.");
@@ -177,10 +203,8 @@ React.useEffect(() => {
     }
   };
 
-  if (location.pathname === "/checkout") {
-    verifyPayment();
-  }
-}, [location.pathname, saveOrder]);
+  verifyPayment();
+}, [location.pathname, step, saveOrder]);
 
 
 
