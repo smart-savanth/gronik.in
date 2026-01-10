@@ -14,7 +14,7 @@ const steps = [
 ];
 
 const CheckoutSection = () => {
-  console.log("change 2");
+  console.log("change 3");
   
 const navigate = useNavigate();
   const location = useLocation();
@@ -56,17 +56,27 @@ React.useEffect(() => {
     window.addEventListener("storage", update);
     return () => window.removeEventListener("storage", update);
   }, []);
-  const paymentResult = searchParams.get("payment"); 
+
   const [orderPlaced, setOrderPlaced] = useState(false);
+
+  const uiStep = searchParams.get("step"); // "review" | null
+const paymentResult = searchParams.get("payment"); // success | failed | null
+
 const step = (() => {
+  // 🔥 Highest priority: payment result
   if (paymentResult === "success") return 3;
   if (paymentResult === "failed") return 2;
 
-  const isReturningFromPayment =
+  // 🔁 Returning from gateway but not resolved yet
+  if (
     localStorage.getItem("paymentFlow") === "IN_PROGRESS" &&
-    localStorage.getItem("pendingPayment");
+    localStorage.getItem("pendingPayment")
+  ) {
+    return 2;
+  }
 
-  if (isReturningFromPayment) return 2;
+  // 👉 Manual UI navigation
+  if (uiStep === "review") return 2;
 
   return 1;
 })();
@@ -328,7 +338,7 @@ React.useEffect(() => {
                 Back
               </button>
           <button
-  onClick={() => navigate("/checkout")}
+  onClick={() => navigate("/checkout?step=review")}
   disabled={cart.length === 0}
                 className="flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 rounded-lg bg-[#9B7BB8] text-white font-bold hover:bg-[#8A6AA7] transition disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
               >
