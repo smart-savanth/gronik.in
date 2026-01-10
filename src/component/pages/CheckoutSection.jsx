@@ -22,7 +22,9 @@ const CheckoutSection = () => {
   const [transactionError, setTransactionError] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [isCheckingPayment, setIsCheckingPayment] = useState(false);
-
+  const isReturningFromPayment =
+  localStorage.getItem("paymentFlow") === "IN_PROGRESS" &&
+  localStorage.getItem("pendingPayment");
   // Get user ID from Redux (same as App.js)
   const user = useSelector(state => state.userAuth.user);
   const userId = user?.guid;
@@ -122,15 +124,20 @@ const handlePlaceOrder = async () => {
     }
 
     // 🔐 Save pending payment
-    localStorage.setItem(
-      "pendingPayment",
-      JSON.stringify({
-        userId,
-        productIds,
-        orderId,
-        createdAt: Date.now(),
-      })
-    );
+localStorage.setItem(
+  "pendingPayment",
+  JSON.stringify({
+    userId,
+    productIds,
+    orderId,
+    status: "PENDING",
+    createdAt: Date.now(),
+  })
+);
+
+// 🔑 Mark that we are leaving for payment
+localStorage.setItem("paymentFlow", "IN_PROGRESS");
+
 
     console.log("➡️ Redirecting to PhonePe...");
     window.location.href = redirectUrl;
@@ -146,19 +153,28 @@ const handlePlaceOrder = async () => {
 
 
 
-
-
-  // Function to save order after successful payment
 React.useEffect(() => {
+  if (isReturningFromPayment) {
+    console.log("🟢 Forcing Review step (returned from gateway)");
+    setStep(2);
+  }
+}, [isReturningFromPayment]);
+
+
+React.useEffect(() => {
+  if (!isReturningFromPayment) return;
   if (location.pathname !== "/checkout") return;
-  if (step !== 2) return; // ❗ prevent duplicate calls
+
+  const pendingStr = localStorage.getItem("pendingPayment");
+  if (!pendingStr) return;
+
+  const pending = JSON.parse(pendingStr);
+
+  if (pending.status !== "PENDING") return;
+
+  console.log("🔍 Verifying payment:", pending.orderId);
 
   const verifyPayment = async () => {
-    const pendingStr = localStorage.getItem("pendingPayment");
-    if (!pendingStr) return;
-
-    const pending = JSON.parse(pendingStr);
-
     setIsCheckingPayment(true);
     setTransactionError("");
 
@@ -168,43 +184,50 @@ React.useEffect(() => {
       );
 
       const result = await res.json();
+      console.log("📦 checkStatus response:", result);
 
-      // ✅ PAYMENT SUCCESS
       if (result?.success && result?.data?.status === "COMPLETED") {
-        // 🔥 Save order ONLY after success
+        console.log("✅ Payment SUCCESS");
+
         await saveOrder({
           userId: pending.userId,
           paymentId: pending.orderId,
           productIds: pending.productIds,
         }).unwrap();
 
-        // ✅ Cleanup
         localStorage.removeItem("pendingPayment");
+        localStorage.removeItem("paymentFlow");
         localStorage.setItem("cart", JSON.stringify([]));
         window.dispatchEvent(new Event("storage"));
 
         setOrderPlaced(true);
-        setStep(3); // 🎉 SUCCESS TAB
-        setTransactionError("");
-      }
-      // ❌ PAYMENT FAILED
-      else {
+        setStep(3);
+      } else {
+        console.log("❌ Payment FAILED");
+
         localStorage.removeItem("pendingPayment");
+        localStorage.removeItem("paymentFlow");
+
+        setTransactionError("Payment failed or cancelled.");
         setStep(2);
-        setTransactionError("Payment failed or was cancelled.");
       }
     } catch (err) {
-      console.error("Payment verify error:", err);
+      console.error("❌ Verification error:", err);
+
       localStorage.removeItem("pendingPayment");
+      localStorage.removeItem("paymentFlow");
+
+      setTransactionError("Unable to verify payment.");
       setStep(2);
-      setTransactionError("Unable to verify payment. Please try again.");
     } finally {
       setIsCheckingPayment(false);
     }
   };
 
   verifyPayment();
-}, [location.pathname, step, saveOrder]);
+}, [isReturningFromPayment, location.pathname, saveOrder]);
+
+
 
 
 
@@ -246,7 +269,7 @@ React.useEffect(() => {
       <div className="w-full max-w-3xl bg-[#2D1B3D]/95 rounded-xl sm:rounded-2xl shadow-2xl p-4 sm:p-6 md:p-8 lg:p-10 text-white mb-8 sm:mb-12 md:mb-16">
         
         {/* Step 1: Cart Summary */}
-        {step === 1 && (
+        {step === 1 && !isReturningFromPayment && (
           <>
             <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-4 sm:mb-6 flex items-center">
               <ShoppingBag className="w-5 h-5 sm:w-6 sm:h-6 mr-2" />
