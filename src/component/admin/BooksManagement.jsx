@@ -1489,7 +1489,7 @@ logFormData('COVER IMAGE FORM DATA', formData);
 
   <input 
     type="file"
-    accept="image/png, image/jpeg, image/webp"
+    accept="image/*"
     onChange={e => handleChapterThumbnailChange(secIdx, chapIdx, e)}
     className="w-full bg-[#2D1B3D]/30 text-white p-1.5 rounded-lg text-[10px]
       file:mr-2 file:py-1 file:px-2 file:rounded
