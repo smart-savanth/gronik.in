@@ -210,7 +210,7 @@ React.useEffect(() => {
         `https://dev-api.gronik.in/payment/checkStatus/${pending.orderId}/userId/${pending.userId}`
       );
       const result = await res.json();
-
+      console.log(result)
       if (result?.success && result?.data?.status === "COMPLETED") {
         await saveOrder({
           userId: pending.userId,

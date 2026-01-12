@@ -39,6 +39,13 @@ import { fetchWishlistProductIds, updateWishlistItems } from './utils/wishListSe
 import { useAddToCartMutation, useRemoveFromCartMutation, useGetCartByUserIdQuery } from './utils/cartService';
 import TermsAndConditions from './component/pages/TermsAndConditions';
 import PrivacyPolicy from './component/pages/PrivacyPolicy';
+import CheckoutLayout from "./component/pages/checkout/CheckoutLayout";
+import CheckoutCart from "./component/pages/checkout/CheckoutCart";
+import CheckoutReview from "./component/pages/checkout/CheckoutReview";
+import CheckoutSuccess from "./component/pages/checkout/CheckoutSuccess";
+import CheckoutFailed from "./component/pages/checkout/CheckoutFailed";
+import CheckoutVerify from './component/pages/checkout/CheckoutVerify';
+
 
 function App() {
   // Initialize cart from localStorage on mount
@@ -518,7 +525,14 @@ const handleAddToWishlist = async (book) => {
         <Route path="/order-history" element={<OrderHistorySection />} />
         <Route path="/my-library" element={<MyLibrarySection />} />
         <Route path="/login" element={<LoginSection />} />
-        <Route path="/checkout" element={<CheckoutSection cart={cart} />} />
+       <Route path="/checkout" element={<CheckoutLayout />}>
+  <Route index element={<CheckoutCart />} />
+  <Route path="review" element={<CheckoutReview />} />
+   <Route path="verify" element={<CheckoutVerify />} />
+  <Route path="success" element={<CheckoutSuccess />} />
+  <Route path="failed" element={<CheckoutFailed />} />
+</Route>
+
         <Route path="/payment-callback/:orderId/userId/:userId" element={<PaymentCallback />} />
         <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
         <Route path="/privacy-policy" element={<PrivacyPolicy/>} />
