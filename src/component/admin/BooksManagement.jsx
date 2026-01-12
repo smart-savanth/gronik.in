@@ -1263,7 +1263,7 @@ logFormData('COVER IMAGE FORM DATA', formData);
 </label>
 <input
   type="file"
-  accept="image/*"
+  accept="image/png, image/jpeg, image/webp"
   onChange={handleCoverImageChange}
   className="w-full bg-[#9B7BB8]/10 text-white p-2 rounded-lg"
 />
@@ -1341,7 +1341,7 @@ logFormData('COVER IMAGE FORM DATA', formData);
                             </label>
                             <input 
                               type="file" 
-                              accept="image/*" 
+                              accept="image/png, image/jpeg, image/webp"
                               onChange={e => handleCarouselImageChange(index, e)} 
                               className="w-full bg-[#9B7BB8]/10 text-white p-2 rounded-lg text-xs file:mr-2 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:bg-[#9B7BB8] file:text-white hover:file:bg-[#8A6AA7] file:cursor-pointer" 
                             />
@@ -1489,7 +1489,7 @@ logFormData('COVER IMAGE FORM DATA', formData);
 
   <input 
     type="file"
-    accept="image/*"
+    accept="image/png, image/jpeg, image/webp"
     onChange={e => handleChapterThumbnailChange(secIdx, chapIdx, e)}
     className="w-full bg-[#2D1B3D]/30 text-white p-1.5 rounded-lg text-[10px]
       file:mr-2 file:py-1 file:px-2 file:rounded
