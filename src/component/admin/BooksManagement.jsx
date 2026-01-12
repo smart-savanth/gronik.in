@@ -434,6 +434,7 @@ const handleChapterThumbnailChange = (secIdx, chapIdx, e) => {
 
 const uploadSingleSection = async (secIdx) => {
   console.log("📘 Section debug:", sections[secIdx]);
+
   const { id: bookId, slug } = createdBook;
   const section = sections[secIdx];
 
@@ -449,21 +450,23 @@ const uploadSingleSection = async (secIdx) => {
 
   const formData = new FormData();
 
-  // SECTION TITLE (once)
+  // ✅ Section title
   formData.append("sectionsTitle", section.title);
 
-  // ARRAYS (order matters)
+  // ✅ Files (arrays)
   section.chapters.forEach((chapter, index) => {
-    if (!chapter.chapterPdf || !chapter.thumbnailImage || !chapter.pages) {
-      throw new Error(`Missing data in chapter ${index + 1}`);
+    if (!chapter.chapterPdf || !chapter.thumbnailImage) {
+      throw new Error(`Missing PDF or thumbnail in chapter ${index + 1}`);
     }
 
     formData.append("chapters", chapter.chapterPdf);
     formData.append("chapterCover", chapter.thumbnailImage);
-   // formData.append("pages", chapter.pages);
   });
 
-  logFormData("SECTION UPLOAD", formData);
+  // ✅ Pages hardcoded to 0 (ONCE)
+  formData.append("sectionsPages", 0);
+
+  logFormData("SECTION UPLOAD PAYLOAD", formData);
 
   try {
     await uploadAssets({
@@ -474,10 +477,11 @@ const uploadSingleSection = async (secIdx) => {
 
     alert(`✅ Section "${section.title}" uploaded successfully`);
   } catch (err) {
-    console.error(err);
+    console.error("❌ Section upload failed:", err);
     alert("❌ Section upload failed");
   }
 };
+
 
 
 
