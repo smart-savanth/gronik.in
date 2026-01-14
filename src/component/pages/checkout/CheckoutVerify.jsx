@@ -1,12 +1,10 @@
 import React, { useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Loader2 } from "lucide-react";
-import { useSaveOrderMutation } from "../../../utils/orderServices";
 
 const CheckoutVerify = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [saveOrder] = useSaveOrderMutation();
 
   useEffect(() => {
     // 🔑 1. Extract orderId from URL
@@ -43,12 +41,7 @@ const CheckoutVerify = () => {
             productIds = [payment.product_details];
           }
 
-          await saveOrder({
-            userId: payment.user_id,
-            paymentId: payment.guid,
-            productIds,
-          }).unwrap();
-
+          // Backend already saves the order on successful payment
           navigate("/checkout/success", { replace: true });
         } else {
           throw new Error("Payment not completed");
@@ -60,7 +53,7 @@ const CheckoutVerify = () => {
     };
 
     verifyPayment();
-  }, [navigate, saveOrder, searchParams]);
+  }, [navigate, searchParams]);
 
   return (
     <div className="w-full max-w-3xl mx-auto bg-[#2D1B3D]/95 rounded-2xl p-10 text-white text-center">
