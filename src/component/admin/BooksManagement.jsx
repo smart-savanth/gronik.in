@@ -73,6 +73,10 @@ const [customCategory, setCustomCategory] = useState('');
 
   const [currentPhase, setCurrentPhase] = useState(1);
   const [priceError, setPriceError] = useState(''); // NEW: For price validation error
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deletingBookId, setDeletingBookId] = useState(null);
+  const [isUploadingSection, setIsUploadingSection] = useState({});
+  const [isLoadingEdit, setIsLoadingEdit] = useState(false);
   
 const [basicInfo, setBasicInfo] = useState({
   title: '',
@@ -146,6 +150,7 @@ setBasicInfo({
 
 
 const openEditModal = async (bookId) => {
+  setIsLoadingEdit(true);
   try {
     const res = await fetch(
       `${process.env.REACT_APP_BASE_URL}/product/getBookById/${bookId}`
@@ -176,6 +181,8 @@ const openEditModal = async (bookId) => {
   } catch (err) {
     console.error(err);
     alert('Failed to load book');
+  } finally {
+    setIsLoadingEdit(false);
   }
 };
 
@@ -184,6 +191,7 @@ const openEditModal = async (bookId) => {
     setModalBook(null);
     setCurrentPhase(1);
     setPriceError('');
+    setIsSubmitting(false);
   };
 
   const openViewModal = (book) => {
@@ -259,12 +267,15 @@ const handleCoverImageChange = (e) => {
 const goToPhase3 = async (e) => {
   e.preventDefault();
 
+  if (isSubmitting) return;
+
   const { id: bookId, slug } = createdBook;
   if (!bookId || !slug) {
     alert("Book not ready");
     return;
   }
 
+  setIsSubmitting(true);
   try {
     const uploadedUrls = [];
 
@@ -310,6 +321,8 @@ const goToPhase3 = async (e) => {
   } catch (err) {
     console.error("❌ Carousel flow failed:", err);
     alert("Carousel upload/save failed");
+  } finally {
+    setIsSubmitting(false);
   }
 };
 
@@ -438,6 +451,8 @@ const uploadSingleSection = async (secIdx) => {
   const { id: bookId, slug } = createdBook;
   const section = sections[secIdx];
 
+  if (isUploadingSection[secIdx]) return;
+
   if (!section.title) {
     alert("Section title is required");
     return;
@@ -447,6 +462,8 @@ const uploadSingleSection = async (secIdx) => {
     alert("Add at least one chapter");
     return;
   }
+
+  setIsUploadingSection(prev => ({ ...prev, [secIdx]: true }));
 
   const formData = new FormData();
 
@@ -479,6 +496,8 @@ const uploadSingleSection = async (secIdx) => {
   } catch (err) {
     console.error("❌ Section upload failed:", err);
     alert("❌ Section upload failed");
+  } finally {
+    setIsUploadingSection(prev => ({ ...prev, [secIdx]: false }));
   }
 };
 
@@ -510,6 +529,8 @@ const uploadSingleSection = async (secIdx) => {
 const handleFinalSubmit = async (e) => {
   e.preventDefault();
 
+  if (isSubmitting) return;
+
   const { id: bookId, slug } = createdBook;
 
   if (!bookId || !slug) {
@@ -517,6 +538,7 @@ const handleFinalSubmit = async (e) => {
     return;
   }
 
+  setIsSubmitting(true);
   try {
     
 
@@ -526,6 +548,8 @@ const handleFinalSubmit = async (e) => {
   } catch (err) {
     console.error("❌ Upload failed:", err);
     alert("Failed to upload sections/chapters");
+  } finally {
+    setIsSubmitting(false);
   }
 };
 
@@ -533,6 +557,7 @@ const handleFinalSubmit = async (e) => {
 
   const handleDelete = async (book) => {
     if(window.confirm(`Are you sure you want to delete "${book.title}"?`)) {
+      setDeletingBookId(book._id || book.id);
       try {
         await deleteBook(book._id || book.id).unwrap();
         alert('Book deleted successfully');
@@ -540,6 +565,8 @@ const handleFinalSubmit = async (e) => {
       } catch (error) {
         console.error('Error deleting book:', error);
         alert(error?.data?.msg || 'Failed to delete book. Please try again.');
+      } finally {
+        setDeletingBookId(null);
       }
     }
   };
@@ -680,14 +707,16 @@ const handleFinalSubmit = async (e) => {
 
     <button
       onClick={() => openEditModal(book._id)}
-      className="p-2 rounded-lg hover:bg-blue-500/20 text-blue-400 hover:text-blue-300 transition-colors"
+      disabled={isLoadingEdit}
+      className="p-2 rounded-lg hover:bg-blue-500/20 text-blue-400 hover:text-blue-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
     >
       <Edit className="w-4 h-4" />
     </button>
 
     <button
       onClick={() => handleDelete(book)}
-      className="p-2 rounded-lg hover:bg-red-500/20 text-red-400 hover:text-red-300 transition-colors"
+      disabled={deletingBookId === (book._id || book.id)}
+      className="p-2 rounded-lg hover:bg-red-500/20 text-red-400 hover:text-red-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
     >
       <Trash2 className="w-4 h-4" />
     </button>
@@ -918,6 +947,8 @@ const handleFinalSubmit = async (e) => {
   onSubmit={async (e) => {
     e.preventDefault();
 
+    if (isSubmitting) return;
+
     if (!basicInfo.title || !basicInfo.category || !basicInfo.price) {
       alert('Please fill required fields');
       return;
@@ -928,6 +959,7 @@ const handleFinalSubmit = async (e) => {
       return;
     }
 
+    setIsSubmitting(true);
     try {
   // 1️⃣ SAVE BASIC BOOK INFO
   const payload = {
@@ -1026,6 +1058,8 @@ logFormData('COVER IMAGE FORM DATA', formData);
   }
 
   alert('Failed to save basic info — check console');
+} finally {
+  setIsSubmitting(false);
 }
 
   }}
@@ -1304,10 +1338,11 @@ logFormData('COVER IMAGE FORM DATA', formData);
                   <div className="flex justify-end pt-4">
                     <button 
                       type="submit" 
-                      className="flex items-center space-x-2 px-6 py-2 bg-[#9B7BB8] text-white rounded-lg hover:bg-[#8A6AA7] transition-colors text-sm font-semibold"
+                      disabled={isSubmitting}
+                      className="flex items-center space-x-2 px-6 py-2 bg-[#9B7BB8] text-white rounded-lg hover:bg-[#8A6AA7] transition-colors text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      <span>Next: Overview & Carousel</span>
-                      <ArrowRight className="w-4 h-4" />
+                      <span>{isSubmitting ? 'Saving...' : 'Next: Overview & Carousel'}</span>
+                      {!isSubmitting && <ArrowRight className="w-4 h-4" />}
                     </button>
                   </div>
                 </form>
@@ -1376,10 +1411,11 @@ logFormData('COVER IMAGE FORM DATA', formData);
                     </button>
                     <button 
                       type="submit" 
-                      className="flex items-center space-x-2 px-6 py-2 bg-[#9B7BB8] text-white rounded-lg hover:bg-[#8A6AA7] transition-colors text-sm font-semibold"
+                      disabled={isSubmitting}
+                      className="flex items-center space-x-2 px-6 py-2 bg-[#9B7BB8] text-white rounded-lg hover:bg-[#8A6AA7] transition-colors text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      <span>Next: Content</span>
-                      <ArrowRight className="w-4 h-4" />
+                      <span>{isSubmitting ? 'Uploading...' : 'Next: Content'}</span>
+                      {!isSubmitting && <ArrowRight className="w-4 h-4" />}
                     </button>
                   </div>
                 </form>
@@ -1533,9 +1569,10 @@ logFormData('COVER IMAGE FORM DATA', formData);
                           <button
                         type="button"
                         onClick={() => uploadSingleSection(secIdx)}
-                        className="ml-auto px-3 py-1 bg-[#9B7BB8] hover:bg-[#8A6AA7] text-white rounded-lg text-xs"
+                        disabled={isUploadingSection[secIdx]}
+                        className="ml-auto px-3 py-1 bg-[#9B7BB8] hover:bg-[#8A6AA7] text-white rounded-lg text-xs disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        Upload This Section
+                        {isUploadingSection[secIdx] ? 'Uploading...' : 'Upload This Section'}
                       </button>
                         </div>
 
@@ -1554,10 +1591,11 @@ logFormData('COVER IMAGE FORM DATA', formData);
                     </button>
                     <button 
                       type="submit" 
-                      className="flex items-center space-x-2 px-6 py-2 bg-[#9B7BB8] text-white rounded-lg hover:bg-[#8A6AA7] transition-colors text-sm font-semibold"
+                      disabled={isSubmitting}
+                      className="flex items-center space-x-2 px-6 py-2 bg-[#9B7BB8] text-white rounded-lg hover:bg-[#8A6AA7] transition-colors text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <Save className="w-4 h-4" />
-                      <span>{isEdit ? 'Save Changes' : 'Create Book'}</span>
+                      <span>{isSubmitting ? 'Saving...' : (isEdit ? 'Save Changes' : 'Create Book')}</span>
                     </button>
                   </div>
                 </form>
