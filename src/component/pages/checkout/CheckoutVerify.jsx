@@ -28,24 +28,26 @@ const CheckoutVerify = () => {
         console.log("🔎 Payment status response:", result);
 
         // 🔑 3. Validate success + lowercase status
-        if (result?.success && result?.data?.status === "completed") {
-          const { user_id, product_details } = result.data;
+      if (result?.success && result?.data?.payment?.status === "completed") {
+  const payment = result.data.payment;
+  const orderItems = result.data.order || [];
 
-          // 🔑 4. Save order using API response (SOURCE OF TRUTH)
-          await saveOrder({
-            userId: user_id,
-            paymentId: orderId,
-            productIds: product_details,
-          }).unwrap();
+  const productIds = orderItems.map(item => item.product_id);
 
-          // 🔑 5. Cleanup
-          localStorage.removeItem("pendingPayment");
-          localStorage.removeItem("paymentFlow");
-          localStorage.setItem("cart", JSON.stringify([]));
-          window.dispatchEvent(new Event("storage"));
+  await saveOrder({
+    userId: payment.user_id,
+    paymentId: payment.guid,
+    productIds,
+  }).unwrap();
 
-          //navigate("/checkout/success", { replace: true });
-        } else {
+  // 🧹 Cleanup
+  localStorage.removeItem("pendingPayment");
+  localStorage.removeItem("paymentFlow");
+  localStorage.setItem("cart", JSON.stringify([]));
+  window.dispatchEvent(new Event("storage"));
+
+  navigate("/checkout/success", { replace: true });
+}  else {
           throw new Error("Payment not completed");
         }
       } catch (error) {
