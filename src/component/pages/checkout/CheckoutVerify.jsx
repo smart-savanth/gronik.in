@@ -1,47 +1,44 @@
 import React, { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { useSaveOrderMutation } from "../../../utils/orderServices";
 
 const CheckoutVerify = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [saveOrder] = useSaveOrderMutation();
 
   useEffect(() => {
-    const pendingRaw = localStorage.getItem("pendingPayment");
+    // 🔑 1. Extract orderId from URL
+    const orderId = searchParams.get("orderId");
 
-    if (!pendingRaw) {
-      navigate("/checkout/failed", { replace: true });
-      return;
-    }
-
-    const pending = JSON.parse(pendingRaw);
-    const { orderId, userId, productIds } = pending;
-
-    if (!orderId || !userId || !productIds?.length) {
+    if (!orderId) {
       navigate("/checkout/failed", { replace: true });
       return;
     }
 
     const verifyPayment = async () => {
       try {
-        // ✅ UPDATED API (orderId ONLY)
+        // 🔑 2. Call NEW checkStatus API
         const res = await fetch(
           `https://dev-api.gronik.in/payment/checkStatus/${orderId}`
         );
 
         const result = await res.json();
-        console.log("🔎 Payment status:", result);
+        console.log("🔎 Payment status response:", result);
 
-        if (result?.success && result?.data?.status === "COMPLETED") {
-          // ✅ Save order ONLY after confirmed payment
+        // 🔑 3. Validate success + lowercase status
+        if (result?.success && result?.data?.status === "completed") {
+          const { user_id, product_details } = result.data;
+
+          // 🔑 4. Save order using API response (SOURCE OF TRUTH)
           await saveOrder({
-            userId,
+            userId: user_id,
             paymentId: orderId,
-            productIds,
+            productIds: product_details,
           }).unwrap();
 
-          // ✅ Cleanup
+          // 🔑 5. Cleanup
           localStorage.removeItem("pendingPayment");
           localStorage.removeItem("paymentFlow");
           localStorage.setItem("cart", JSON.stringify([]));
@@ -52,7 +49,7 @@ const CheckoutVerify = () => {
           throw new Error("Payment not completed");
         }
       } catch (error) {
-        console.error("❌ Verification failed:", error);
+        console.error("❌ Payment verification failed:", error);
 
         localStorage.removeItem("pendingPayment");
         localStorage.removeItem("paymentFlow");
@@ -62,7 +59,7 @@ const CheckoutVerify = () => {
     };
 
     verifyPayment();
-  }, [navigate, saveOrder]);
+  }, [navigate, saveOrder, searchParams]);
 
   return (
     <div className="w-full max-w-3xl mx-auto bg-[#2D1B3D]/95 rounded-2xl p-10 text-white text-center">
