@@ -19,7 +19,7 @@ const CheckoutVerify = () => {
 
     const verifyPayment = async () => {
       try {
-        // 🔑 2. Call NEW checkStatus API
+        // 🔑 2. Call checkStatus API
         const res = await fetch(
           `https://dev-api.gronik.in/payment/checkStatus/${orderId}`
         );
@@ -27,36 +27,32 @@ const CheckoutVerify = () => {
         const result = await res.json();
         console.log("🔎 Payment status response:", result);
 
-        // 🔑 3. Validate success + lowercase status
-      if (result?.success && result?.data?.payment?.status === "completed") {
-  const payment = result.data.payment;
-  const orderItems = result.data.order || [];
+        // 🔑 3. Validate success + status from payment object
+        const paymentStatus = result?.data?.payment?.status
+          ? String(result.data.payment.status).toLowerCase()
+          : "";
 
-  const productIds = orderItems.map(item => item.product_id);
+        if (result?.success && paymentStatus === "completed") {
+          const payment = result.data.payment;
+          const orderItems = result.data.order || [];
 
-  await saveOrder({
-    userId: payment.user_id,
-    paymentId: payment.guid,
-    productIds,
-  }).unwrap();
+          const productIds = orderItems
+            .map((item) => item.product_id)
+            .filter(Boolean);
 
-  // 🧹 Cleanup
-  localStorage.removeItem("pendingPayment");
-  localStorage.removeItem("paymentFlow");
-  localStorage.setItem("cart", JSON.stringify([]));
-  window.dispatchEvent(new Event("storage"));
+          await saveOrder({
+            userId: payment.user_id,
+            paymentId: payment.guid,
+            productIds,
+          }).unwrap();
 
-  navigate("/checkout/success", { replace: true });
-}  else {
+          navigate("/checkout/success", { replace: true });
+        } else {
           throw new Error("Payment not completed");
         }
       } catch (error) {
         console.error("❌ Payment verification failed:", error);
-
-        localStorage.removeItem("pendingPayment");
-        localStorage.removeItem("paymentFlow");
-
-        //navigate("/checkout/failed", { replace: true });
+        navigate("/checkout/failed", { replace: true });
       }
     };
 
