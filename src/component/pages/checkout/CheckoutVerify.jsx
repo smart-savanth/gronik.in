@@ -19,7 +19,7 @@ const CheckoutVerify = () => {
 
     const verifyPayment = async () => {
       try {
-        // 🔑 2. Call checkStatus API
+        // 🔑 2. Call checkStatus API with GUID from URL
         const res = await fetch(
           `https://dev-api.gronik.in/payment/checkStatus/${orderId}`
         );
@@ -34,11 +34,14 @@ const CheckoutVerify = () => {
 
         if (result?.success && paymentStatus === "completed") {
           const payment = result.data.payment;
-          const orderItems = result.data.order || [];
 
-          const productIds = orderItems
-            .map((item) => item.product_id)
-            .filter(Boolean);
+          // 🔑 Use product_details from payment as the source of truth
+          let productIds = [];
+          if (Array.isArray(payment.product_details)) {
+            productIds = payment.product_details.filter(Boolean);
+          } else if (payment.product_details) {
+            productIds = [payment.product_details];
+          }
 
           await saveOrder({
             userId: payment.user_id,
