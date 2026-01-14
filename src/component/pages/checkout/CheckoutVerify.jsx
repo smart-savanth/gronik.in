@@ -44,7 +44,7 @@ const CheckoutVerify = () => {
           localStorage.setItem("cart", JSON.stringify([]));
           window.dispatchEvent(new Event("storage"));
 
-          navigate("/checkout/success", { replace: true });
+          //navigate("/checkout/success", { replace: true });
         } else {
           throw new Error("Payment not completed");
         }
@@ -54,7 +54,7 @@ const CheckoutVerify = () => {
         localStorage.removeItem("pendingPayment");
         localStorage.removeItem("paymentFlow");
 
-        navigate("/checkout/failed", { replace: true });
+        //navigate("/checkout/failed", { replace: true });
       }
     };
 
