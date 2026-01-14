@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { CheckCircle } from "lucide-react";
 import { useSavePaymentMutation } from "../../../utils/paymentService";
-import { useSaveOrderMutation } from "../../../utils/orderServices"; 
 
 export default function CheckoutReview() {
   const navigate = useNavigate();
@@ -15,7 +14,6 @@ export default function CheckoutReview() {
   const [isProcessing, setIsProcessing] = useState(false);
 
   const [savePayment] = useSavePaymentMutation();
-  const [saveOrder] = useSaveOrderMutation();
 const subtotal = cart.reduce((sum, item) => {
   const original = Number(item.originalPrice || item.price || 0);
   const qty = Number(item.quantity || 1);
@@ -37,43 +35,6 @@ const savings = cart.reduce((sum, item) => {
   const total = cart.reduce((sum, item) => {
     return sum + Number(item.price || 0) * Number(item.quantity || 1);
   }, 0);
-
-  // 🔁 VERIFY PAYMENT WHEN USER RETURNS FROM GATEWAY
-  useEffect(() => {
-    const pending = JSON.parse(localStorage.getItem("pendingPayment"));
-    if (!pending) return;
-
-    const verify = async () => {
-      try {
-        const res = await fetch(
-          `https://dev-api.gronik.in/payment/checkStatus/${pending.orderId}/userId/${pending.userId}`
-        );
-        const result = await res.json();
-
-        if (result?.success && result?.data?.status === "COMPLETED") {
-          await saveOrder({
-            userId: pending.userId,
-            paymentId: pending.orderId,
-            productIds: pending.productIds,
-          }).unwrap();
-
-          localStorage.removeItem("pendingPayment");
-          localStorage.removeItem("paymentFlow");
-          localStorage.setItem("cart", JSON.stringify([]));
-
-          navigate("/checkout/success", { replace: true });
-        } else {
-          throw new Error("Payment failed");
-        }
-      } catch {
-        localStorage.removeItem("pendingPayment");
-        localStorage.removeItem("paymentFlow");
-        navigate("/checkout/failed", { replace: true });
-      }
-    };
-
-    verify();
-  }, [navigate, saveOrder]);
 
   // 🚀 INITIATE PAYMENT
   const handlePay = async () => {
@@ -97,18 +58,10 @@ const savings = cart.reduce((sum, item) => {
 
       if (!redirectUrl || !orderId) throw new Error("Invalid payment response");
 
-      localStorage.setItem(
-        "pendingPayment",
-        JSON.stringify({
-          userId,
-          orderId,
-          productIds,
-        })
-      );
-      localStorage.setItem("paymentFlow", "IN_PROGRESS");
-
+      // Backend + CheckoutVerify handle status and order saving.
+      // Just redirect user to payment gateway.
       window.location.href = redirectUrl;
-    } catch (e) {
+      } catch (e) {
       setError(e.message || "Payment failed");
       setIsProcessing(false);
     }
