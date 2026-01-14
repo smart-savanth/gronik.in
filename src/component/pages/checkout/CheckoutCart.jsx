@@ -1,10 +1,22 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useSelector } from "react-redux";
 import { ShoppingBag, ArrowRight, ArrowLeft } from "lucide-react";
 
 export default function CheckoutCart() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const user = useSelector((state) => state.userAuth.user);
+  const userId = user?.guid;
   const [cart, setCart] = useState([]);
+
+  // Authentication check - redirect to login if not authenticated
+  useEffect(() => {
+    if (!userId) {
+      const currentPath = location.pathname + location.search;
+      navigate(`/login?redirect=${encodeURIComponent(currentPath)}`, { replace: true });
+    }
+  }, [userId, navigate, location]);
 
   useEffect(() => {
     const stored = JSON.parse(localStorage.getItem("cart")) || [];
@@ -80,8 +92,14 @@ const savings = originalTotal - subtotal;
   </button>
 
   <button
-    disabled={cart.length === 0}
-    onClick={() => navigate("/checkout/review")}
+    disabled={cart.length === 0 || !userId}
+    onClick={() => {
+      if (!userId) {
+        navigate(`/login?redirect=${encodeURIComponent("/checkout/review")}`, { replace: true });
+        return;
+      }
+      navigate("/checkout/review");
+    }}
     className="flex items-center gap-2 px-6 py-2 bg-[#9B7BB8] rounded-lg font-bold disabled:opacity-50"
   >
     Next <ArrowRight size={16} />

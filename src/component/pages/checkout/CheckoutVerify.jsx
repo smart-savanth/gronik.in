@@ -1,12 +1,23 @@
 import React, { useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
+import { useSelector } from "react-redux";
 import { Loader2 } from "lucide-react";
 
 const CheckoutVerify = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
+  const user = useSelector((state) => state.userAuth.user);
+  const userId = user?.guid;
 
   useEffect(() => {
+    // Check authentication first
+    if (!userId) {
+      const currentPath = location.pathname + location.search;
+      navigate(`/login?redirect=${encodeURIComponent(currentPath)}`, { replace: true });
+      return;
+    }
+
     // 🔑 1. Extract orderId from URL
     const orderId = searchParams.get("orderId");
 
@@ -16,6 +27,12 @@ const CheckoutVerify = () => {
     }
 
     const verifyPayment = async () => {
+      // Double check authentication before verifying
+      if (!userId) {
+        const currentPath = location.pathname + location.search;
+        navigate(`/login?redirect=${encodeURIComponent(currentPath)}`, { replace: true });
+        return;
+      }
       try {
         // 🔑 2. Call checkStatus API with GUID from URL
         const res = await fetch(
@@ -53,7 +70,7 @@ const CheckoutVerify = () => {
     };
 
     verifyPayment();
-  }, [navigate, searchParams]);
+  }, [navigate, searchParams, userId, location]);
 
   return (
     <div className="w-full max-w-3xl mx-auto bg-[#2D1B3D]/95 rounded-2xl p-10 text-white text-center">

@@ -36,6 +36,16 @@ const navigate = useNavigate();
   // API hooks
   const [savePayment] = useSavePaymentMutation();
   const [saveOrder] = useSaveOrderMutation();
+
+  // Authentication check - redirect to login if not authenticated
+  React.useEffect(() => {
+    if (!userId && !isReturningFromPayment) {
+      // Store the intended destination
+      const currentPath = location.pathname + location.search;
+      navigate(`/login?redirect=${encodeURIComponent(currentPath)}`, { replace: true });
+    }
+  }, [userId, navigate, location, isReturningFromPayment]);
+
 React.useEffect(() => {
   if (isReturningFromPayment) {
     console.log("🟢 Hard forcing Review step BEFORE render");
@@ -106,7 +116,8 @@ const handlePlaceOrder = async () => {
 
   try {
     if (!userId) {
-      setTransactionError("Please login to place an order.");
+      const currentPath = location.pathname + location.search;
+      navigate(`/login?redirect=${encodeURIComponent(currentPath)}`, { replace: true });
       return;
     }
 
@@ -197,6 +208,13 @@ React.useEffect(() => {
     return;
   }
 
+  // Check authentication during payment verification
+  if (!userId) {
+    const currentPath = location.pathname + location.search;
+    navigate(`/login?redirect=${encodeURIComponent(currentPath)}`, { replace: true });
+    return;
+  }
+
   const pendingStr = localStorage.getItem("pendingPayment");
   if (!pendingStr) return;
 
@@ -206,6 +224,13 @@ React.useEffect(() => {
     setIsCheckingPayment(true);
 
     try {
+      // Double check authentication before verifying payment
+      if (!userId) {
+        const currentPath = location.pathname + location.search;
+        navigate(`/login?redirect=${encodeURIComponent(currentPath)}`, { replace: true });
+        return;
+      }
+
       const res = await fetch(
         `https://dev-api.gronik.in/payment/checkStatus/${pending.orderId}/userId/${pending.userId}`
       );
@@ -238,7 +263,7 @@ React.useEffect(() => {
   };
 
   verifyPayment();
-}, [paymentResult, navigate, saveOrder]);
+}, [paymentResult, navigate, saveOrder, userId, location]);
 
 
   return (
@@ -337,8 +362,14 @@ React.useEffect(() => {
                 Back
               </button>
           <button
-  onClick={() => navigate("/checkout?step=review")}
-  disabled={cart.length === 0}
+  onClick={() => {
+    if (!userId) {
+      navigate(`/login?redirect=${encodeURIComponent("/checkout?step=review")}`, { replace: true });
+      return;
+    }
+    navigate("/checkout?step=review");
+  }}
+  disabled={cart.length === 0 || !userId}
                 className="flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 rounded-lg bg-[#9B7BB8] text-white font-bold hover:bg-[#8A6AA7] transition disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
               >
                 Next

@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { CheckCircle } from "lucide-react";
 import { useSavePaymentMutation } from "../../../utils/paymentService";
 
 export default function CheckoutReview() {
   const navigate = useNavigate();
+  const location = useLocation();
   const user = useSelector((state) => state.userAuth.user);
   const userId = user?.guid;
 
@@ -14,6 +15,14 @@ export default function CheckoutReview() {
   const [isProcessing, setIsProcessing] = useState(false);
 
   const [savePayment] = useSavePaymentMutation();
+
+  // Authentication check - redirect to login if not authenticated
+  useEffect(() => {
+    if (!userId) {
+      const currentPath = location.pathname + location.search;
+      navigate(`/login?redirect=${encodeURIComponent(currentPath)}`, { replace: true });
+    }
+  }, [userId, navigate, location]);
 const subtotal = cart.reduce((sum, item) => {
   const original = Number(item.originalPrice || item.price || 0);
   const qty = Number(item.quantity || 1);
@@ -123,9 +132,14 @@ const savings = cart.reduce((sum, item) => {
         </div>
       )}
 
+      {!userId && (
+        <div className="bg-yellow-500/20 border border-yellow-500/40 text-yellow-300 p-3 rounded-lg mb-4 text-center">
+          Please login to place an order.
+        </div>
+      )}
       <button
         onClick={handlePay}
-        disabled={isProcessing}
+        disabled={isProcessing || !userId}
         className="w-full py-3 bg-green-600 rounded-lg font-bold disabled:opacity-50"
       >
         {isProcessing ? "Redirecting..." : "Pay Now"}
