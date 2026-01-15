@@ -67,6 +67,19 @@ const savings = cart.reduce((sum, item) => {
 
       if (!redirectUrl || !orderId) throw new Error("Invalid payment response");
 
+      // Save pending payment data for cart removal after successful payment
+      localStorage.setItem(
+        "pendingPayment",
+        JSON.stringify({
+          userId,
+          productIds,
+          orderId,
+          status: "PENDING",
+          createdAt: Date.now(),
+        })
+      );
+      localStorage.setItem("paymentFlow", "IN_PROGRESS");
+
       // Backend + CheckoutVerify handle status and order saving.
       // Just redirect user to payment gateway.
       window.location.href = redirectUrl;

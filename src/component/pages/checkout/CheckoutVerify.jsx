@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
+import { useRemoveFromCartMutation } from "../../../utils/cartService";
 import { Loader2 } from "lucide-react";
 
 const CheckoutVerify = () => {
@@ -9,6 +10,7 @@ const CheckoutVerify = () => {
   const [searchParams] = useSearchParams();
   const user = useSelector((state) => state.userAuth.user);
   const userId = user?.guid;
+  const [removeFromCart] = useRemoveFromCartMutation();
 
   useEffect(() => {
     // Check authentication first
@@ -58,6 +60,38 @@ const CheckoutVerify = () => {
             productIds = [payment.product_details];
           }
 
+          // Remove purchased items from backend cart (if user is logged in)
+          if (userId && productIds.length > 0) {
+            try {
+              await Promise.all(
+                productIds.map(productId => 
+                  removeFromCart({
+                    userId: userId,
+                    productId: productId
+                  }).unwrap().catch(err => {
+                    console.error(`Failed to remove product ${productId} from cart:`, err);
+                    // Continue even if one fails
+                  })
+                )
+              );
+            } catch (cartError) {
+              console.error("Error removing items from backend cart:", cartError);
+              // Continue even if cart removal fails
+            }
+          }
+
+          // Clear localStorage cart
+          const pendingPaymentStr = localStorage.getItem("pendingPayment");
+          if (pendingPaymentStr) {
+            localStorage.removeItem("pendingPayment");
+          }
+          localStorage.removeItem("paymentFlow");
+          localStorage.setItem("cart", JSON.stringify([]));
+          
+          // Trigger storage events to refresh cart UI
+          window.dispatchEvent(new Event("storage"));
+          window.dispatchEvent(new Event("cart-updated"));
+
           // Backend already saves the order on successful payment
           navigate("/checkout/success", { replace: true });
         } else {
@@ -70,7 +104,7 @@ const CheckoutVerify = () => {
     };
 
     verifyPayment();
-  }, [navigate, searchParams, userId, location]);
+  }, [navigate, searchParams, userId, location, removeFromCart]);
 
   return (
     <div className="w-full max-w-3xl mx-auto bg-[#2D1B3D]/95 rounded-2xl p-10 text-white text-center">

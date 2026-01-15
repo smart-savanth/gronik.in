@@ -4,6 +4,7 @@ import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { ShoppingBag, CheckCircle, ArrowLeft, ArrowRight, Smile } from 'lucide-react';
 import { useSavePaymentMutation } from '../../utils/paymentService';
 import { useSaveOrderMutation } from '../../utils/orderServices';
+import { useRemoveFromCartMutation } from '../../utils/cartService';
 
 
 // 3 steps: Cart → Review → Success (Payment removed)
@@ -36,6 +37,7 @@ const navigate = useNavigate();
   // API hooks
   const [savePayment] = useSavePaymentMutation();
   const [saveOrder] = useSaveOrderMutation();
+  const [removeFromCart] = useRemoveFromCartMutation();
 
   // Authentication check - redirect to login if not authenticated
   React.useEffect(() => {
@@ -64,7 +66,11 @@ React.useEffect(() => {
       setCart(stored);
     };
     window.addEventListener("storage", update);
-    return () => window.removeEventListener("storage", update);
+    window.addEventListener("cart-updated", update);
+    return () => {
+      window.removeEventListener("storage", update);
+      window.removeEventListener("cart-updated", update);
+    };
   }, []);
 
   const [orderPlaced, setOrderPlaced] = useState(false);
@@ -243,10 +249,38 @@ React.useEffect(() => {
           productIds: pending.productIds,
         }).unwrap();
 
+        // Remove purchased items from backend cart (if user is logged in)
+        if (userId && pending.productIds && Array.isArray(pending.productIds)) {
+          try {
+            // Remove each purchased product from cart
+            await Promise.all(
+              pending.productIds.map(productId => 
+                removeFromCart({
+                  userId: pending.userId,
+                  productId: productId
+                }).unwrap().catch(err => {
+                  console.error(`Failed to remove product ${productId} from cart:`, err);
+                  // Continue even if one fails
+                })
+              )
+            );
+          } catch (cartError) {
+            console.error("Error removing items from backend cart:", cartError);
+            // Continue even if cart removal fails
+          }
+        }
+
+        // Clear localStorage cart
         localStorage.removeItem("pendingPayment");
         localStorage.removeItem("paymentFlow");
         localStorage.setItem("cart", JSON.stringify([]));
+        
+        // Clear cart state
+        setCart([]);
+
+        // Trigger storage events to refresh cart UI
         window.dispatchEvent(new Event("storage"));
+        window.dispatchEvent(new Event("cart-updated"));
 
         navigate("/checkout?payment=success", { replace: true });
       } else {
@@ -262,8 +296,8 @@ React.useEffect(() => {
     }
   };
 
-  verifyPayment();
-}, [paymentResult, navigate, saveOrder, userId, location]);
+    verifyPayment();
+  }, [paymentResult, navigate, saveOrder, removeFromCart, userId, location]);
 
 
   return (

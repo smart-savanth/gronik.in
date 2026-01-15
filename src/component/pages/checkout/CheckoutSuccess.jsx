@@ -1,8 +1,24 @@
+import { useEffect } from "react";
 import { CheckCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 export default function CheckoutSuccess() {
   const navigate = useNavigate();
+
+  // Ensure cart is cleared when success page loads
+  useEffect(() => {
+    // Clear any pending payment data
+    localStorage.removeItem("pendingPayment");
+    localStorage.removeItem("paymentFlow");
+    
+    // Ensure cart is empty
+    const currentCart = JSON.parse(localStorage.getItem("cart")) || [];
+    if (currentCart.length > 0) {
+      localStorage.setItem("cart", JSON.stringify([]));
+      window.dispatchEvent(new Event("storage"));
+      window.dispatchEvent(new Event("cart-updated"));
+    }
+  }, []);
 
   return (
     <div className="max-w-3xl mx-auto bg-[#2D1B3D]/95 rounded-2xl p-10 text-white text-center">

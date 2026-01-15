@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useSaveOrderMutation } from '../../utils/orderServices';
+import { useRemoveFromCartMutation } from '../../utils/cartService';
 import LoadingSpinner from '../layout/LoadingSpinner';
 
 /**
@@ -15,6 +16,7 @@ const PaymentCallback = () => {
   const navigate = useNavigate();
   const { orderId, userId } = useParams();
   const [saveOrder] = useSaveOrderMutation();
+  const [removeFromCart] = useRemoveFromCartMutation();
   const [status, setStatus] = useState('checking'); // checking, success, failed
   const [message, setMessage] = useState('Verifying payment status...');
 
@@ -46,9 +48,33 @@ const PaymentCallback = () => {
                 productIds: pendingPayment.productIds || [],
               }).unwrap();
 
+              // Remove purchased items from backend cart
+              if (pendingPayment.productIds && Array.isArray(pendingPayment.productIds)) {
+                try {
+                  await Promise.all(
+                    pendingPayment.productIds.map(productId => 
+                      removeFromCart({
+                        userId: userId,
+                        productId: productId
+                      }).unwrap().catch(err => {
+                        console.error(`Failed to remove product ${productId} from cart:`, err);
+                        // Continue even if one fails
+                      })
+                    )
+                  );
+                } catch (cartError) {
+                  console.error("Error removing items from backend cart:", cartError);
+                  // Continue even if cart removal fails
+                }
+              }
+
+              // Clear localStorage cart
               localStorage.removeItem("pendingPayment");
               localStorage.setItem("cart", JSON.stringify([]));
+              
+              // Trigger storage events to refresh cart UI
               window.dispatchEvent(new Event("storage"));
+              window.dispatchEvent(new Event("cart-updated"));
 
               setStatus('success');
               setMessage('Payment successful! Redirecting to checkout...');
@@ -87,7 +113,7 @@ const PaymentCallback = () => {
     };
 
     verifyPayment();
-  }, [orderId, userId, navigate, saveOrder]);
+  }, [orderId, userId, navigate, saveOrder, removeFromCart]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#9B7BB8] to-[#8A6AA7] flex items-center justify-center p-4">
