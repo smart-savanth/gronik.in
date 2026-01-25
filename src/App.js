@@ -62,6 +62,8 @@ function App() {
   const [isWishlistLoading, setIsWishlistLoading] = useState(false);
   const notification = useNotification();
   const user = useSelector(state => state.userAuth.user);
+  console.log(user);
+  
   const userId = user?.guid;
   const { data: booksResponse } = useGetAllBooksQuery({ page: 1, pageSize: 1000 });
   
@@ -544,7 +546,7 @@ const handleAddToWishlist = async (book) => {
        <Route
   path="/admin"
   element={
-    user?.role_name === "Admin"
+    user?.role_name?.toUpperCase() === "ADMIN"
       ? <AdminDashboard />
       : <AccessDenied />
   }
@@ -553,7 +555,7 @@ const handleAddToWishlist = async (book) => {
 <Route
   path="/admin/books"
   element={
-    user?.role_name === "Admin"
+    user?.role_name?.toUpperCase() === "ADMIN"
       ? <BooksManagement />
       : <AccessDenied />
   }
@@ -562,7 +564,7 @@ const handleAddToWishlist = async (book) => {
 <Route
   path="/admin/users"
   element={
-    user?.role_name === "Admin"
+    user?.role_name?.toUpperCase() === "ADMIN"
       ? <UsersManagement />
       : <AccessDenied />
   }
@@ -571,7 +573,7 @@ const handleAddToWishlist = async (book) => {
 <Route
   path="/admin/orders"
   element={
-    user?.role_name === "Admin"
+    user?.role_name?.toUpperCase() === "ADMIN"
       ? <OrdersManagement />
       : <AccessDenied />
   }
@@ -580,7 +582,7 @@ const handleAddToWishlist = async (book) => {
 <Route
   path="/admin/transactions"
   element={
-    user?.role_name === "Admin"
+    user?.role_name?.toUpperCase() === "ADMIN"
       ? <Transactions />
       : <AccessDenied />
   }
@@ -589,7 +591,7 @@ const handleAddToWishlist = async (book) => {
 <Route
   path="/admin/settings"
   element={
-    user?.role_name === "Admin"
+    user?.role_name?.toUpperCase() === "ADMIN"
       ? <SettingsPage />
       : <AccessDenied />
   }

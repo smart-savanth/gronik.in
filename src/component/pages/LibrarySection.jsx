@@ -227,26 +227,40 @@ const LibraryPage = ({
   const [animatingWishlist, setAnimatingWishlist] = useState({});
 
  
-
+const BASE_URL=process.env.REACT_APP_BASE_URL;
   // Fetch books from backend
 const { data: booksResponse, isLoading, isError } = useGetAllBooksQuery({
   page: 1,
   pageSize: 1000, // load all
 });
 
+
 // Convert backend structure → frontend structure
-const books = booksResponse?.data?.map(book => ({
-  id: book._id,
-  title: book.title,
-  author: book.author,
-  category: book.category,
-  price: Number(book.final_price),
-  originalPrice: Number(book.original_price),
-  rating: book.rating || 4.5,
-  image: book.coverImageUrl || book.image || "https://via.placeholder.com/300x400?text=No+Image",
-  description: book.description,
-  featured: book.featured,
-})) || [];
+const books = booksResponse?.data?.map(book => {
+  const imagePath = book.coverImageUrl || book.image;
+
+  const fullImageUrl = imagePath
+    ? imagePath.startsWith("http")
+      ? imagePath
+      : `${BASE_URL}/${imagePath}`
+    : "https://via.placeholder.com/300x400?text=No+Image";
+
+  return {
+    id: book._id,
+    title: book.title,
+    author: book.author,
+    category: book.category,
+    price: Number(book.final_price),
+    originalPrice: Number(book.original_price),
+    rating: book.rating || 4.5,
+    image: fullImageUrl,
+    description: book.description,
+    featured: book.featured,
+    discount: book.discount || "", // keep UI working
+  };
+}) || [];
+
+
 
   const categories = ['All', ...new Set(books.map(b => b.category))];
 
