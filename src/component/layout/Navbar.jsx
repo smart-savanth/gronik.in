@@ -1,12 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Search, ShoppingCart, User, Menu, X, BookOpen, Heart, ChevronDown } from 'lucide-react';
-import { centralizedBooksData } from '../pages/LibrarySection';
+
 import { useSelector } from 'react-redux';
 import { useGetAllBooksQuery } from '../../utils/booksService';
 import WhyEbooksButton from './Button';
+import { useSearchBooksMutation } from '../../utils/booksService';
+
 
 const Navbar = ({ cartCount = 0, wishlistCount = 0,isAdminRoute }) => {
+  const [searchBooks] = useSearchBooksMutation();
+
   const [whyButtonHover, setWhyButtonHover] = useState(false);
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -137,75 +141,42 @@ useEffect(() => {
 
 
   // --- SEARCH LOGIC ---
-  const generateSuggestions = (query) => {
-    if (!query.trim() || query.length < 2) {
-      setSuggestions([]);
-      setShowSuggestions(false);
-      return;
-    }
+const generateSuggestions = async (query) => {
+  if (!query.trim() || query.length < 2) {
+    setSuggestions([]);
+    setShowSuggestions(false);
+    return;
+  }
 
-    const q = query.toLowerCase().trim();
-    const allSuggestions = [];
+  try {
+    const res = await searchBooks({
+      page: 1,
+      pageSize: 8,
+      searchString: query
+    }).unwrap();
 
-    centralizedBooksData.forEach(book => {
-      // Title matches
-      if (book.title.toLowerCase().includes(q)) {
-        allSuggestions.push({
-          type: 'book',
-          text: book.title,
-          author: book.author,
-          category: book.category,
-          image: book.image,
-          id: book.id,
-          priority: book.title.toLowerCase().startsWith(q) ? 1 : 2
-        });
-      }
-      
+    const books = res?.data || [];
 
-      // Author matches
-      if (book.author.toLowerCase().includes(q) && !allSuggestions.find(s => s.text === book.author && s.type === 'author')) {
-        allSuggestions.push({
-          type: 'author',
-          text: book.author,
-          category: 'Author',
-          priority: book.author.toLowerCase().startsWith(q) ? 1 : 3
-        });
-      }
-      
-      // Category matches
-      if (book.category.toLowerCase().includes(q) && !allSuggestions.find(s => s.text === book.category && s.type === 'category')) {
-        allSuggestions.push({
-          type: 'category',
-          text: book.category,
-          category: 'Category',
-          priority: book.category.toLowerCase().startsWith(q) ? 1 : 4
-        });
-      }
-      
-      // Tag matches
-      if (book.tags) {
-        book.tags.forEach(tag => {
-          if (tag.toLowerCase().includes(q) && !allSuggestions.find(s => s.text === tag && s.type === 'tag')) {
-            allSuggestions.push({
-              type: 'tag',
-              text: tag,
-              category: 'Tag',
-              priority: tag.toLowerCase().startsWith(q) ? 1 : 5
-            });
-          }
-        });
-      }
-    });
+    const mapped = books.map(book => ({
+      type: "book",
+      text: book.title || book.book_name,
+      author: book.author || book.author_name,
+      category: book.category || "Book",
+      image: book.coverImageUrl || book.image,
+      id: book._id,
+    }));
 
-    // Sort by priority and limit results
-    const sortedSuggestions = allSuggestions
-      .sort((a, b) => a.priority - b.priority || a.text.localeCompare(b.text))
-      .slice(0, 8);
-
-    setSuggestions(sortedSuggestions);
-    setShowSuggestions(sortedSuggestions.length > 0);
+    setSuggestions(mapped);
+    setShowSuggestions(mapped.length > 0);
     setSelectedSuggestionIndex(-1);
-  };
+
+  } catch (err) {
+    console.error("Search failed:", err);
+    setSuggestions([]);
+    setShowSuggestions(false);
+  }
+};
+
 
   const handleSearchChange = (value) => {
     setSearchQuery(value);

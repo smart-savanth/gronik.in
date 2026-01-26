@@ -32,6 +32,15 @@ export const booksApi = createApi({
   tagTypes: ['Books'],
 
   endpoints: (builder) => ({
+/*--------------------------------------------------*/
+
+searchBooks: builder.mutation({
+  query: (payload) => ({
+    url: "/product/getAllBooks",
+    method: "POST",
+    body: payload,
+  }),
+}),
 
     /* ---------------- GET ALL BOOKS ---------------- */
     getAllBooks: builder.query({
@@ -115,6 +124,7 @@ export const booksApi = createApi({
 
 /* ------------------ EXPORT HOOKS ------------------ */
 export const {
+  useSearchBooksMutation,
   useGetAllBooksQuery,
   useGetBookByIdQuery,
   useSaveBookMutation,
