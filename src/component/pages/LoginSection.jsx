@@ -24,6 +24,9 @@ const LoginPage = () => {
     countryCode: '+91',
     customCountryCode: ''
   });
+  const [forgotOtpSent, setForgotOtpSent] = useState(false);
+const [forgotOtp, setForgotOtp] = useState("");
+const [forgotMobile, setForgotMobile] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -279,82 +282,79 @@ const handleLogin = async () => {
   }
 };
 
-
-
-
-
-const handleForgotSubmit = () => {
-  const newErrors = {};
-  const identifier = (formData.email || '').trim();
-
-  if (!identifier) {
-    newErrors.email = 'Email or phone is required';
-    setErrors(newErrors);
+const handleForgotSubmit = async () => {
+  if (!formData.mobile.trim()) {
+    setErrors({ mobile: "Phone number required" });
     return;
   }
 
-  const isEmail = validateEmail(identifier);
-
-  // parse phone if not email (support +country)
-  let parsedCountryCode = formData.countryCode;
-  let digitsOnly = identifier.replace(/\D/g, '');
-  if (!isEmail) {
-    const plusMatch = identifier.match(/^\+(\d{1,4})/);
-    if (plusMatch) {
-      parsedCountryCode = `+${plusMatch[1]}`;
-      const rest = identifier.slice(plusMatch[0].length);
-      digitsOnly = rest.replace(/\D/g, '');
-    }
-  }
-
-  if (isEmail) {
-    if (!validateEmail(identifier)) {
-      newErrors.email = 'Please enter a valid email address';
-    }
-  } else {
-    if (!digitsOnly || !validateMobile(digitsOnly, parsedCountryCode)) {
-      newErrors.email = 'Please enter a valid phone number';
-    }
-  }
-
-  setErrors(newErrors);
-  if (Object.keys(newErrors).length === 0) {
-    // proceed — your current flow simply goes to reset step after "verification"
+  try {
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      setCurrentStep('reset');
-    }, 1000);
+
+    const digits = formData.mobile.replace(/\D/g, "").slice(-10);
+
+    await api.post("/auth/forgotPassword", {
+      mobile: digits,
+    });
+
+    setForgotMobile(digits);
+    setForgotOtpSent(true);
+    setCurrentStep("forgot-otp");
+
+  } catch (err) {
+    setErrors({
+      api: err.response?.data?.message || "Failed to send OTP",
+    });
+  } finally {
+    setIsLoading(false);
   }
 };
 
 
-  const handleResetPassword = () => {
-    const newErrors = {};
-    const passwordValidation = validatePassword(formData.newPassword);
-    if (!formData.newPassword) {
-      newErrors.newPassword = 'New password is required';
-    } else if (!passwordValidation.isValid) {
-      newErrors.newPassword = 'Password does not meet requirements';
-    }
-    if (!formData.confirmPassword) {
-      newErrors.confirmPassword = 'Please confirm your password';
-    } else if (formData.newPassword !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
-    }
+
+const handleResetPassword = async () => {
+
+  const newErrors = {};
+
+  if (!formData.newPassword) {
+    newErrors.newPassword = "Password required";
+  }
+
+  if (formData.newPassword !== formData.confirmPassword) {
+    newErrors.confirmPassword = "Passwords do not match";
+  }
+
+  if (Object.keys(newErrors).length) {
     setErrors(newErrors);
-    if (Object.keys(newErrors).length === 0) {
-      const updatedUser = { ...user };
-      updatedUser.password = formData.newPassword;
-      dispatch(setUser(updatedUser));
-      setResetSuccess(true);
-      setTimeout(() => {
-        setResetSuccess(false);
-        setCurrentStep('login');
-        setFormData(prev => ({ ...prev, password: '', newPassword: '', confirmPassword: '' }));
-      }, 1500);
-    }
-  };
+    return;
+  }
+
+  try {
+    setIsLoading(true);
+
+    await api.post("/auth/forgotPassword", {
+  mobile: forgotMobile,
+  otp: forgotOtp,
+  newPassword: formData.newPassword,
+});
+
+
+    setResetSuccess(true);
+
+    setTimeout(() => {
+      setResetSuccess(false);
+      setCurrentStep("login");
+    }, 1500);
+
+  } catch (err) {
+    setErrors({
+      api: err.response?.data?.message || "Password reset failed",
+    });
+  } finally {
+    setIsLoading(false);
+  }
+};
+
 
   const PasswordRequirements = ({ password }) => {
     const { requirements } = validatePassword(password);
@@ -901,22 +901,30 @@ const verifySignupOtp = () => {
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-white/80 mb-2">
-                    {loginMethod === 'email' ? 'EMAIL' : 'MOBILE'}
+                    PHONE NUMBER
                   </label>
-                  <div className="relative">
-                    <div className="absolute top-0 left-0 flex items-center">
-                      {loginMethod === 'email' ?
-                        <Mail className="w-4 h-4 text-white/60" /> :
-                        <Phone className="w-4 h-4 text-white/60" />
-                      }
-                    </div>
-                    <input
-                      type={loginMethod === 'email' ? 'email' : 'tel'}
-                      value={loginMethod === 'email' ? formData.email : formData.mobile}
-                      onChange={(e) => handleInputChange(loginMethod, e.target.value)}
-                      className="w-full bg-transparent border-b-2 border-white/30 text-white pl-6 pr-4 py-3 focus:outline-none focus:border-white focus:shadow-lg focus:shadow-white/20 transition-all duration-300 placeholder-white/40 text-sm"
-                    />
-                  </div>
+                  <div className="flex items-center gap-2">
+
+  <select
+    value={formData.countryCode}
+    onChange={(e) => handleInputChange('countryCode', e.target.value)}
+    className="w-32 bg-transparent border-b-2 border-white/30 text-white py-3"
+  >
+    <option className="bg-[#2D1B3D]" value="+91">+91</option>
+    <option className="bg-[#2D1B3D]" value="+1">+1</option>
+    <option className="bg-[#2D1B3D]" value="+44">+44</option>
+  </select>
+
+  <input
+    type="tel"
+    value={formData.mobile}
+    onChange={(e) => handleInputChange('mobile', e.target.value)}
+    className="flex-1 bg-transparent border-b-2 border-white/30 text-white py-3"
+    placeholder="Enter mobile number"
+  />
+
+</div>
+
                   {errors[loginMethod] && (
                     <p className="text-red-400 text-xs mt-1 flex items-center space-x-1">
                       <X className="w-3 h-3" />
@@ -941,6 +949,62 @@ const verifySignupOtp = () => {
              
               </div>
             )}
+
+            {currentStep === 'forgot-otp' && (
+  <div className="space-y-4">
+
+    <h2 className="text-xl font-bold text-white text-center">
+      Verify OTP
+    </h2>
+
+    <p className="text-white/70 text-sm text-center">
+      OTP sent to +91 {forgotMobile}
+    </p>
+
+    <input
+      type="number"
+      value={forgotOtp}
+      onChange={(e) => setForgotOtp(e.target.value)}
+      placeholder="Enter 6 digit OTP"
+      className="w-full bg-transparent border-b-2 border-white/30 text-white py-3"
+    />
+
+    <button
+     onClick={async () => {
+
+  if (forgotOtp.length !== 6) {
+    setErrors({ api: "Enter valid OTP" });
+    return;
+  }
+
+  try {
+    setIsLoading(true);
+
+    await api.post("/auth/forgotPassword", {
+      mobile: forgotMobile,
+      otp: forgotOtp
+    });
+
+    setCurrentStep("reset");
+
+  } catch (err) {
+    setErrors({
+      api: err.response?.data?.message || "OTP verification failed"
+    });
+  } finally {
+    setIsLoading(false);
+  }
+
+}}
+
+      className="w-full bg-gradient-to-r from-[#FFD700]/90 to-[#9B7BB8]/80 text-[#2D1B3D] font-semibold py-3 rounded-xl"
+    >
+      Verify OTP
+    </button>
+
+  </div>
+)}
+
 
             {currentStep === 'reset' && (
               <div className="space-y-4">
