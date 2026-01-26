@@ -9,6 +9,10 @@ import { useSelector } from 'react-redux';
 
 
 const ViewToggle = ({ value, onChange }) => {
+
+
+
+  
   return (
     <div
       className="
@@ -92,30 +96,131 @@ const [error, setError] = useState(null);
  const user = useSelector(state => state.userAuth.user);
   const userId = user?.guid;
 
-  
+  const dummyBooks = [
+  {
+    id: "1",
+    title: "React Mastery",
+    author: "Dheeraj N",
+    image: "https://picsum.photos/300/450?random=1",
+    progress: 65,
+    pages: 320,
+    format: "PDF",
+    fileSize: "8 MB",
+    description: "Complete guide to React with hooks and best practices.",
+    tags: ["React", "Frontend", "JavaScript"],
 
- useEffect(() => {
-  async function fetchOrders() {
-    try {
-      setLoading(true);
+    sections: [
+      {
+        id: "s1",
+        title: "Introduction",
+        pages: 30,
+        chapters: [
+          {
+            _id: "c1",
+            title: "What is React?",
+            pages: 10,
+            image: "https://picsum.photos/200/300?random=11"
+          },
+          {
+            _id: "c2",
+            title: "Why React?",
+            pages: 20,
+            image: "https://picsum.photos/200/300?random=12"
+          }
+        ]
+      },
+      {
+        id: "s2",
+        title: "Core Concepts",
+        pages: 100,
+        chapters: [
+          {
+            _id: "c3",
+            title: "Components",
+            pages: 40,
+            image: "https://picsum.photos/200/300?random=13"
+          },
+          {
+            _id: "c4",
+            title: "Hooks",
+            pages: 60,
+            image: "https://picsum.photos/200/300?random=14"
+          }
+        ]
+      }
+    ]
+  },
 
-      const res = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}/order/getAllOrdersByUserId/${userId}`
-      );
-      const json = await res.json();
+  {
+    id: "2",
+    title: "JavaScript Deep Dive",
+    author: "Kyle Simpson",
+    image: "https://picsum.photos/300/450?random=2",
+    progress: 30,
+    pages: 280,
+    format: "EPUB",
+    fileSize: "6 MB",
+    description: "Advanced JavaScript concepts explained deeply.",
+    tags: ["JavaScript", "Programming"],
 
-      console.log("ORDERS RESPONSE:", json);
-
-    } catch (err) {
-      console.error(err);
-      setError("Failed to fetch orders");
-    } finally {
-      setLoading(false);
-    }
+    sections: [
+      {
+        id: "s3",
+        title: "Basics Refresher",
+        pages: 60,
+        chapters: [
+          {
+            _id: "c5",
+            title: "Scopes",
+            pages: 30,
+            image: "https://picsum.photos/200/300?random=15"
+          },
+          {
+            _id: "c6",
+            title: "Closures",
+            pages: 30,
+            image: "https://picsum.photos/200/300?random=16"
+          }
+        ]
+      }
+    ]
   }
+];
 
-  fetchOrders();
+useEffect(() => {
+  setLoading(true);
+
+  // Simulate API delay
+  setTimeout(() => {
+    setBooks(dummyBooks);
+    setLoading(false);
+  }, 800);
+
 }, []);
+
+
+//  useEffect(() => {
+//   async function fetchOrders() {
+//     try {
+//       setLoading(true);
+
+//       const res = await fetch(
+//         `${import.meta.env.VITE_API_BASE_URL}/order/getAllOrdersByUserId/${userId}`
+//       );
+//       const json = await res.json();
+
+//       console.log("ORDERS RESPONSE:", json);
+
+//     } catch (err) {
+//       console.error(err);
+//       setError("Failed to fetch orders");
+//     } finally {
+//       setLoading(false);
+//     }
+//   }
+
+//   fetchOrders();
+// }, []);
 
 
 
