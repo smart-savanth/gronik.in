@@ -8,7 +8,7 @@ import LoadingSpinner from '../layout/LoadingSpinner';
  * Payment Callback Handler
  * This component handles payment redirects from PhonePe
  * It checks payment status and redirects to checkout page
- * 
+ *
  * Backend should be configured to redirect PhonePe to:
  * /payment-callback/{orderId}/userId/{userId}
  */
@@ -21,132 +21,139 @@ const PaymentCallback = () => {
   const [message, setMessage] = useState('Verifying payment status...');
 
   useEffect(() => {
+    let cancelled = false;
+
+    const safeNavigate = (to, options) => {
+      if (!cancelled) {
+        navigate(to, options);
+      }
+    };
+
     const verifyPayment = async () => {
       if (!orderId || !userId) {
+        console.error('Invalid payment callback params:', { orderId, userId });
         setStatus('failed');
         setMessage('Invalid payment information');
-        setTimeout(() => navigate('/checkout'), 2000);
+        setTimeout(() => safeNavigate('/checkout'), 2000);
         return;
       }
 
       try {
         const checkStatusUrl = `https://dev-api.gronik.in/payment/checkStatus/${orderId}/userId/${userId}`;
-        console.log("➡️ Sending payment status request:");
-console.log("URL:", checkStatusUrl);
-        const response = await fetch(checkStatusUrl);
-        
-console.log("⬅️ Payment status HTTP response:", {
-  status: response.status,
-  statusText: response.statusText,
-  ok: response.ok
-});
+        const response = await fetch(checkStatusUrl, { method: 'GET', credentials: 'include' });
+
         if (!response.ok) {
-          console.error("❌ Payment checkStatus API error:", response.status, response.statusText);
+          console.error('Payment checkStatus API error:', response.status, response.statusText);
           throw new Error(`Payment verification failed: ${response.status} ${response.statusText}`);
         }
-        
+
         const result = await response.json();
-        console.log("🔎 Payment status response:", result);
+        console.log('🔎 Payment status response:', result);
 
-        // Handle different response structures
-        // Option 1: result.data.status (direct)
-        // Option 2: result.data.payment.status (nested)
-        const paymentStatus = result?.data?.payment?.status 
-          ? String(result.data.payment.status).toUpperCase()
-          : result?.data?.status 
-          ? String(result.data.status).toUpperCase()
-          : "";
-        
-      
+        // Extract payment status from possible shapes:
+        // - result.data.payment.status
+        // - result.data.status
+        // - result.status (less likely)
+        const paymentStatusRaw =
+          result?.data?.payment?.status ??
+          result?.data?.status ??
+          result?.status ??
+          '';
 
-        if (result?.success && paymentStatus === "COMPLETED") {
+        const paymentStatus = String(paymentStatusRaw || '').toUpperCase();
+        console.log('🔍 Extracted payment status:', paymentStatus);
+
+        // Interpret `success` flag if present; otherwise rely on status string
+        const successFlag = result?.success === true || result?.success === 'true';
+
+        if (successFlag && paymentStatus === 'COMPLETED') {
           // Payment successful
-          const pendingPaymentStr = localStorage.getItem("pendingPayment");
+          const pendingPaymentStr = localStorage.getItem('pendingPayment');
           if (pendingPaymentStr) {
-            const pendingPayment = JSON.parse(pendingPaymentStr);
-            
+            let pendingPayment;
             try {
-              // Save order
+              pendingPayment = JSON.parse(pendingPaymentStr);
+            } catch (err) {
+              console.error('Failed to parse pendingPayment from localStorage:', err);
+              pendingPayment = null;
+            }
+
+            try {
+              // Save order via backend
               await saveOrder({
-                userId: userId,
+                userId,
                 paymentId: orderId,
-                productIds: pendingPayment.productIds || [],
+                productIds: (pendingPayment && pendingPayment.productIds) || [],
               }).unwrap();
-              
-console.log("➡️ Sending saveOrder payload:", saveOrderPayload);
-              // Remove purchased items from backend cart
-              if (pendingPayment.productIds && Array.isArray(pendingPayment.productIds)) {
-                try {
-                  await Promise.all(
-                    pendingPayment.productIds.map(productId => 
-                      removeFromCart({
-                        userId: userId,
-                        productId: productId
-                      }).unwrap().catch(err => {
+
+              // Attempt to remove purchased items from backend cart (if any)
+              if (pendingPayment?.productIds && Array.isArray(pendingPayment.productIds) && pendingPayment.productIds.length > 0) {
+                await Promise.all(
+                  pendingPayment.productIds.map((productId) =>
+                    // swallow individual remove errors so one failure won't block others
+                    removeFromCart({ userId, productId })
+                      .unwrap()
+                      .catch((err) => {
                         console.error(`Failed to remove product ${productId} from cart:`, err);
-                        // Continue even if one fails
                       })
-                    )
-                  );
-                } catch (cartError) {
-                  console.error("Error removing items from backend cart:", cartError);
-                  // Continue even if cart removal fails
-                }
+                  )
+                );
               }
 
-              // Clear localStorage cart
-              localStorage.removeItem("pendingPayment");
-              localStorage.setItem("cart", JSON.stringify([]));
-              
-              // Trigger storage events to refresh cart UI
-              window.dispatchEvent(new Event("storage"));
-              window.dispatchEvent(new Event("cart-updated"));
+              // Clear pendingPayment and local cart
+              localStorage.removeItem('pendingPayment');
+              localStorage.setItem('cart', JSON.stringify([]));
+
+              // Trigger events to update UI (some listeners may rely on these)
+              window.dispatchEvent(new Event('storage'));
+              window.dispatchEvent(new Event('cart-updated'));
 
               setStatus('success');
               setMessage('Payment successful! Redirecting to checkout...');
-              
-              // Redirect to checkout with success
-              setTimeout(() => {
-                navigate('/checkout', { 
-                  replace: true,
-                  state: { paymentSuccess: true }
-                });
-              }, 1500);
+
+              setTimeout(() => safeNavigate('/checkout', { replace: true, state: { paymentSuccess: true } }), 1500);
             } catch (orderError) {
-              console.error("Error saving order:", orderError);
+              console.error('Error saving order or removing cart items:', orderError);
+              // Even if saving order failed, clear pendingPayment to avoid duplicate attempts
+              localStorage.removeItem('pendingPayment');
               setStatus('failed');
               setMessage('Payment successful but failed to save order. Redirecting...');
-              setTimeout(() => navigate('/checkout'), 2000);
+              setTimeout(() => safeNavigate('/checkout'), 2000);
             }
           } else {
+            // No pendingPayment stored locally — just redirect
             setStatus('success');
             setMessage('Payment successful! Redirecting...');
-            setTimeout(() => navigate('/checkout'), 1500);
+            setTimeout(() => safeNavigate('/checkout', { replace: true, state: { paymentSuccess: true } }), 1500);
           }
         } else {
-          // Payment failed
-          console.error("❌ Payment not completed. Response:", result);
-          console.error("❌ Payment status:", paymentStatus);
-          localStorage.removeItem("pendingPayment");
+          // Payment not completed
+          console.error('❌ Payment not completed. Response:', result);
+          console.error('❌ Payment status:', paymentStatus);
+          localStorage.removeItem('pendingPayment');
           setStatus('failed');
           setMessage('Payment failed or was cancelled. Redirecting...');
-          setTimeout(() => navigate('/checkout'), 2000);
+          setTimeout(() => safeNavigate('/checkout'), 2000);
         }
       } catch (error) {
-        console.error("❌ Payment verification error:", error);
-        console.error("❌ Error details:", {
-          message: error.message,
-          stack: error.stack,
-          response: error.response
-        });
-        localStorage.removeItem("pendingPayment");
+        console.error('❌ Payment verification error:', error);
+        // Best-effort cleanup
+        try {
+          localStorage.removeItem('pendingPayment');
+        } catch (e) {
+          /* ignore */
+        }
         setStatus('failed');
         setMessage('Unable to verify payment. Redirecting...');
-        setTimeout(() => navigate('/checkout'), 2000);
+        setTimeout(() => safeNavigate('/checkout'), 2000);
       }
     };
 
     verifyPayment();
+
+    return () => {
+      cancelled = true;
+    };
   }, [orderId, userId, navigate, saveOrder, removeFromCart]);
 
   return (
@@ -158,6 +165,7 @@ console.log("➡️ Sending saveOrder payload:", saveOrderPayload);
             <p className="text-white mt-4 text-lg">{message}</p>
           </>
         )}
+
         {status === 'success' && (
           <>
             <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -168,6 +176,7 @@ console.log("➡️ Sending saveOrder payload:", saveOrderPayload);
             <p className="text-white text-lg font-semibold">{message}</p>
           </>
         )}
+
         {status === 'failed' && (
           <>
             <div className="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -184,5 +193,3 @@ console.log("➡️ Sending saveOrder payload:", saveOrderPayload);
 };
 
 export default PaymentCallback;
-
-
