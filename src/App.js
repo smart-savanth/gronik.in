@@ -290,6 +290,7 @@ const handleAddToCart = async (book) => {
     notification.custom('Error: Product ID not found', 'error');
     return;
   }
+console.log("new changes");
 
   // For logged-in users: sync with backend
   if (userId) {
