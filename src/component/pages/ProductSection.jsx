@@ -624,7 +624,11 @@ console.log(currentCarousel)
                   <div className="relative bg-gradient-to-br from-white to-gray-100 rounded-2xl overflow-hidden shadow-2xl transform hover:scale-105 transition-all duration-500 hover:shadow-3xl">
                     <div className="aspect-[3/4] relative">
                      <img
-                        src={enhancedProductData.image}
+                        src={
+                            enhancedProductData.images?.length
+                              ? enhancedProductData.images[selectedImageIndex]
+                              : enhancedProductData.image
+                          }
                         alt={enhancedProductData.title}
                         className="w-full h-full object-cover"
                       />
