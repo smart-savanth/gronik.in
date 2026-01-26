@@ -389,27 +389,63 @@ const handleResetPassword = async () => {
   };
 
 
-  const sendSignupOtp = async () => {
-  if (!formData.mobile) {
-    setErrors({ mobile: "Enter mobile first" });
+const sendSignupOtp = async () => {
+
+  if (!formData.mobile.trim()) {
+    setErrors({ mobile: "Enter mobile number first" });
     return;
   }
 
-  setSignupOtpSent(true);
-  setSignupOtpVerified(false);
+  try {
+    setIsLoading(true);
 
-  console.log("📩 OTP SENT TO:", formData.mobile);
-  alert("Dummy OTP sent! Use 123456 to test.");
-};
+    const digits = formData.mobile.replace(/\D/g, "").slice(-10);
 
-const verifySignupOtp = () => {
-  if (signupOtpInput === "123456") {
-    setSignupOtpVerified(true);
-    alert("OTP Verified Successfully!");
-  } else {
-    alert("Invalid OTP, Try 123456");
+await api.post("/auth/forgotPassword", {
+  mobile: digits
+});
+
+    setSignupOtpSent(true);
+    setSignupOtpVerified(false);
+
+  } catch (err) {
+    setErrors({
+      api: err.response?.data?.message || "Failed to send OTP"
+    });
+  } finally {
+    setIsLoading(false);
   }
 };
+
+
+const verifySignupOtp = async () => {
+
+  if (signupOtpInput.length !== 6) {
+    setErrors({ api: "Enter valid OTP" });
+    return;
+  }
+
+  try {
+    setIsLoading(true);
+
+    const digits = formData.mobile.replace(/\D/g, "").slice(-10);
+
+ await api.post("/auth/forgotPassword", {
+      mobile: digits,
+      otp: signupOtpInput
+    });
+
+    setSignupOtpVerified(true);
+
+  } catch (err) {
+    setErrors({
+      api: err.response?.data?.message || "OTP verification failed"
+    });
+  } finally {
+    setIsLoading(false);
+  }
+};
+
 
 
 
