@@ -31,8 +31,15 @@ const PaymentCallback = () => {
 
       try {
         const checkStatusUrl = `https://dev-api.gronik.in/payment/checkStatus/${orderId}/userId/${userId}`;
+        console.log("➡️ Sending payment status request:");
+console.log("URL:", checkStatusUrl);
         const response = await fetch(checkStatusUrl);
         
+console.log("⬅️ Payment status HTTP response:", {
+  status: response.status,
+  statusText: response.statusText,
+  ok: response.ok
+});
         if (!response.ok) {
           console.error("❌ Payment checkStatus API error:", response.status, response.statusText);
           throw new Error(`Payment verification failed: ${response.status} ${response.statusText}`);
@@ -50,7 +57,7 @@ const PaymentCallback = () => {
           ? String(result.data.status).toUpperCase()
           : "";
         
-        console.log("🔍 Extracted payment status:", paymentStatus);
+      
 
         if (result?.success && paymentStatus === "COMPLETED") {
           // Payment successful
@@ -65,7 +72,8 @@ const PaymentCallback = () => {
                 paymentId: orderId,
                 productIds: pendingPayment.productIds || [],
               }).unwrap();
-
+              
+console.log("➡️ Sending saveOrder payload:", saveOrderPayload);
               // Remove purchased items from backend cart
               if (pendingPayment.productIds && Array.isArray(pendingPayment.productIds)) {
                 try {
