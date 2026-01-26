@@ -1,5 +1,5 @@
 import store from '../store';
-import { login, logout as reduxLogout, setUser, setToken } from '../slices/userAuthSlice';
+import { login, logout as reduxLogout } from '../slices/userAuthSlice';
 
 // Check if user is authenticated
 export const isAuthenticated = () => {
@@ -32,13 +32,9 @@ export const isTokenExpired = () => {
   const token = getToken();
   if (!token) return true;
   
-  try {
-    // In a real app, you would decode the JWT and check expiration
-    // For now, we'll just check if token exists
-    return false;
-  } catch (error) {
-    return true;
-  }
+  // In a real app, you would decode the JWT and check expiration
+  // For now, we'll just check if token exists
+  return false;
 };
 
 // Protected route wrapper

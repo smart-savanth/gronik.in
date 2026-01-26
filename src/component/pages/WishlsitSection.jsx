@@ -1,6 +1,6 @@
-import React, { useRef, useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Trash2, ShoppingBag, ArrowLeft, Heart, Star, ShoppingCart, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Trash2, ArrowLeft, Heart, Star } from 'lucide-react';
 
 const WishlistCard = React.memo(function WishlistCard({ item, onAddToCart, onRemove,onCardClick }) {
   return (
@@ -133,17 +133,9 @@ const WishlistPage = ({
   isLoading = false
 }) => {
   const [localWishlist, setLocalWishlist] = React.useState([]);
-  const scrollContainerRef = useRef(null);
   const navigate = useNavigate();
   // show a full-page loader only when server says loading AND we have no local items
   const showFullPageLoader = isLoading && localWishlist.length === 0;
-
-  const normalizePrice = (value, fallback = 0) => {
-    const parsed = Number(value);
-    if (Number.isFinite(parsed)) return parsed;
-    const fallbackParsed = Number(fallback);
-    return Number.isFinite(fallbackParsed) ? fallbackParsed : 0;
-  };
 
 // Sync internal wishlist with props
 React.useEffect(() => {
@@ -185,25 +177,6 @@ const normalizedWishlist = useMemo(() => {
 
   const handleExploreBooks = () => {
     navigate('/library');
-  };
-
-  const scrollToNext = () => {
-    if (scrollContainerRef.current) {
-      const container = scrollContainerRef.current;
-      const itemWidth = container.children[0]?.offsetWidth + 12;
-      const maxScroll = container.scrollWidth - container.clientWidth;
-      const newScrollLeft = Math.min(container.scrollLeft + itemWidth * 2, maxScroll);
-      container.scrollTo({ left: newScrollLeft, behavior: 'smooth' });
-    }
-  };
-
-  const scrollToPrev = () => {
-    if (scrollContainerRef.current) {
-      const container = scrollContainerRef.current;
-      const itemWidth = container.children[0]?.offsetWidth + 12;
-      const newScrollLeft = Math.max(container.scrollLeft - itemWidth * 2, 0);
-      container.scrollTo({ left: newScrollLeft, behavior: 'smooth' });
-    }
   };
 
 const handleAddToCart = useCallback((item) => {
