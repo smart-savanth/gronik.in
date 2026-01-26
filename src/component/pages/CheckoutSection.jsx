@@ -240,9 +240,27 @@ React.useEffect(() => {
       const res = await fetch(
         `https://dev-api.gronik.in/payment/checkStatus/${pending.orderId}/userId/${pending.userId}`
       );
+      
+      if (!res.ok) {
+        console.error("❌ Payment checkStatus API error:", res.status, res.statusText);
+        throw new Error(`Payment verification failed: ${res.status} ${res.statusText}`);
+      }
+      
       const result = await res.json();
-      console.log(result)
-      if (result?.success && result?.data?.status === "COMPLETED") {
+      console.log("🔎 Payment status response:", result);
+      
+      // Handle different response structures
+      // Option 1: result.data.status (direct)
+      // Option 2: result.data.payment.status (nested)
+      const paymentStatus = result?.data?.payment?.status 
+        ? String(result.data.payment.status).toUpperCase()
+        : result?.data?.status 
+        ? String(result.data.status).toUpperCase()
+        : "";
+      
+      console.log("🔍 Extracted payment status:", paymentStatus);
+      
+      if (result?.success && paymentStatus === "COMPLETED") {
         await saveOrder({
           userId: pending.userId,
           paymentId: pending.orderId,
@@ -284,12 +302,22 @@ React.useEffect(() => {
 
         navigate("/checkout?payment=success", { replace: true });
       } else {
+        console.error("❌ Payment not completed. Response:", result);
+        console.error("❌ Payment status:", paymentStatus);
         localStorage.removeItem("pendingPayment");
         localStorage.removeItem("paymentFlow");
 
         navigate("/checkout?payment=failed", { replace: true });
       }
     } catch (err) {
+      console.error("❌ Payment verification error:", err);
+      console.error("❌ Error details:", {
+        message: err.message,
+        stack: err.stack,
+        response: err.response
+      });
+      localStorage.removeItem("pendingPayment");
+      localStorage.removeItem("paymentFlow");
       navigate("/checkout?payment=failed", { replace: true });
     } finally {
       setIsCheckingPayment(false);

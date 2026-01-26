@@ -32,9 +32,27 @@ const PaymentCallback = () => {
       try {
         const checkStatusUrl = `https://dev-api.gronik.in/payment/checkStatus/${orderId}/userId/${userId}`;
         const response = await fetch(checkStatusUrl);
+        
+        if (!response.ok) {
+          console.error("❌ Payment checkStatus API error:", response.status, response.statusText);
+          throw new Error(`Payment verification failed: ${response.status} ${response.statusText}`);
+        }
+        
         const result = await response.json();
+        console.log("🔎 Payment status response:", result);
 
-        if (result?.success && result?.data?.status === "COMPLETED") {
+        // Handle different response structures
+        // Option 1: result.data.status (direct)
+        // Option 2: result.data.payment.status (nested)
+        const paymentStatus = result?.data?.payment?.status 
+          ? String(result.data.payment.status).toUpperCase()
+          : result?.data?.status 
+          ? String(result.data.status).toUpperCase()
+          : "";
+        
+        console.log("🔍 Extracted payment status:", paymentStatus);
+
+        if (result?.success && paymentStatus === "COMPLETED") {
           // Payment successful
           const pendingPaymentStr = localStorage.getItem("pendingPayment");
           if (pendingPaymentStr) {
@@ -99,13 +117,21 @@ const PaymentCallback = () => {
           }
         } else {
           // Payment failed
+          console.error("❌ Payment not completed. Response:", result);
+          console.error("❌ Payment status:", paymentStatus);
           localStorage.removeItem("pendingPayment");
           setStatus('failed');
           setMessage('Payment failed or was cancelled. Redirecting...');
           setTimeout(() => navigate('/checkout'), 2000);
         }
       } catch (error) {
-        console.error("Error verifying payment:", error);
+        console.error("❌ Payment verification error:", error);
+        console.error("❌ Error details:", {
+          message: error.message,
+          stack: error.stack,
+          response: error.response
+        });
+        localStorage.removeItem("pendingPayment");
         setStatus('failed');
         setMessage('Unable to verify payment. Redirecting...');
         setTimeout(() => navigate('/checkout'), 2000);
