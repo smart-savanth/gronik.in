@@ -288,21 +288,143 @@ const FeaturedBooksSection = ({
       place-items-stretch  /* <-- FIX NARROW CARDS */
   ">
             {featuredBooks.map((book, index) => (
-              <div key={book.id} style={{ animationDelay: `${index * 200}ms` }}>
-                <BookCard
-                  book={book}
-                  isInCart={isInCart(book)}
-                  isInWishlist={isInWishlist(book)}
-                  animatingCart={!!animatingCart[book.id]}
-                  animatingWishlist={!!animatingWishlist[book.id]}
-                  cartButtonClicked={!!cartButtonClicked[book.id]}
-                  wishlistButtonClicked={!!wishlistButtonClicked[book.id]}
-                  onCartClick={handleCartAction}
-                  onWishlistClick={handleToggleWishlist}
-                  onCardClick={handleCardClick}
-                  hovered={hoveredBook === book.id}
-                  setHoveredBook={setHoveredBook}
-                />
+              <div
+                key={book.id}
+                className="group relative flex justify-center"
+                onMouseEnter={() => setHoveredBook(book.id)}
+                onMouseLeave={() => setHoveredBook(null)}
+                style={{ animationDelay: `${index * 200}ms` }}
+              >
+                {/* Card with improved spacing and sizing */}
+                <div
+                  className={`relative bg-[#1A0F2E]/80 backdrop-blur-md rounded-2xl p-3 sm:p-6 lg:p-8 border border-white/10 transition-all duration-500 transform hover:scale-105 hover:-translate-y-2 shadow-2xl w-full max-w-none sm:max-w-[280px] lg:max-w-[320px] h-auto flex flex-col card-hover-gold ${hoveredBook === book.id ? 'gold-glow' : ''}`}
+                  onClick={e => {
+                    if (
+                      e.target.closest('.add-to-cart-btn') ||
+                      e.target.closest('.wishlist-btn')
+                    ) {
+                      return;
+                    }
+                    navigate(`/product/${book.id}`, { state: { from: 'featured' } });
+                  }}
+                  style={{ cursor: 'pointer' }}
+                >
+                  {/* Category Badge - Hidden on mobile */}
+                  <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 z-20 hidden sm:block">
+                    <div className="bg-gradient-to-r from-[#2D1B3D] to-[#3D2A54] text-white px-4 py-2 rounded-full text-xs font-bold shadow-lg border border-white/20">
+                      {book.category}
+                    </div>
+                  </div>
+
+                  {/* Book Image Container - Better proportions */}
+                  <div className="relative mb-3 sm:mb-4 lg:mb-4 flex justify-center mt-2 sm:mt-6">
+                    <div className="relative w-24 sm:w-48 lg:w-44 h-32 sm:h-64 lg:h-60 rounded-lg overflow-hidden shadow-xl transition-transform duration-500">
+                      <img 
+                        src={book.image} 
+                        alt={book.title}
+                        className="w-full h-full object-cover transition-transform duration-700"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Book Details - Removed description and improved spacing */}
+                  <div className="text-center space-y-2 sm:space-y-3 lg:space-y-3 flex-1 flex flex-col">
+                    {/* Title & Author */}
+                    <div className="mb-2 sm:mb-3">
+                      <h3 className="text-sm sm:text-lg lg:text-lg font-bold text-white mb-1 sm:mb-2 group-hover:text-white/90 transition-colors duration-300 leading-tight line-clamp-2">
+                        {book.title}
+                      </h3>
+                      <p className="text-white/70 font-medium text-xs sm:text-sm lg:text-sm">
+                        by {book.author}
+                      </p>
+                    </div>
+
+                    {/* Rating */}
+                    <div className="flex items-center justify-center space-x-1 sm:space-x-2 mb-2 sm:mb-3">
+                      <div className="flex items-center">
+                        {[...Array(5)].map((_, i) => (
+                          <Star 
+                            key={i} 
+                            className={`w-3 h-3 sm:w-3 sm:h-3 lg:w-4 lg:h-4 ${i < Math.floor(book.rating) ? 'text-yellow-400 fill-current' : 'text-white/30'}`} 
+                          />
+                        ))}
+                      </div>
+                      <span className="text-white/80 text-xs sm:text-sm font-medium">{book.rating}</span>
+                      <span className="hidden sm:inline text-white/60 text-xs">({book.reviews} reviews)</span>
+                    </div>
+
+                    {/* Price */}
+                    <div className="text-center mb-3 sm:mb-4">
+                      <div className="flex items-center justify-center space-x-1 sm:space-x-2 mb-1">
+                        <span className="text-lg sm:text-xl lg:text-2xl font-bold text-white">₹{book.price}</span>
+                        <span className="text-xs sm:text-sm text-white/50 line-through">₹{book.originalPrice}</span>
+                      </div>
+                      <div className="text-xs sm:text-sm text-green-400 font-medium">{book.discount}</div>
+                    </div>
+
+                    {/* Action Buttons - Better spacing and sizing */}
+                    <div className="flex flex-row gap-2 w-full mb-4">
+                      {book.inStock ? (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            handleCartAction(e, book);
+                          }}
+                          disabled={animatingCart[book.id]}
+                          className={`cart-button-animated ${cartButtonClicked[book.id] ? 'clicked' : ''} flex-1 py-3 px-4 rounded-xl font-semibold text-base flex items-center justify-center gap-2 transition-all duration-300 hover:scale-105 shadow-xl hover:shadow-2xl ${
+                            isInCart(book)
+                              ? 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white'
+                              : 'bg-gradient-to-r from-white to-gray-100 hover:from-gray-100 hover:to-white text-[#2D1B3D] shadow-xl'
+                          }`}
+                        >
+                          <ShoppingCart className="cart-icon w-5 h-5" />
+                          <div className="box-icon w-3 h-3 bg-current rounded-sm"></div>
+                          <span className="cart-text">
+                            {animatingCart[book.id] ? (
+                              <>
+                                <span className="hidden sm:inline">Add to </span>Cart
+                              </>
+                            ) : isInCart(book) ? (
+                              <>
+                                <span className="hidden sm:inline">Remove from </span>Cart
+                              </>
+                            ) : (
+                              <>
+                                <span className="hidden sm:inline">Add to </span>Cart
+                              </>
+                            )}
+                          </span>
+                          <span className="added-text">
+                            <Check className="w-5 h-5 mr-2 inline" />
+                            Added!
+                          </span>
+                        </button>
+                      ) : (
+                        <div className="flex-1 py-3 px-4 rounded-xl text-base font-semibold bg-gray-400/70 text-white/90 text-center cursor-not-allowed select-none">
+                          Out of Stock
+                        </div>
+                      )}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          handleToggleWishlist(book);
+                        }}
+                        disabled={animatingWishlist[book.id]}
+                        className={`wishlist-button-animated ${wishlistButtonClicked[book.id] ? 'clicked' : ''} p-3 rounded-xl transition-all duration-200 hover:scale-105 shadow-lg hover:shadow-xl ${
+                          isInWishlist(book)
+                            ? 'bg-gradient-to-r from-red-500 to-red-600 text-white'
+                            : 'bg-[#9B7BB8] text-[#2D1B3D] hover:bg-[#8A6AA7]'
+                        }`}
+                        style={{ minWidth: 0 }}
+                      >
+                        <Heart className={`heart-static w-5 h-5 ${isInWishlist(book) ? 'fill-current' : ''}`} />
+                      </button>
+                    </div>
+                    <div className="h-2 sm:h-4"></div>
+                  </div>
+                </div>
               </div>
             ))}
           </div>

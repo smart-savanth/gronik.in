@@ -536,7 +536,7 @@ const getFilterStatusLabel = (filterStatus) => {
                       <p className="text-white/60 text-sm">Total Orders</p>
                     </div>
                     <div className="text-center">
-                      <p className="text-2xl font-bold text-white">${selectedUser.totalSpent}</p>
+                      <p className="text-2xl font-bold text-white">₹{selectedUser.totalSpent}</p>
                       <p className="text-white/60 text-sm">Total Spent</p>
                     </div>
                   </div>

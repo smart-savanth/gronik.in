@@ -633,96 +633,30 @@ const handleFinalSubmit = async (e) => {
                 </tr>
               ) : (
                 filteredBooks.map(book => (
-                  <tr key={book._id} className="hover:bg-white/5 transition-colors">
-  {/* COVER */}
-  <td className="px-4 py-3">
-    <div className="w-10 h-14 bg-gradient-to-br from-[#9B7BB8] to-[#8A6AA7] rounded-lg flex items-center justify-center text-white font-bold">
-      {book.coverImage ? 'IMG' : book.title?.charAt(0)}
-    </div>
-  </td>
-
-  {/* TITLE */}
-  <td className="px-4 py-3 text-white font-medium">
-    {book.title}
-  </td>
-
-  {/* AUTHOR */}
-  <td className="px-4 py-3 text-white/80">
-    {book.author || 'N/A'}
-  </td>
-
-  {/* CATEGORY */}
-  <td className="px-4 py-3 text-white/80">
-    {book.category}
-  </td>
-
-  {/* PRICE (₹ RUPEES) */}
-  <td className="px-4 py-3 text-white/80">
-    ₹{book.final_price}
-    {book.original_price > book.final_price && (
-      <span className="ml-2 text-xs text-white/40 line-through">
-        ₹{book.original_price}
-      </span>
-    )}
-  </td>
-
-  {/* ⭐ RATING */}
-  <td className="px-4 py-3 text-white/80 flex items-center gap-1">
-    {book.rating ? (
-      <>
-        <Star className="w-4 h-4 text-yellow-400 fill-current" />
-        <span>{book.rating.toFixed(1)}</span>
-      </>
-    ) : (
-      <span className="text-white/40">N/A</span>
-    )}
-  </td>
-
-  {/* FEATURED */}
-  <td className="px-4 py-3 text-center">
-    {book.featured ? (
-      <Star className="w-4 h-4 text-yellow-400 fill-current" />
-    ) : (
-      '-'
-    )}
-  </td>
-
-  {/* HERO */}
-  <td className="px-4 py-3 text-center">
-    {book.hero ? (
-      <Zap className="w-4 h-4 text-blue-400" />
-    ) : (
-      '-'
-    )}
-  </td>
-
-  {/* ACTIONS */}
-  <td className="px-4 py-3 flex items-center space-x-2">
-    <button
-      onClick={() => openViewModal(book)}
-      className="p-2 rounded-lg hover:bg-white/10 text-white/60 hover:text-white transition-colors"
-    >
-      <Eye className="w-4 h-4" />
-    </button>
-
-    <button
-      onClick={() => openEditModal(book._id)}
-      disabled={isLoadingEdit}
-      className="p-2 rounded-lg hover:bg-blue-500/20 text-blue-400 hover:text-blue-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-    >
-      <Edit className="w-4 h-4" />
-    </button>
-
-    <button
-      onClick={() => handleDelete(book)}
-      disabled={deletingBookId === (book._id || book.id)}
-      className="p-2 rounded-lg hover:bg-red-500/20 text-red-400 hover:text-red-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-    >
-      <Trash2 className="w-4 h-4" />
-    </button>
-  </td>
-</tr>
-
+                  <tr key={book.id} className="hover:bg-white/5 transition-colors">
+                    <td className="px-4 py-3">
+                      {book.pdf ? (
+                        <div className="flex items-center justify-center h-14">
+                          <FileText className="w-8 h-8 text-[#9B7BB8]" title="PDF Book" />
+                        </div>
+                      ) : (
+                        <img src={book.image} alt={book.title} className="w-10 h-14 object-cover rounded-lg border border-white/10" />
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-white font-medium">{book.title}</td>
+                    <td className="px-4 py-3 text-white/80">{book.author}</td>
+                    <td className="px-4 py-3 text-white/80">{book.category}</td>
+                    <td className="px-4 py-3 text-white/80">₹{book.price.toFixed(2)}</td>
+                    <td className="px-4 py-3 text-white/80">{book.pages}</td>
+                    <td className="px-4 py-3 text-white/80">{book.publishedDate}</td>
+                    <td className="px-4 py-3">{book.isFeatured ? <Star className="w-4 h-4 text-yellow-400" title="Featured" /> : '-'}</td>
+                    <td className="px-4 py-3">{book.isHero ? <Zap className="w-4 h-4 text-blue-400" title="Hero" /> : '-'}</td>
+                    <td className="px-4 py-3 flex items-center space-x-2">
+                      <button onClick={() => openViewModal(book)} className="p-2 rounded-lg hover:bg-white/10 text-white/60 hover:text-white transition-colors" title="View"><Eye className="w-4 h-4" /></button>
+                      <button onClick={() => openEditModal(book)} className="p-2 rounded-lg hover:bg-blue-500/20 text-blue-400 hover:text-blue-300 transition-colors" title="Edit"><Edit className="w-4 h-4" /></button>
+                      <button onClick={() => handleDelete(book)} className="p-2 rounded-lg hover:bg-red-500/20 text-red-400 hover:text-red-300 transition-colors" title="Delete"><Trash2 className="w-4 h-4" /></button>
+                    </td>
+                  </tr>
                 ))
               )}
             </tbody>

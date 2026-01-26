@@ -440,37 +440,21 @@ React.useEffect(() => {
                   ))}
                 </div>
               </div>
-
-              {/* Order Summary */}
-              {transactionError && (
-                <div className="bg-red-500/20 border border-red-500/40 text-red-300 p-3 rounded-lg text-center mt-3">
-                  {transactionError}
-                </div>
-              )}
-              {!userId && (
-                <div className="bg-yellow-500/20 border border-yellow-500/40 text-yellow-300 p-3 rounded-lg text-center mt-3">
-                  Please login to place an order.
-                </div>
-              )}
               <div className="bg-[#9B7BB8]/10 rounded-xl p-4">
-                <h4 className="font-semibold text-white mb-3 text-sm sm:text-base">Order Summary</h4>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between text-white/80">
-                    <span>Subtotal ({cart.length} {cart.length === 1 ? 'item' : 'items'})</span>
-                    <span>₹{subtotal.toFixed(2)}</span>
+                <h4 className="font-semibold text-white mb-2">Order Summary</h4>
+                <div className="flex justify-between text-white/80 text-sm">
+                  <span>Subtotal</span>
+                  <span>₹{subtotal.toFixed(2)}</span>
+                </div>
+                {savings > 0 && (
+                  <div className="flex justify-between text-green-500 text-sm">
+                    <span>You Save</span>
+                    <span>-₹{savings.toFixed(2)}</span>
                   </div>
-                  {savings > 0 && (
-                    <div className="flex justify-between text-green-500">
-                      <span>You Save</span>
-                      <span>-₹{savings.toFixed(2)}</span>
-                    </div>
-                  )}
-                  <div className="border-t border-white/20 pt-2 mt-2">
-                    <div className="flex justify-between text-white text-base sm:text-lg font-bold">
-                      <span>Total</span>
-                      <span>₹{total.toFixed(2)}</span>
-                    </div>
-                  </div>
+                )}
+                <div className="flex justify-between text-white text-base font-bold mt-2">
+                  <span>Total</span>
+                  <span>₹{total.toFixed(2)}</span>
                 </div>
               </div>
 

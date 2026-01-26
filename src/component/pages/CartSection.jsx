@@ -93,7 +93,8 @@ const handleAddWishlist = (book) => {
     const current = resolvePrice(item);
     return sum + Math.max(original - current, 0) * (item.quantity || 1);
   }, 0);
-  const total = subtotal;
+  const tax = subtotal * 0.08;
+  const total = subtotal + tax;
 
   // Use API mutation for removing items
   const [removeFromCartMutation] = useRemoveFromCartMutation();
@@ -249,13 +250,13 @@ const handleRemove = async (id) => {
                       {/* Price Section - REMOVED QUANTITY */}
                       <div className="flex items-center justify-end">
                         <div className="flex flex-col items-end">
-                          {displayOriginal > displayPrice && (
-                            <span className="text-sm text-white/60 line-through">
-                              ₹{displayOriginal.toFixed(2)}
+                          {item.originalPrice !== item.price && (
+                            <span className="text-sm text-gronik-light/60 line-through">
+                              ₹{item.originalPrice.toFixed(2)}
                             </span>
                           )}
-                          <span className="text-lg font-bold text-white">
-                            ₹{displayPrice.toFixed(2)}
+                          <span className="text-lg font-bold text-gronik-accent">
+                            ₹{item.price.toFixed(2)}
                           </span>
                         </div>
                       </div>
@@ -273,8 +274,8 @@ const handleRemove = async (id) => {
                     Order Summary
                   </h2>
                   <div className="space-y-4 mb-6">
-                    <div className="flex justify-between text-white">
-                      <span>Subtotal ({cart.length} {cart.length === 1 ? 'item' : 'items'})</span>
+                    <div className="flex justify-between text-gronik-light">
+                      <span>Subtotal ({cart.reduce((sum, item) => sum + item.quantity, 0)} items)</span>
                       <span>₹{subtotal.toFixed(2)}</span>
                     </div>
                     {savings > 0 && (
@@ -283,10 +284,14 @@ const handleRemove = async (id) => {
                         <span>-₹{savings.toFixed(2)}</span>
                       </div>
                     )}
-                    <div className="border-t border-white/20 pt-4">
+                    <div className="flex justify-between text-gronik-light">
+                      <span>Tax (8%)</span>
+                      <span>₹{tax.toFixed(2)}</span>
+                    </div>
+                    <div className="border-t border-gronik-accent/20 pt-4">
                       <div className="flex justify-between text-lg font-bold text-white">
                         <span>Total</span>
-                        <span className="text-gray-200">₹{total.toFixed(2)}</span>
+                        <span className="text-gronik-accent">₹{total.toFixed(2)}</span>
                       </div>
                     </div>
                   </div>
@@ -409,8 +414,8 @@ const handleRemove = async (id) => {
                     Order Summary
                   </h2>
                   <div className="space-y-4 mb-6">
-                    <div className="flex justify-between text-white">
-                      <span>Subtotal ({cart.length} {cart.length === 1 ? 'item' : 'items'})</span>
+                    <div className="flex justify-between text-gronik-light">
+                      <span>Subtotal ({cart.reduce((sum, item) => sum + item.quantity, 0)} items)</span>
                       <span>₹{subtotal.toFixed(2)}</span>
                     </div>
                     {savings > 0 && (
@@ -419,10 +424,14 @@ const handleRemove = async (id) => {
                         <span>-₹{savings.toFixed(2)}</span>
                       </div>
                     )}
-                    <div className="border-t border-white/20 pt-4">
+                    <div className="flex justify-between text-gronik-light">
+                      <span>Tax (8%)</span>
+                      <span>₹{tax.toFixed(2)}</span>
+                    </div>
+                    <div className="border-t border-gronik-accent/20 pt-4">
                       <div className="flex justify-between text-base font-bold text-white">
                         <span>Total</span>
-                        <span className="text-gray-200">₹{total.toFixed(2)}</span>
+                        <span className="text-gronik-accent">₹{total.toFixed(2)}</span>
                       </div>
                     </div>
                   </div>
