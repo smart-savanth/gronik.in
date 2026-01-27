@@ -93,8 +93,8 @@ const handleAddWishlist = (book) => {
     const current = resolvePrice(item);
     return sum + Math.max(original - current, 0) * (item.quantity || 1);
   }, 0);
-  const tax = subtotal * 0.08;
-  const total = subtotal + tax;
+
+  const total = subtotal ;
 
   // Use API mutation for removing items
   const [removeFromCartMutation] = useRemoveFromCartMutation();
@@ -284,10 +284,7 @@ const handleRemove = async (id) => {
                         <span>-₹{savings.toFixed(2)}</span>
                       </div>
                     )}
-                    <div className="flex justify-between text-gronik-light">
-                      <span>Tax (8%)</span>
-                      <span>₹{tax.toFixed(2)}</span>
-                    </div>
+                    
                     <div className="border-t border-gronik-accent/20 pt-4">
                       <div className="flex justify-between text-lg font-bold text-white">
                         <span>Total</span>
@@ -424,10 +421,7 @@ const handleRemove = async (id) => {
                         <span>-₹{savings.toFixed(2)}</span>
                       </div>
                     )}
-                    <div className="flex justify-between text-gronik-light">
-                      <span>Tax (8%)</span>
-                      <span>₹{tax.toFixed(2)}</span>
-                    </div>
+                   
                     <div className="border-t border-gronik-accent/20 pt-4">
                       <div className="flex justify-between text-base font-bold text-white">
                         <span>Total</span>

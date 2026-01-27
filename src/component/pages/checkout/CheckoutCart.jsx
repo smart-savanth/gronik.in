@@ -2,13 +2,16 @@ import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { ShoppingBag, ArrowRight, ArrowLeft } from "lucide-react";
+import { useOutletContext } from "react-router-dom";
+
 
 export default function CheckoutCart() {
+    const { cart } = useOutletContext();
   const navigate = useNavigate();
   const location = useLocation();
   const user = useSelector((state) => state.userAuth.user);
   const userId = user?.guid;
-  const [cart, setCart] = useState([]);
+  
 
   // Authentication check - redirect to login if not authenticated
   useEffect(() => {
@@ -18,10 +21,6 @@ export default function CheckoutCart() {
     }
   }, [userId, navigate, location]);
 
-  useEffect(() => {
-    const stored = JSON.parse(localStorage.getItem("cart")) || [];
-    setCart(stored);
-  }, []);
 
   const subtotal = cart.reduce((sum, item) => {
     const price = Number(item.price) || 0;

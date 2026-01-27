@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Routes, Route, useLocation } from 'react-router-dom';
+import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import './index.css';
 import Navbar from './component/layout/Navbar';
 import Notification from './component/layout/Notification';
@@ -35,7 +35,7 @@ import AccessDenied from './component/pages/AccessDenied';
 import { useSelector } from 'react-redux';
 import { useNotification } from './hooks/useNotification';
 import { useGetAllBooksQuery } from './utils/booksService';
-import { fetchWishlistProductIds, updateWishlistItems } from './utils/wishListService';
+import { getWishlistByUserId, updateWishlistItems } from './utils/wishListService';
 import { useAddToCartMutation, useRemoveFromCartMutation, useGetCartByUserIdQuery } from './utils/cartService';
 import TermsAndConditions from './component/pages/TermsAndConditions';
 import PrivacyPolicy from './component/pages/PrivacyPolicy';
@@ -49,20 +49,16 @@ import CheckoutVerify from './component/pages/checkout/CheckoutVerify';
 
 function App() {
   // Initialize cart from localStorage on mount
-  const [cart, setCart] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem('cart')) || [];
-    } catch (error) {
-      console.error('Error loading cart from localStorage:', error);
-      return [];
-    }
-  });
-  const [wishlist, setWishlist] = useState(() => JSON.parse(localStorage.getItem('wishlist')) || []);
+const [cart, setCart] = useState([]);
+const navigate = useNavigate();
+
+ const [wishlist, setWishlist] = useState([]);
+
   const [serverWishlistItems, setServerWishlistItems] = useState([]);
   const [isWishlistLoading, setIsWishlistLoading] = useState(false);
   const notification = useNotification();
   const user = useSelector(state => state.userAuth.user);
-  console.log(user);
+
   
   const userId = user?.guid;
   const { data: booksResponse } = useGetAllBooksQuery({ page: 1, pageSize: 1000 });
@@ -71,7 +67,10 @@ function App() {
   const [addToCartMutation] = useAddToCartMutation();
   const [removeFromCartMutation] = useRemoveFromCartMutation();
 
-  const { data: cartResponse } = useGetCartByUserIdQuery(userId, { skip: !userId });
+  const { data: cartResponse } = useGetCartByUserIdQuery(userId, {
+  skip: !userId,
+  refetchOnMountOrArgChange: true
+});
 
   const booksIndex = useMemo(() => {
     const index = new Map();
@@ -166,29 +165,33 @@ function App() {
     };
   }, []);
 
-  const refreshWishlistFromServer = useCallback(async () => {
-    if (!userId) return [];
-    setIsWishlistLoading(true);
-    try {
-      const products = await fetchWishlistProductIds(userId);
-      setServerWishlistItems(products || []);
-      return products;
-    } catch (error) {
-      console.error('Failed to fetch wishlist from server', error);
-      throw error;
-    } finally {
-      setIsWishlistLoading(false);
-    }
-  }, [userId]);
+const refreshWishlistFromServer = useCallback(async () => {
+  if (!userId) return [];
+
+  setIsWishlistLoading(true);
+
+  try {
+    const response = await getWishlistByUserId(userId);
+
+    // API RETURNS ARRAY
+    const products =
+      response?.data?.[0]?.product_details || [];
+
+    setServerWishlistItems(products);
+
+    return products;
+
+  } catch (error) {
+    console.error("Wishlist fetch failed:", error);
+    setServerWishlistItems([]);
+  } finally {
+    setIsWishlistLoading(false);
+  }
+}, [userId]);
+
 
   useEffect(() => {
-    if (!userId) {
-      setIsWishlistLoading(false);
-      setServerWishlistItems([]);
-      const localWishlist = JSON.parse(localStorage.getItem('wishlist')) || [];
-      setWishlist(localWishlist);
-      return;
-    }
+
 
     let cancelled = false;
 
@@ -209,159 +212,110 @@ function App() {
     };
   }, [userId, refreshWishlistFromServer]);
 
-  useEffect(() => {
-    if (!userId) return;
-    const mapped = serverWishlistItems
-      .map(entry => {
-        const normalizedId =
-          typeof entry === 'object'
-            ? entry?.productId || entry?._id || entry?.id || entry?.product_id
-            : entry;
-        const key = normalizedId !== undefined && normalizedId !== null ? String(normalizedId) : undefined;
-        const bookMatch = key ? booksIndex.get(key) : undefined;
-        return formatBookForWishlist(bookMatch, key, typeof entry === 'object' ? entry : null);
-      })
-      .filter(Boolean);
-    setWishlist(mapped);
-  }, [userId, serverWishlistItems, booksIndex, formatBookForWishlist]);
 
-  useEffect(() => {
-    localStorage.setItem('wishlist', JSON.stringify(wishlist));
-  }, [wishlist]);
+
+useEffect(() => {
+
+  if (!userId) {
+    setWishlist([]);
+    return;
+  }
+
+  const formattedWishlist = serverWishlistItems
+    .map(item => formatBookForWishlist(item, item?._id))
+    .filter(Boolean);
+
+  setWishlist(formattedWishlist);
+
+}, [userId, serverWishlistItems, formatBookForWishlist]);
+
+
+
 
   // Sync cart from backend (for logged-in users) or localStorage (for logged-out users)
-  useEffect(() => {
-    // cartResponse is already an array (transformed by cartService.js transformResponse)
-    if (userId && Array.isArray(cartResponse)) {
-      // For logged-in users: sync from backend
-      // cartResponse is already transformed to array of cart items
-      setCart(cartResponse);
-      // Also update localStorage for consistency
-      localStorage.setItem('cart', JSON.stringify(cartResponse));
-    } else if (!userId) {
-      // For logged-out users: sync from localStorage
-      const syncCartFromStorage = () => {
-        try {
-          const localCart = JSON.parse(localStorage.getItem('cart')) || [];
-          setCart(localCart);
-        } catch (error) {
-          console.error('Error syncing cart from localStorage:', error);
-        }
-      };
-      syncCartFromStorage();
-    }
-  }, [userId, cartResponse]);
+useEffect(() => {
 
-  // Sync cart from localStorage on cart-updated event (for logged-out users)
-  useEffect(() => {
-    if (userId) return; // Skip for logged-in users (they use backend)
+  if (!userId) return;
+  if (!Array.isArray(cartResponse)) return;
 
-    const syncCartFromStorage = () => {
-      try {
-        const localCart = JSON.parse(localStorage.getItem('cart')) || [];
-        setCart(localCart);
-      } catch (error) {
-        console.error('Error syncing cart from localStorage:', error);
-      }
+  console.log(cartResponse);
+  
+
+  const mergedCart = cartResponse.map(item => {
+
+    const productId =
+      item.productId ||
+      item._id ||
+      item.id;
+
+    const book = booksIndex.get(String(productId));
+
+    if (!book) return null;
+
+    return {
+      ...item,
+      ...book,
+      id: productId,
+      quantity: item.quantity || 1
     };
+  }).filter(Boolean);
 
-    // Sync on cart-updated event (from same tab)
-    window.addEventListener('cart-updated', syncCartFromStorage);
-    
-    // Sync on storage event (from other tabs)
-    window.addEventListener('storage', (e) => {
-      if (e.key === 'cart') {
-        syncCartFromStorage();
-      }
-    });
+  setCart(mergedCart);
 
-    return () => {
-      window.removeEventListener('cart-updated', syncCartFromStorage);
-      window.removeEventListener('storage', syncCartFromStorage);
-    };
-  }, [userId]);
+}, [userId, cartResponse, booksIndex]);
+
+
+
 
   // ENHANCED HANDLERS WITH NOTIFICATIONS
 const handleAddToCart = async (book) => {
-  const productId = book._id || book.id || book.productId;
-  
-  if (!productId) {
-    console.error('Cannot add to cart: missing product ID', book);
-    notification.custom('Error: Product ID not found', 'error');
+
+  if (!userId) {
+    navigate("/login");
     return;
   }
-console.log("new changes");
 
-  // For logged-in users: sync with backend
-  if (userId) {
-    try {
-      await addToCartMutation({
-        userId,
-        productId,
-        quantity: 1,
-      }).unwrap();
-      notification.addToCart(book.title);
-      // Cart will auto-refresh via RTK Query invalidation, which will trigger the useEffect above
-      // No need to manually update cart state - it will sync from cartResponse
-    } catch (error) {
-      console.error('Error adding to cart (backend):', error);
-      notification.custom('Failed to add item to cart. Please try again.', 'error');
-    }
-  } else {
-    // For logged-out users: use localStorage only
-    let local = JSON.parse(localStorage.getItem("cart")) || [];
+  const productId = book._id || book.id || book.productId;
 
-    const exists = local.some(
-      item => item.id === productId
-    );
+  try {
+    await addToCartMutation({
+      userId,
+      productId,
+      quantity: 1,
+    }).unwrap();
 
-    if (!exists) {
-      local.push({
-        id: productId,
-        title: book.title,
-        image: book.image || book.coverImageUrl,
-        price: book.price || book.final_price,
-        originalPrice: book.originalPrice || book.original_price,
-        author: book.author,
-        quantity: 1,
-      });
+    notification.addToCart(book.title);
 
-      localStorage.setItem("cart", JSON.stringify(local));
-      setCart(local);
-      window.dispatchEvent(new Event("cart-updated"));
-      notification.addToCart(book.title);
-    }
+  } catch (error) {
+    console.error(error);
+    notification.custom('Failed to add item', 'error');
   }
 };
+
 
 
 
 const handleRemoveFromCart = async (id) => {
-  // For logged-in users: sync with backend
-  if (userId) {
-    try {
-      await removeFromCartMutation({
-  userId,
-  productId: id,
-}).unwrap();
-      notification.removeFromCart();
-      // Cart will auto-refresh via RTK Query invalidation, which will trigger the useEffect above
-      // No need to manually update cart state - it will sync from cartResponse
-    } catch (error) {
-      console.error('Error removing from cart (backend):', error);
-      notification.custom('Failed to remove item from cart. Please try again.', 'error');
-    }
-  } else {
-    // For logged-out users: use localStorage only
-    const local = JSON.parse(localStorage.getItem("cart")) || [];
-    const updated = local.filter(item => item.id !== id);
 
-    localStorage.setItem("cart", JSON.stringify(updated));
-    setCart(updated);
-    window.dispatchEvent(new Event("cart-updated"));
+  if (!userId) {
+    notification.custom("Please login to manage cart", "info");
+    return;
+  }
+
+  try {
+    await removeFromCartMutation({
+      userId,
+      productId: id,
+    }).unwrap();
+
     notification.removeFromCart();
+
+  } catch (error) {
+    console.error(error);
+    notification.custom("Remove failed", "error");
   }
 };
+
 
 
   
@@ -528,9 +482,9 @@ const handleAddToWishlist = async (book) => {
         <Route path="/order-history" element={<OrderHistorySection />} />
         <Route path="/my-library" element={<MyLibrarySection />} />
         <Route path="/login" element={<LoginSection />} />
-       <Route path="/checkout" element={<CheckoutLayout />}>
-  <Route index element={<CheckoutCart />} />
-  <Route path="review" element={<CheckoutReview />} />
+       <Route path="/checkout" element={<CheckoutLayout cart={cart} />}>
+<Route index element={<CheckoutCart cart={cart} />} />
+<Route path="review" element={<CheckoutReview cart={cart} />} />
    <Route path="verify" element={<CheckoutVerify />} />
   <Route path="success" element={<CheckoutSuccess />} />
   <Route path="failed" element={<CheckoutFailed />} />

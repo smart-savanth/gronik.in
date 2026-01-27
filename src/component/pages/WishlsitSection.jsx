@@ -132,42 +132,24 @@ const WishlistPage = ({
   cart = [],
   isLoading = false
 }) => {
-  const [localWishlist, setLocalWishlist] = React.useState([]);
+
   const navigate = useNavigate();
   // show a full-page loader only when server says loading AND we have no local items
-  const showFullPageLoader = isLoading && localWishlist.length === 0;
+const showFullPageLoader = isLoading && wishlist.length === 0;
 
-// Sync internal wishlist with props
-React.useEffect(() => {
-  if (Array.isArray(wishlist)) setLocalWishlist(wishlist);
-}, [wishlist]);
 
-// Listen for storage + wishlist updates
-React.useEffect(() => {
-  const refresh = () => {
-    const stored = JSON.parse(localStorage.getItem("wishlist")) || [];
-    setLocalWishlist(stored);
-  };
 
-  window.addEventListener("wishlist-updated", refresh);
-  window.addEventListener("storage", refresh);
-
-  return () => {
-    window.removeEventListener("wishlist-updated", refresh);
-    window.removeEventListener("storage", refresh);
-  };
-}, []);
 
 // NORMALIZED LIST
 const normalizedWishlist = useMemo(() => {
-  return localWishlist.map(item => ({
+  return wishlist.map(item => ({
     ...item,
     price: Number(item.price) || 0,
     originalPrice: Number(item.originalPrice) || Number(item.price) || 0,
     inStock: item.inStock ?? true,
     rating: Number(item.rating) || 4.5,
   }));
-}, [localWishlist]);
+}, [wishlist]);
 
 
 

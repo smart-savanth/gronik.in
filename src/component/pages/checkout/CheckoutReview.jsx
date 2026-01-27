@@ -3,14 +3,16 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { CheckCircle } from "lucide-react";
 import { useSavePaymentMutation } from "../../../utils/paymentService";
+import { useOutletContext } from "react-router-dom";
 
 export default function CheckoutReview() {
+  const { cart } = useOutletContext();
+
   const navigate = useNavigate();
   const location = useLocation();
   const user = useSelector((state) => state.userAuth.user);
   const userId = user?.guid;
 
-  const [cart, setCart] = useState([]);
   const [error, setError] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -36,10 +38,7 @@ const savings = cart.reduce((sum, item) => {
   return sum + (original - price) * qty;
 }, 0);
 
-  useEffect(() => {
-    const stored = JSON.parse(localStorage.getItem("cart")) || [];
-    setCart(stored);
-  }, []);
+
 
   const total = cart.reduce((sum, item) => {
     return sum + Number(item.price || 0) * Number(item.quantity || 1);
@@ -54,7 +53,7 @@ const savings = cart.reduce((sum, item) => {
       if (!userId) throw new Error("Login required");
       if (!cart.length) throw new Error("Cart empty");
 
-      const productIds = cart.map((i) => i.id || i._id).filter(Boolean);
+      const productIds = cart.map(i => i.productId).filter(Boolean);
 
       const res = await savePayment({
         userId,
@@ -82,7 +81,9 @@ const savings = cart.reduce((sum, item) => {
 
       // Backend + CheckoutVerify handle status and order saving.
       // Just redirect user to payment gateway.
-      window.location.href = redirectUrl;
+     setTimeout(() => {
+  window.location.href = redirectUrl;
+}, 300);
       } catch (e) {
       setError(e.message || "Payment failed");
       setIsProcessing(false);
@@ -101,7 +102,7 @@ const savings = cart.reduce((sum, item) => {
   <h4 className="font-semibold mb-3">Order Items</h4>
   <div className="space-y-2">
     {cart.map((item) => (
-      <div key={item.id} className="flex justify-between text-white/80 text-sm">
+      <div key={item.productId} className="flex justify-between text-white/80 text-sm">
         <span>{item.title}</span>
         <span>
           ₹{(item.price * (item.quantity || 1)).toFixed(2)}
@@ -134,10 +135,7 @@ const savings = cart.reduce((sum, item) => {
 </div>
 
 
-      <div className="border-t border-white/20 pt-4 flex justify-between font-bold mb-6">
-        <span>Total</span>
-        <span>₹{total.toFixed(2)}</span>
-      </div>
+     
 
       {error && (
         <div className="bg-red-500/20 border border-red-500/40 text-red-300 p-3 rounded-lg mb-4 text-center">

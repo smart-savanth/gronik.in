@@ -14,14 +14,14 @@ const steps = [
   { label: 'Success', icon: Smile },
 ];
 
-const CheckoutSection = () => {
+const CheckoutSection = ({cart}) => {
   console.log("change 4");
   
 const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const [cart, setCart] = useState([]);
+
   const [transactionError, setTransactionError] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [isCheckingPayment, setIsCheckingPayment] = useState(false);
@@ -39,6 +39,7 @@ const navigate = useNavigate();
   const [saveOrder] = useSaveOrderMutation();
   const [removeFromCart] = useRemoveFromCartMutation();
 
+
   // Authentication check - redirect to login if not authenticated
   React.useEffect(() => {
     if (!userId && !isReturningFromPayment) {
@@ -55,28 +56,16 @@ React.useEffect(() => {
   }
 }, []); // 👈 run only once on mount
 
-  React.useEffect(() => {
-    const stored = JSON.parse(localStorage.getItem("cart")) || [];
-    setCart(stored);
-  }, []);
+  
 
-  React.useEffect(() => {
-    const update = () => {
-      const stored = JSON.parse(localStorage.getItem("cart")) || [];
-      setCart(stored);
-    };
-    window.addEventListener("storage", update);
-    window.addEventListener("cart-updated", update);
-    return () => {
-      window.removeEventListener("storage", update);
-      window.removeEventListener("cart-updated", update);
-    };
-  }, []);
 
   const [orderPlaced, setOrderPlaced] = useState(false);
 
   const uiStep = searchParams.get("step"); // "review" | null
 const paymentResult = searchParams.get("payment"); // success | failed | null
+
+
+
 
 const step = (() => {
   // 🔥 Highest priority: payment result
@@ -198,7 +187,13 @@ localStorage.setItem("paymentFlow", "IN_PROGRESS");
 };
 
 
-
+// if (!cart || cart.length === 0) {
+//   return (
+//     <div className="text-center text-white text-lg font-semibold">
+//       Your cart is empty
+//     </div>
+//   );
+// }
 
 React.useEffect(() => {
   if (isReturningFromPayment) {
@@ -291,14 +286,12 @@ React.useEffect(() => {
         // Clear localStorage cart
         localStorage.removeItem("pendingPayment");
         localStorage.removeItem("paymentFlow");
-        localStorage.setItem("cart", JSON.stringify([]));
+       
         
         // Clear cart state
-        setCart([]);
+        
 
-        // Trigger storage events to refresh cart UI
-        window.dispatchEvent(new Event("storage"));
-        window.dispatchEvent(new Event("cart-updated"));
+       
 
         navigate("/checkout?payment=success", { replace: true });
       } else {
@@ -325,7 +318,7 @@ React.useEffect(() => {
   };
 
     verifyPayment();
-  }, [paymentResult, navigate, saveOrder, removeFromCart, userId, location]);
+  }, [paymentResult, navigate, saveOrder, removeFromCart, userId, location.pathname, location.search]);
 
 
   return (
