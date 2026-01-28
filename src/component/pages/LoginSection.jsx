@@ -35,11 +35,10 @@ const [forgotMobile, setForgotMobile] = useState("");
   const [resetSuccess, setResetSuccess] = useState(false);
   
   // OTP and JWT related states
-  const [otpSent, setOtpSent] = useState(false);
-  const [otpVerified, setOtpVerified] = useState(false);
+
   const [resendCooldown, setResendCooldown] = useState(0);
   const [otpError, setOtpError] = useState('');
-  const isAuthenticated = useSelector(state => state.userAuth.isAuthenticated);
+
   const [showAuthSuccess, setShowAuthSuccess] = useState(false);
   const [signupOtpSent, setSignupOtpSent] = useState(false);
   const [signupOtpVerified, setSignupOtpVerified] = useState(false);
@@ -92,139 +91,88 @@ const [forgotMobile, setForgotMobile] = useState("");
     }
   };
 
-  const generateOTP = () => {
-    return Math.floor(100000 + Math.random() * 900000).toString();
-  };
 
-  const generateJWT = (userData) => {
-    return `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.${btoa(JSON.stringify(userData))}`;
-  };
 
-  const handleOtpChange = (index, value) => {
-    if (value.length > 1) return;
-    const newOtp = [...formData.otp];
-    newOtp[index] = value;
-    setFormData(prev => ({ ...prev, otp: newOtp }));
-    if (value && index < 5) {
-      const nextInput = document.querySelector(`input[data-otp-index="${index + 1}"]`);
-      if (nextInput) nextInput.focus();
-    }
-    if (otpError) setOtpError('');
-  };
 
-  const handleOtpKeyDown = (index, e) => {
-    if (e.key === 'Backspace' && !formData.otp[index] && index > 0) {
-      const prevInput = document.querySelector(`input[data-otp-index="${index - 1}"]`);
-      if (prevInput) prevInput.focus();
-    }
-  };
 
-  const sendOTP = async (emailOrMobile) => {
-    setIsLoading(true);
-    setOtpError('');
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    const otp = generateOTP();
-    console.log(`OTP sent to ${emailOrMobile}: ${otp}`);
-    setOtpSent(true);
-    setIsLoading(false);
-    setResendCooldown(60);
-    const timer = setInterval(() => {
-      setResendCooldown(prev => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-  };
 
-  const verifyOTP = async () => {
-    const enteredOtp = formData.otp.join('');
-    if (enteredOtp.length !== 6) {
-      setOtpError('Please enter a 6-digit OTP');
-      return;
-    }
-    setIsLoading(true);
-    setOtpError('');
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    if (enteredOtp.length === 6) {
-      setOtpVerified(true);
-      setIsLoading(false);
-      const userData = {
-        email: formData.email || formData.mobile,
-        loginMethod: loginMethod,
-        timestamp: new Date().toISOString()
-      };
-      const jwtToken = generateJWT(userData);
-      setFormData(prev => ({ ...prev, jwtToken }));
-      dispatch(login({ token: jwtToken, user: userData }));
-      setShowAuthSuccess(true);
-      setTimeout(() => {
-        window.location.href = '/';
-      }, 1000);
-    } else {
-      setOtpError('Invalid OTP. Please try again.');
-      setIsLoading(false);
-    }
-  };
 
-  const handleResendOTP = async () => {
-    if (resendCooldown > 0) return;
-    await sendOTP(loginMethod === 'email' ? formData.email : formData.mobile);
-  };
+
+
+
 
   // Handle signup
 const handleSignup = async () => {
-  const newErrors = {};
-if (!whatsappConsent) {
-  newErrors.whatsappConsent = "Please agree to receive WhatsApp messages to continue";
+if (
+  formData.countryCode === "other" &&
+  !formData.customCountryCode.trim()
+) {
+  setErrors({ countryCode: "Enter country code" });
+  return;
 }
-  if (!formData.fullName) newErrors.fullName = 'Full name is required';
+  const newErrors = {};
+
+  if (!formData.fullName) newErrors.fullName = "Full name required";
+  if (!formData.mobile) newErrors.mobile = "Mobile required";
+  if (!formData.password) newErrors.password = "Password required";
 
   if (!signupOtpVerified) {
-  setErrors({ mobile: "Phone not verified!" });
-  return;
+    newErrors.mobile = "Verify phone number first";
   }
 
+  if (!whatsappConsent) {
+    newErrors.whatsappConsent = "WhatsApp consent required";
+  }
 
-  setErrors(newErrors);
+  if (Object.keys(newErrors).length) {
+    setErrors(newErrors);
+    return;
+  }
 
-  if (Object.keys(newErrors).length === 0) {
-    try {
-      await api.post('/auth/signUp', {
-        full_name: formData.fullName,
-        country_code: formData.mobile
-          ? (formData.countryCode === 'other'
-              ? formData.customCountryCode
-              : formData.countryCode)
-          : undefined,
-        mobile: formData.mobile || undefined,
-        email: formData.email,
-        password: formData.password,
-        role_name: "USER",
-      });
+  try {
+    setIsLoading(true);
 
-      const loginResponse = await api.post('/auth/login', {
-        email: formData.email,
-        password: formData.password,
-      });
+    const digits = formData.mobile.replace(/\D/g, "").slice(-10);
 
-      const userData = loginResponse.data.data.user;
-      const token = loginResponse.data.data.access_token;
+    const payload = {
+      full_name: formData.fullName,
+      country_code:
+        formData.countryCode === "other"
+          ? formData.customCountryCode
+          : formData.countryCode,
+      mobile: digits,
+      email: formData.email || undefined,
+      password: formData.password,
+      role_name: "USER"
+    };
 
-      dispatch(login({ token, user: userData }));
+    // SIGNUP API
+    await api.post("/auth/signup", payload);
 
-      setShowAuthSuccess(true);
-      setTimeout(() => {
-        navigate(from, { replace: true });
-      }, 500);
+    // AUTO LOGIN AFTER SUCCESSFUL SIGNUP
+    const loginRes = await api.post("/auth/login", {
+      mobile: digits,
+      country_code: payload.country_code,
+      password: formData.password
+    });
 
-    } catch (error) {
-      setErrors({
-        api: error.response?.data?.message || 'Registration or login failed. Please try again.',
-      });
-    }
+    dispatch(login({
+      token: loginRes.data.data.access_token,
+      user: loginRes.data.data.user
+    }));
+
+    setShowAuthSuccess(true);
+
+    setTimeout(() => {
+      navigate(from, { replace: true });
+    }, 800);
+
+  } catch (err) {
+    setErrors({
+      api: err.response?.data?.message || "Signup failed"
+    });
+  } finally {
+    setIsLoading(false);
   }
 };
 
@@ -344,6 +292,7 @@ const handleResetPassword = async () => {
     setTimeout(() => {
       setResetSuccess(false);
       setCurrentStep("login");
+
     }, 1500);
 
   } catch (err) {
@@ -401,16 +350,16 @@ const sendSignupOtp = async () => {
 
     const digits = formData.mobile.replace(/\D/g, "").slice(-10);
 
-await api.post("/auth/forgotPassword", {
-  mobile: digits
-});
+    await api.post("/auth/forgotPassword", {
+      mobile: digits
+    });
 
     setSignupOtpSent(true);
     setSignupOtpVerified(false);
 
   } catch (err) {
     setErrors({
-      api: err.response?.data?.message || "Failed to send OTP"
+      api: err.response?.data?.message || "OTP sending failed"
     });
   } finally {
     setIsLoading(false);
@@ -421,7 +370,7 @@ await api.post("/auth/forgotPassword", {
 const verifySignupOtp = async () => {
 
   if (signupOtpInput.length !== 6) {
-    setErrors({ api: "Enter valid OTP" });
+    setErrors({ api: "Enter valid 6 digit OTP" });
     return;
   }
 
@@ -430,11 +379,12 @@ const verifySignupOtp = async () => {
 
     const digits = formData.mobile.replace(/\D/g, "").slice(-10);
 
- await api.post("/auth/forgotPassword", {
+    await api.post("/auth/verifyOtp", {
       mobile: digits,
       otp: signupOtpInput
     });
 
+    // IMPORTANT
     setSignupOtpVerified(true);
 
   } catch (err) {
@@ -445,7 +395,6 @@ const verifySignupOtp = async () => {
     setIsLoading(false);
   }
 };
-
 
 
 
@@ -475,7 +424,18 @@ const verifySignupOtp = async () => {
 
        <div className="flex justify-center mb-6 gap-4">
           <button
-            onClick={() => setCurrentStep("login")}
+            onClick={() => {setCurrentStep("login"); setFormData({
+    email: '',
+    mobile: '',
+    password: '',
+    newPassword: '',
+    confirmPassword: '',
+    otp: ['', '', '', '', '', ''], // 6-digit OTP
+    jwtToken: '',
+    fullName: '',
+    countryCode: '+91',
+    customCountryCode: ''
+  })}}
             className={`
               px-6 py-2 rounded-xl font-semibold text-sm transition-all duration-300
               ${currentStep === "login"
@@ -488,7 +448,18 @@ const verifySignupOtp = async () => {
           </button>
 
           <button
-            onClick={() => setCurrentStep("signup")}
+            onClick={() => {setCurrentStep("signup"); setFormData({
+    email: '',
+    mobile: '',
+    password: '',
+    newPassword: '',
+    confirmPassword: '',
+    otp: ['', '', '', '', '', ''], // 6-digit OTP
+    jwtToken: '',
+    fullName: '',
+    countryCode: '+91',
+    customCountryCode: ''
+  })}}
             className={`
               px-6 py-2 rounded-xl font-semibold text-sm transition-all duration-300
               ${currentStep === "signup"
@@ -850,84 +821,7 @@ const verifySignupOtp = async () => {
               </div>
             )}
 
-            {currentStep === 'otp' && (
-              <div className="space-y-6">
-                <div className="text-center mb-6">
-                  <h2 className="text-xl font-bold text-white mb-2">Verify Your Account</h2>
-                  <p className="text-white/70 text-sm">
-                    We've sent a 6-digit verification code to your {loginMethod === 'email' ? 'email' : 'mobile'}
-                  </p>
-                  <p className="text-white/60 text-xs mt-1">
-                    {loginMethod === 'email' ? formData.email : formData.mobile}
-                  </p>
-                </div>
-
-                <div className="space-y-4">
-                  <label className="block text-xs font-medium text-white/80 mb-3 text-center">
-                    ENTER VERIFICATION CODE
-                  </label>
-                  <div className="flex justify-center space-x-2 mb-4">
-                    {formData.otp.map((digit, index) => (
-                      <input
-                        key={index}
-                        type="text"
-                        maxLength="1"
-                        value={digit}
-                        onChange={(e) => handleOtpChange(index, e.target.value)}
-                        onKeyDown={(e) => handleOtpKeyDown(index, e)}
-                        data-otp-index={index}
-                        className="w-12 h-12 text-center text-white bg-transparent border-2 border-white/30 rounded-lg focus:outline-none focus:border-white focus:shadow-lg focus:shadow-white/20 transition-all duration-300 text-lg font-semibold"
-                        style={{ caretColor: 'transparent' }}
-                      />
-                    ))}
-                  </div>
-                  
-                  {otpError && (
-                    <div className="text-red-400 text-xs text-center flex items-center justify-center space-x-1">
-                      <X className="w-3 h-3" />
-                      <span>{otpError}</span>
-                    </div>
-                  )}
-                </div>
-
-                <button
-                  onClick={verifyOTP}
-                  disabled={isLoading || formData.otp.join('').length !== 6}
-                  className="w-full bg-gradient-to-r from-[#FFD700]/90 to-[#9B7BB8]/80 text-[#2D1B3D] font-semibold py-3 px-6 rounded-xl transition-all duration-200 flex items-center justify-center space-x-2 mt-6 gold-glow-cta disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isLoading ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      <span>VERIFYING...</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>VERIFY OTP</span>
-                      <ArrowRight className="w-4 h-4" />
-                    </>
-                  )}
-                </button>
-
-                <div className="text-center">
-                  <p className="text-white/60 text-xs mb-2">Didn't receive the code?</p>
-                  <button
-                    onClick={handleResendOTP}
-                    disabled={resendCooldown > 0 || isLoading}
-                    className="text-white/70 hover:text-[#9B7BB8] text-xs transition-colors duration-300 flex items-center justify-center space-x-1 mx-auto disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <RefreshCw className={`w-3 h-3 ${resendCooldown > 0 ? 'animate-spin' : ''}`} />
-                    <span>
-                      {resendCooldown > 0 
-                        ? `Resend in ${resendCooldown}s` 
-                        : 'Resend OTP'
-                      }
-                    </span>
-                  </button>
-                </div>
-
-               
-              </div>
-            )}
+          
 
             {currentStep === 'forgot' && (
               <div className="space-y-4">
@@ -1016,10 +910,10 @@ const verifySignupOtp = async () => {
   try {
     setIsLoading(true);
 
-    await api.post("/auth/forgotPassword", {
-      mobile: forgotMobile,
-      otp: forgotOtp
-    });
+  await api.post("/auth/verifyOtp", {
+  mobile: forgotMobile,
+  otp: forgotOtp
+});
 
     setCurrentStep("reset");
 
