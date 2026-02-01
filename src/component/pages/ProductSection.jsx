@@ -104,7 +104,10 @@ const carousels = ensureArray(raw.carousels)
   .filter(c => c.image);
 
 // keep images array ONLY for thumbnails
-const images = carousels.map(c => c.image);
+const images = [
+  image,
+  ...carousels.map(c => c.image).filter(img => img !== image)
+];
 
 
 
@@ -620,22 +623,41 @@ console.log(currentCarousel)
             <div className="sticky top-8">
               <div className="relative mb-8">
                 <div className="relative w-full max-w-md mx-auto main-book-image-mobile-fix">
-                  <div className="absolute -inset-4 bg-black/20 rounded-3xl blur-2xl transform rotate-1"></div>
-                  <div className="relative bg-gradient-to-br from-white to-gray-100 rounded-2xl overflow-hidden shadow-2xl transform hover:scale-105 transition-all duration-500 hover:shadow-3xl">
-                    <div className="aspect-[3/4] relative">
-                     <img
-                        src={
-                            enhancedProductData.images?.length
-                              ? enhancedProductData.images[selectedImageIndex]
-                              : enhancedProductData.image
-                          }
-                        alt={enhancedProductData.title}
-                        className="w-full h-full object-cover"
-                      />
+                 
+                
 
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent"></div>
-                    </div>
-                  </div>
+<div
+  className="
+    relative
+    w-full max-w-md mx-auto
+    aspect-[3/4]
+    rounded-2xl
+    overflow-hidden
+    shadow-2xl
+    bg-black
+    isolate
+  "
+>
+  <img
+    src={
+      enhancedProductData.images?.length
+        ? enhancedProductData.images[selectedImageIndex]
+        : enhancedProductData.image
+    }
+    alt={enhancedProductData.title}
+    loading="lazy"
+    draggable="false"
+    className="
+      absolute inset-0
+      w-full h-full
+      object-cover
+      scale-[1.03]
+    "
+  />
+</div>
+
+
+
                 </div>
               </div>
 
@@ -650,7 +672,7 @@ console.log(currentCarousel)
                       selectedImageIndex === index ? 'ring-4 ring-white shadow-xl scale-110' : 'ring-2 ring-white/30 hover:ring-white/60 opacity-70 hover:opacity-100'
                     }`}
                   >
-                    <img src={image} alt={`${enhancedProductData.title} ${index + 1}`} className="w-full h-full object-cover" />
+                    <img src={image} alt={`${enhancedProductData.title} ${index + 1}`} className="w-full h-full object-contain" />
                     {selectedImageIndex === index && <div className="absolute inset-0 bg-white/20"></div>}
                   </button>
                 ))}
@@ -827,7 +849,7 @@ console.log(currentCarousel)
                             <img 
                              src={currentCarousel?.image}
                               alt="Book"
-                              className="w-full h-full object-cover"
+                              className="w-full h-full object-contain"
                             />
                           </div>
                         </div>
@@ -1077,7 +1099,7 @@ console.log(currentCarousel)
         {/* IMAGE (EXACTLY LIKE LIBRARY) */}
         <div className="mb-2 sm:mb-3 lg:mb-4 flex justify-center mt-4">
           <div className="relative w-20 h-28 sm:w-24 sm:h-32 lg:w-48 lg:h-64 rounded-lg lg:rounded-xl overflow-hidden shadow-2xl">
-            <img src={book.image} alt={book.title} className="w-full h-full object-cover" />
+            <img src={book.image} alt={book.title} className="w-full h-full object-contain bg-white" />
           </div>
         </div>
 
