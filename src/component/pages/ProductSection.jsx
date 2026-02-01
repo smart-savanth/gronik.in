@@ -622,61 +622,85 @@ console.log(currentCarousel)
           <div className="lg:col-span-2">
             <div className="sticky top-8">
               <div className="relative mb-8">
-                <div className="relative w-full max-w-md mx-auto main-book-image-mobile-fix">
+                
                  
                 
+<div className="relative w-full max-w-md mx-auto aspect-[3/4]">
 
-<div
-  className="
-    relative
-    w-full max-w-md mx-auto
-    aspect-[3/4]
-    rounded-2xl
-    overflow-hidden
-    shadow-2xl
-    bg-black
-    isolate
-  "
->
-  <img
-    src={
-      enhancedProductData.images?.length
-        ? enhancedProductData.images[selectedImageIndex]
-        : enhancedProductData.image
-    }
-    alt={enhancedProductData.title}
-    loading="lazy"
-    draggable="false"
-    className="
-      absolute inset-0
-      w-full h-full
-      object-cover
-      scale-[1.03]
-    "
+  {/* ================= PAPER PAGES EDGE ================= */}
+  <div
+    className="absolute inset-y-3 right-[-12px] w-[20px] rounded-r-xl z-10"
+    style={{
+      background: `
+        repeating-linear-gradient(
+  to right,
+  #9c9c9c,
+  #f7f7f7 1.5px,
+  #e3e3e3 2.5px,
+  #ffffff 4px
+)
+      `,
+      boxShadow: `
+        inset -4px 0 6px rgba(0,0,0,0.35),
+        4px 0 10px rgba(0,0,0,0.45)
+      `
+    }}
   />
+
+  {/* ================= PAGE DEPTH SHADOW ================= */}
+  <div className="absolute inset-y-6 right-[-20px] w-[8px] bg-black/40 blur-md z-0" />
+
+  {/* ================= HARD COVER ================= */}
+  <div
+    className="
+      relative
+      w-full h-full
+      rounded-2xl
+      overflow-hidden
+      bg-black
+      shadow-[0_20px_60px_rgba(0,0,0,0.7)]
+      isolate
+      z-20
+    "
+  >
+
+    {/* Spine Shadow */}
+    <div className="absolute inset-y-0 left-0 w-[12px] bg-gradient-to-r from-black/60 to-transparent z-30" />
+
+    {/* Gloss Light */}
+    <div className="absolute inset-0 bg-gradient-to-tr from-white/10 via-transparent to-transparent z-30 pointer-events-none" />
+
+    {/* Book Cover Image */}
+    <img
+      src={
+        enhancedProductData.images?.length
+          ? enhancedProductData.images[selectedImageIndex]
+          : enhancedProductData.image
+      }
+      alt={enhancedProductData.title}
+      loading="lazy"
+      draggable="false"
+      className="
+        absolute inset-0
+        w-full h-full
+        object-cover
+        scale-[1.03]
+      "
+    />
+
+  </div>
+
 </div>
 
 
 
-                </div>
+
+
+           
               </div>
 
               {/* Thumbs */}
-              <div className="flex justify-center space-x-2 mt-2">
-                {enhancedProductData.images.length > 0 &&
-  enhancedProductData.images.map((image, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setSelectedImageIndex(index)}
-                    className={`relative w-14 h-16 rounded-lg overflow-hidden transition-all duration-300 transform hover:scale-110 ${
-                      selectedImageIndex === index ? 'ring-4 ring-white shadow-xl scale-110' : 'ring-2 ring-white/30 hover:ring-white/60 opacity-70 hover:opacity-100'
-                    }`}
-                  >
-                    <img src={image} alt={`${enhancedProductData.title} ${index + 1}`} className="w-full h-full object-contain" />
-                    {selectedImageIndex === index && <div className="absolute inset-0 bg-white/20"></div>}
-                  </button>
-                ))}
-              </div>
+            
             </div>
           </div>
 
@@ -842,16 +866,27 @@ console.log(currentCarousel)
                           <div className="absolute inset-0 bg-black/50 rounded-xl blur-xl transform translate-x-3 translate-y-3"></div>
                           
                           {/* Book with Enhanced Golden Glow */}
-                          <div className="relative w-full h-full rounded-xl overflow-hidden shadow-2xl transform hover:scale-105 transition-all duration-500"
-                               style={{
-                                 boxShadow: '0 6px 24px rgba(255, 233, 179, 0.4), 0 10px 48px rgba(255, 233, 179, 0.3), 0 3px 12px rgba(255, 247, 193, 0.35)'
-                               }}>
-                            <img 
-                             src={currentCarousel?.image}
-                              alt="Book"
-                              className="w-full h-full object-contain"
-                            />
-                          </div>
+                          <div
+  className="relative w-full h-full rounded-xl overflow-hidden shadow-2xl transform hover:scale-105 transition-all duration-500"
+  style={{
+    boxShadow:
+      "0 6px 24px rgba(255, 233, 179, 0.4), 0 10px 48px rgba(255, 233, 179, 0.3), 0 3px 12px rgba(255, 247, 193, 0.35)"
+  }}
+>
+  <img
+    src={currentCarousel?.image}
+    alt="Book"
+    loading="lazy"
+    draggable="false"
+    className="
+      absolute inset-0
+      w-full h-full
+      object-cover
+      scale-[1.02]
+    "
+  />
+</div>
+
                         </div>
                       </div>
 

@@ -29,6 +29,7 @@ const BookCard = React.memo(({
 }) => {
  
 
+
   return (
     <div
       className="group relative cursor-pointer"
@@ -184,12 +185,14 @@ const FeaturedBooksSection = ({
   // Filter only Featured books
 const BASE_URL = process.env.REACT_APP_BASE_URL;
 
+
 const featuredBooks = useMemo(() => {
   return (
     booksResponse?.data
       ?.filter(book => book.featured)
       ?.map(book => {
-
+       
+        
         // IMAGE URL FIX
         const imagePath = book.coverImageUrl || book.image;
 
@@ -202,6 +205,7 @@ const featuredBooks = useMemo(() => {
         return {
           id: book._id,
           _id: book._id,
+inStock: book.inStock ?? true,
 
           title: book.title,
           author: book.author,
@@ -238,6 +242,8 @@ const featuredBooks = useMemo(() => {
 
   // Helpers
   const isInCart = (book) => cart.some(item => item.id === book.id || item.id === book._id);
+  
+  
   const isInWishlist = (book) => wishlist.some(item => item.id === book.id || item.id === book._id);
 
   // --- Handlers (Replicating LibraryPage Logic) ---
@@ -416,64 +422,80 @@ const featuredBooks = useMemo(() => {
 
                     {/* Action Buttons - Better spacing and sizing */}
                     <div className="flex flex-row gap-2 w-full mb-4">
-                      {book.inStock ? (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            e.preventDefault();
-                            handleCartAction(e, book);
-                          }}
-                          disabled={animatingCart[book.id]}
-                          className={`cart-button-animated ${cartButtonClicked[book.id] ? 'clicked' : ''} flex-1 py-3 px-4 rounded-xl font-semibold text-base flex items-center justify-center gap-2 transition-all duration-300 hover:scale-105 shadow-xl hover:shadow-2xl ${
-                            isInCart(book)
-                              ? 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white'
-                              : 'bg-gradient-to-r from-white to-gray-100 hover:from-gray-100 hover:to-white text-[#2D1B3D] shadow-xl'
-                          }`}
-                        >
-                          <ShoppingCart className="cart-icon w-5 h-5" />
-                          <div className="box-icon w-3 h-3 bg-current rounded-sm"></div>
-                          <span className="cart-text">
-                            {animatingCart[book.id] ? (
-                              <>
-                                <span className="hidden sm:inline">Add to </span>Cart
-                              </>
-                            ) : isInCart(book) ? (
-                              <>
-                                <span className="hidden sm:inline">Remove from </span>Cart
-                              </>
-                            ) : (
-                              <>
-                                <span className="hidden sm:inline">Add to </span>Cart
-                              </>
-                            )}
-                          </span>
-                          <span className="added-text">
-                            <Check className="w-5 h-5 mr-2 inline" />
-                            Added!
-                          </span>
-                        </button>
-                      ) : (
-                        <div className="flex-1 py-3 px-4 rounded-xl text-base font-semibold bg-gray-400/70 text-white/90 text-center cursor-not-allowed select-none">
-                          Out of Stock
-                        </div>
-                      )}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          e.preventDefault();
-                          handleToggleWishlist(book);
-                        }}
-                        disabled={animatingWishlist[book.id]}
-                        className={`wishlist-button-animated ${wishlistButtonClicked[book.id] ? 'clicked' : ''} p-3 rounded-xl transition-all duration-200 hover:scale-105 shadow-lg hover:shadow-xl ${
-                          isInWishlist(book)
-                            ? 'bg-gradient-to-r from-red-500 to-red-600 text-white'
-                            : 'bg-[#9B7BB8] text-[#2D1B3D] hover:bg-[#8A6AA7]'
-                        }`}
-                        style={{ minWidth: 0 }}
-                      >
-                        <Heart className={`heart-static w-5 h-5 ${isInWishlist(book) ? 'fill-current' : ''}`} />
-                      </button>
-                    </div>
+
+  {book.inStock === false ? (
+
+    // -------- OUT OF STOCK --------
+    <div className="
+      flex-1 py-3 px-4 rounded-xl 
+      text-base font-semibold 
+      bg-gray-400/70 
+      text-white/90 
+      text-center 
+      cursor-not-allowed 
+      select-none
+    ">
+      Out of Stock
+    </div>
+
+  ) : (
+
+    // -------- ADD TO CART --------
+    <button
+      onClick={(e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        handleCartAction(e, book);
+      }}
+      disabled={animatingCart[book.id]}
+      className={`cart-button-animated ${
+        cartButtonClicked[book.id] ? 'clicked' : ''
+      } flex-1 py-3 px-4 rounded-xl font-semibold text-base flex items-center justify-center gap-2 transition-all duration-300 hover:scale-105 shadow-xl hover:shadow-2xl ${
+        isInCart(book)
+          ? 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white'
+          : 'bg-gradient-to-r from-white to-gray-100 hover:from-gray-100 hover:to-white text-[#2D1B3D]'
+      }`}
+    >
+      <ShoppingCart className="cart-icon w-5 h-5" />
+      <div className="box-icon w-3 h-3 bg-current rounded-sm"></div>
+
+      <span className="cart-text">
+        {animatingCart[book.id]
+          ? "Adding..."
+          : isInCart(book)
+          ? "Go to Cart"
+          : "Add to Cart"}
+      </span>
+
+      <span className="added-text">
+        <Check className="w-5 h-5 mr-2 inline" />
+        Added!
+      </span>
+    </button>
+
+  )}
+
+  {/* Wishlist */}
+  <button
+    onClick={(e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      handleToggleWishlist(e, book);
+    }}
+    disabled={animatingWishlist[book.id]}
+    className={`wishlist-button-animated ${
+      wishlistButtonClicked[book.id] ? 'clicked' : ''
+    } p-3 rounded-xl transition-all duration-200 hover:scale-105 shadow-lg hover:shadow-xl ${
+      isInWishlist(book)
+        ? 'bg-gradient-to-r from-red-500 to-red-600 text-white'
+        : 'bg-[#9B7BB8] text-[#2D1B3D] hover:bg-[#8A6AA7]'
+    }`}
+  >
+    <Heart className={`heart-static w-5 h-5 ${isInWishlist(book) ? 'fill-current' : ''}`} />
+  </button>
+
+</div>
+
                     <div className="h-2 sm:h-4"></div>
                   </div>
                 </div>
