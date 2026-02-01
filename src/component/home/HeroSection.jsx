@@ -370,30 +370,24 @@ lg:min-h-[calc(100vh-6rem)]">
                       >
                         <div className={`relative ${isActive ? 'animate-float-slow' : ''}`}>
                           {/* Book Container */}
-                          <div className="book-card-container">
-                            <div className="book-inner-container">
-                              {/* Book Image from Library Data */}
-                              {book.image ? (
-                                <img 
-                                  loading="lazy"
-                                  decoding="async"
-                                  src={book.image} 
-                                  alt={book.title}
-                                  className="book-image-uniform"
-                                  style={{ 
-                                    opacity: 1,
-                                    display: 'block'
-                                  }}
-                                />
-                              ) : (
-                                <div className="book-fallback-uniform"></div>
-                              )}
-                              
-                              {/* Fallback Book Design */}
-                              
-                            </div>
-                          </div>
-                          
+<div className="carousel-book-wrapper">
+  <div className="carousel-book">
+
+    {/* Pages */}
+    <div className="carousel-book-pages" />
+
+    {/* Cover */}
+    <div className="carousel-book-cover">
+      <img
+        src={book.image}
+        alt={book.title}
+        draggable="false"
+      />
+    </div>
+
+  </div>
+</div>
+
                           {/* Enhanced shadow for active book */}
                           {isActive && (
                               <div className="absolute inset-0 rounded-xl bg-white/10 blur-2xl scale-110 pointer-events-none"></div>
@@ -505,38 +499,11 @@ lg:min-h-[calc(100vh-6rem)]">
         }
 
         /* DESKTOP BOOK SIZING */
-        .book-card-container {
-          width: 280px;
-          height: 420px;
-          background: white;
-          border-radius: 16px;
-          box-shadow: 0 25px 50px rgba(0,0,0,0.5);
-          padding: 20px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
+      
         
-        .book-inner-container {
-          width: 100%;
-          height: 100%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border-radius: 12px;
-          overflow: hidden;
-          position: relative;
-        }
+ 
         
-        .book-image-uniform {
-          width: 100% !important;
-          height: 100% !important;
-          object-fit: cover !important;
-          object-position: center !important;
-          border-radius: 12px;
-          display: block;
-        }
-        
+  
         .book-fallback-uniform {
           width: 100%;
           height: 100%;
@@ -717,6 +684,95 @@ lg:min-h-[calc(100vh-6rem)]">
               border-radius: 10px !important;
             }
           }
+
+
+/* ================================
+   RESPONSIVE 3D CAROUSEL BOOK
+================================ */
+
+/* Wrapper controls book size */
+.carousel-book-wrapper {
+  width: clamp(160px, 18vw, 300px);
+  height: clamp(240px, 26vw, 440px);
+  perspective: 1400px;
+}
+
+/* Main book body */
+.carousel-book {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  transform-style: preserve-3d;
+  transform: rotateY(-18deg);
+  transition: transform 0.6s ease;
+}
+
+/* Front cover */
+.carousel-book-cover {
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  overflow: hidden;
+  background: black;
+
+  box-shadow:
+    0 20px 40px rgba(0,0,0,0.45),
+    inset -6px 0 10px rgba(0,0,0,0.35);
+}
+
+.carousel-book-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* ================================
+   PAGE THICKNESS (SPINE)
+================================ */
+
+.carousel-book-pages {
+  position: absolute;
+  top: 3%;
+  right: -15%;
+  width: 15%;
+  height: 94%;
+
+  background: repeating-linear-gradient(
+    to right,
+    #9a9a9a,
+    
+    #ffffff 6px
+  );
+
+  border-radius: 0 12px 12px 0;
+  transform: rotateY(90deg);
+  transform-origin: left;
+
+  box-shadow:
+    inset 2px 0 6px rgba(0,0,0,0.25),
+    2px 0 4px rgba(0,0,0,0.15);
+}
+
+/* ================================
+   MOBILE OPTIMIZATION
+================================ */
+
+@media (max-width: 640px) {
+
+  .carousel-book-wrapper {
+    width: clamp(120px, 42vw, 180px);
+    height: clamp(180px, 58vw, 260px);
+  }
+
+  .carousel-book {
+    transform: rotateY(-12deg);
+  }
+
+  .carousel-book-cover {
+    border-radius: 12px;
+  }
+}
 
           
 

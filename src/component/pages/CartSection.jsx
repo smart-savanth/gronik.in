@@ -1,8 +1,15 @@
-import React from 'react';
+import React,{useEffect} from 'react';
 import { Trash2, ShoppingBag, ArrowLeft, Heart, Star } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useRemoveFromCartMutation } from '../../utils/cartService';
+import { useSelector } from "react-redux";
+
+import {
+  useRemoveFromCartMutation,
+  useGetCartByUserIdQuery
+} from "../../utils/cartService";
+
 const BASE_URL = process.env.REACT_APP_BASE_URL;
+
 
 
 const toNumber = (raw) => {
@@ -38,13 +45,7 @@ const resolveOriginalPrice = (item) =>
     item?.product?.original_price,
     item?.price
   );
-const CartSection = ({
-   cart = [],
-  removeFromCart,
-  addToWishlist,
- wishlist = []
-
-}) => {
+const CartSection = ({ addToWishlist, wishlist = [] }) => {
   // cart = (cart || []).map(item => ({
   //   ...item,
   //   price: parseFloat(item.price ?? item.final_price ?? 0),
@@ -52,13 +53,26 @@ const CartSection = ({
   //   quantity: item.quantity ?? 1,
   // }));
   // ---- FETCH CART FOR LOGGED-IN USER ----
-const user = JSON.parse(localStorage.getItem("user"));
+const user = useSelector(state => state.userAuth.user);
 const userId = user?.guid;
 
 
-
-
-
+const {
+  data: cartResponse,
+  isLoading,
+  isFetching,
+  refetch
+} = useGetCartByUserIdQuery(userId, {
+  skip: !userId,
+});
+const cart = (cartResponse || []).filter(
+  item =>
+    item?.title &&
+    item?.price > 0 &&
+    item?.image
+);
+console.log("USER ID:", userId);
+console.log("CART RESPONSE:", cartResponse);
 
 // ---------------------------
 // Load Cart (backend or local)
@@ -69,6 +83,20 @@ const userId = user?.guid;
 // ---------------------------
 // Listen for storage updates
 // ---------------------------
+useEffect(() => {
+  const version = localStorage.getItem("cart_migration_v1");
+
+  if (!version) {
+    console.log("Clearing legacy cart storage");
+
+    localStorage.removeItem("cart");
+    localStorage.removeItem("pendingPayment");
+    localStorage.removeItem("paymentFlow");
+
+    // mark migration done
+    localStorage.setItem("cart_migration_v1", "done");
+  }
+}, []);
 
 
 const handleCardClick = (book) => {
@@ -77,7 +105,7 @@ const handleCardClick = (book) => {
 
 const handleAddWishlist = (book) => {
   addToWishlist(book);   // redux
-  window.dispatchEvent(new Event("wishlist-updated"));
+  
 };
 
   const navigate = useNavigate();
@@ -102,33 +130,33 @@ const handleAddWishlist = (book) => {
   const [removeFromCartMutation] = useRemoveFromCartMutation();
 
 const handleRemove = async (id) => {
-  // For logged-in users: use API mutation
-  if (userId) {
-    try {
-      await removeFromCartMutation({
-        userId,
-        productId: id,
-      }).unwrap();
-      // Cart will auto-refresh via RTK Query invalidation
-      // No need to call removeFromCart prop - cart state will sync automatically
-    } catch (error) {
-      console.error('Error removing from cart:', error);
-      // Fallback to prop function if API fails
-      if (removeFromCart) {
-        removeFromCart(id);
-      }
-    }
-  } else {
-    // For logged-out users: use prop function (localStorage)
-    if (removeFromCart) {
-      removeFromCart(id);
-    }
+  try {
+    await removeFromCartMutation({
+      userId,
+      productId: id,
+    }).unwrap();
+  } catch (error) {
+    console.error("Remove failed:", error);
   }
 };
 
 
 
+if (isLoading) {
+  return (
+    <div className="min-h-screen flex justify-center items-center text-white">
+      Loading cart...
+    </div>
+  );
+}
 
+if (!userId) {
+  return (
+    <div className="min-h-screen flex justify-center items-center text-white">
+      Please login to view your cart
+    </div>
+  );
+}
   return (
     <div className="mt-8 min-h-screen bg-gradient-to-br from-[#9B7BB8] to-[#8A6AA7]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 ">
