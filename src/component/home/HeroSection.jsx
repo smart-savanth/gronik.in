@@ -20,20 +20,33 @@ const HeroSection = () => {
     page: 1,
     pageSize: 10,
   });
-  
+  const BASE_URL = process.env.REACT_APP_BASE_URL;
+
   // Filter books marked as hero from centralized data
-  const heroBooks = React.useMemo(() => {
-    return (booksResponse?.data || [])
-      .filter(book => book.featured === true)
-      .map(book => ({
+const heroBooks = React.useMemo(() => {
+  return (booksResponse?.data || [])
+    .filter(book => book.featured === true)
+    .map(book => {
+
+      const imagePath = book.coverImageUrl || book.image;
+
+      const fullImageUrl = imagePath
+        ? imagePath.startsWith("http")
+          ? imagePath
+          : `${BASE_URL.replace(/\/$/, "")}/${imagePath.replace(/^\//, "")}`
+        : "https://via.placeholder.com/300x400?text=No+Image";
+
+      return {
         id: book._id,
         title: book.title,
         author: book.author,
-        image: book.coverImageUrl,
+        image: fullImageUrl,
         rating: book.rating ?? 4.5,
         reviews: book.reviews ?? 0
-      }));
-  }, [booksResponse]);
+      };
+    });
+}, [booksResponse, BASE_URL]);
+
 
   // Preload images and track loading state
   useEffect(() => {

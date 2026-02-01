@@ -2,6 +2,8 @@ import React from 'react';
 import { Trash2, ShoppingBag, ArrowLeft, Heart, Star } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useRemoveFromCartMutation } from '../../utils/cartService';
+const BASE_URL = process.env.REACT_APP_BASE_URL;
+
 
 const toNumber = (raw) => {
   if (raw === null || raw === undefined) return NaN;
@@ -186,22 +188,39 @@ const handleRemove = async (id) => {
                 </div>
               ) : (
                 cart.map(item => {
+                  const rawImage = item.image || item.coverImageUrl;
+
+const displayImage =
+  rawImage?.startsWith("http")
+    ? rawImage
+    : rawImage
+    ? `${BASE_URL}/${rawImage}`
+    : "/images/no-image.png";
+
                   const displayPrice = resolvePrice(item);
                   const displayOriginal = resolveOriginalPrice(item);
                   return (
                   <div key={item.id} onClick={()=>handleCardClick(item)} className="flex flex-col sm:flex-row gap-6 bg-[#2D1B3D]/95 rounded-2xl p-6 border border-white/10 hover:border-white/30 transition-all duration-300 group hover:scale-105">
                     {/* Book Image */}
                     <div className="flex-shrink-0">
-                      <div className="relative w-24 h-32 sm:w-28 sm:h-36 rounded-lg overflow-hidden shadow-lg group-hover:scale-105 transition-transform duration-300">
+                      <div
+  className="
+    relative
+    w-24 h-32 sm:w-28 sm:h-36
+    rounded-lg
+    overflow-hidden
+    shadow-lg
+    bg-black
+    isolate
+  "
+>
                         <img
-                            src={
-                              item.image ||
-                              item.coverImageUrl ||
-                              "/images/no-image.png"
-                            }
-                            alt={item.title}
-                            className="w-full h-full object-cover"
-                          />
+src={displayImage}
+  alt={item.title}
+  loading="lazy"
+  draggable="false"
+  className="absolute inset-0 w-full h-full object-cover scale-[1.03]"
+/>
                         <div className="absolute top-2 right-2">
                           <button
                              onClick={(e) => {
@@ -322,6 +341,15 @@ const handleRemove = async (id) => {
             <>
               <div className="flex flex-col gap-4 pb-4">
                 {cart.map(item => {
+                  const rawImage = item.image || item.coverImageUrl;
+
+const displayImage =
+  rawImage?.startsWith("http")
+    ? rawImage
+    : rawImage
+    ? `${BASE_URL}/${rawImage}`
+    : "/images/no-image.png";
+
                   const displayPrice = resolvePrice(item);
                   const displayOriginal = resolveOriginalPrice(item);
                   return (
@@ -333,16 +361,26 @@ const handleRemove = async (id) => {
                     <div className="flex gap-4">
                       {/* Product Image */}
                       <div className="relative flex-shrink-0">
-                        <div className="w-20 h-28 rounded-xl overflow-hidden shadow-lg bg-[#3D2A54]/20">
-                          <img
-                            src={
-                              item.image ||
-                              item.coverImageUrl ||
-                              "/images/no-image.png"
-                            }
-                            alt={item.title}
-                            className="w-full h-full object-cover"
-                          />
+                      <div
+  className="
+    relative
+    w-20 h-28
+    rounded-xl
+    overflow-hidden
+    shadow-lg
+    bg-black
+    isolate
+  "
+>
+
+                       <img
+src={displayImage}
+  alt={item.title}
+  loading="lazy"
+  draggable="false"
+  className="absolute inset-0 w-full h-full object-cover scale-[1.03]"
+/>
+
                         </div>
                         <button
                           onClick={() => addToWishlist(item)}

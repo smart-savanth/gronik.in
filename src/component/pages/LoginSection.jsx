@@ -339,6 +339,8 @@ const handleResetPassword = async () => {
 
 
 const sendSignupOtp = async () => {
+  setResendCooldown(60);
+
 
   if (!formData.mobile.trim()) {
     setErrors({ mobile: "Enter mobile number first" });
@@ -350,7 +352,7 @@ const sendSignupOtp = async () => {
 
     const digits = formData.mobile.replace(/\D/g, "").slice(-10);
 
-    await api.post("/auth/forgotPassword", {
+    await api.post("/auth/sendOtp", {
       mobile: digits
     });
 
@@ -910,7 +912,7 @@ const verifySignupOtp = async () => {
   try {
     setIsLoading(true);
 
-  await api.post("/auth/verifyOtp", {
+  await api.post("/auth/forgotPassword", {
   mobile: forgotMobile,
   otp: forgotOtp
 });

@@ -27,6 +27,8 @@ const BookCard = React.memo(({
   hovered,
   setHoveredBook
 }) => {
+ 
+
   return (
     <div
       className="group relative cursor-pointer"
@@ -178,31 +180,61 @@ const FeaturedBooksSection = ({
     pageSize: 1000,
   });
 
+
   // Filter only Featured books
-  const featuredBooks = useMemo(() => {
-    return booksResponse?.data
+const BASE_URL = process.env.REACT_APP_BASE_URL;
+
+const featuredBooks = useMemo(() => {
+  return (
+    booksResponse?.data
       ?.filter(book => book.featured)
-      ?.map(book => ({
-        id: book._id,
-        // Ensure we pass both formats so App.js handlers work correctly
-        _id: book._id, 
-        title: book.title,
-        author: book.author,
-        category: book.category,
-        price: Number(book.final_price),
-        originalPrice: Number(book.original_price),
-        // Pass original naming for App.js handlers
-        final_price: book.final_price,
-        original_price: book.original_price,
-        rating: book.rating || 4.5,
-        image: book.coverImageUrl || book.image || "https://via.placeholder.com/300x400?text=No+Image",
-        // Pass coverImageUrl for App.js handlers
-        coverImageUrl: book.coverImageUrl || book.image,
-        description: book.description,
-        featured: book.featured,
-        discount: book.discount || (book.original_price > book.final_price ? `${Math.round(((book.original_price - book.final_price) / book.original_price) * 100)}% OFF` : null)
-      })) ?? [];
-  }, [booksResponse]);
+      ?.map(book => {
+
+        // IMAGE URL FIX
+        const imagePath = book.coverImageUrl || book.image;
+
+        const fullImageUrl = imagePath
+          ? imagePath.startsWith("http")
+            ? imagePath
+            : `${BASE_URL}/${imagePath}`
+          : "https://via.placeholder.com/300x400?text=No+Image";
+
+        return {
+          id: book._id,
+          _id: book._id,
+
+          title: book.title,
+          author: book.author,
+          category: book.category,
+
+          price: Number(book.final_price),
+          originalPrice: Number(book.original_price),
+
+          final_price: book.final_price,
+          original_price: book.original_price,
+
+          rating: book.rating || 4.5,
+
+          image: fullImageUrl,
+          coverImageUrl: fullImageUrl,
+
+          description: book.description,
+          featured: book.featured,
+
+          discount:
+            book.discount ||
+            (book.original_price > book.final_price
+              ? `${Math.round(
+                  ((book.original_price - book.final_price) /
+                    book.original_price) *
+                    100
+                )}% OFF`
+              : null),
+        };
+      }) || []
+  );
+}, [booksResponse]);
+
 
   // Helpers
   const isInCart = (book) => cart.some(item => item.id === book.id || item.id === book._id);
@@ -317,15 +349,35 @@ const FeaturedBooksSection = ({
                   </div>
 
                   {/* Book Image Container - Better proportions */}
-                  <div className="relative mb-3 sm:mb-4 lg:mb-4 flex justify-center mt-2 sm:mt-6">
-                    <div className="relative w-24 sm:w-48 lg:w-44 h-32 sm:h-64 lg:h-60 rounded-lg overflow-hidden shadow-xl transition-transform duration-500">
-                      <img 
-                        src={book.image} 
-                        alt={book.title}
-                        className="w-full h-full object-cover transition-transform duration-700"
-                      />
-                    </div>
-                  </div>
+<div className="relative mb-3 sm:mb-4 lg:mb-4 flex justify-center mt-2 sm:mt-6">
+  <div
+    className="
+      relative
+      w-24 sm:w-48 lg:w-44
+      h-32 sm:h-64 lg:h-60
+      rounded-lg
+      overflow-hidden
+      shadow-xl
+      bg-black
+      isolate
+    "
+  >
+    <img
+      src={book.image}
+      alt={book.title}
+      loading="lazy"
+      draggable="false"
+      className="
+        absolute inset-0
+        w-full h-full
+        object-cover
+        scale-[1.03]
+      "
+    />
+  </div>
+</div>
+
+
 
                   {/* Book Details - Removed description and improved spacing */}
                   <div className="text-center space-y-2 sm:space-y-3 lg:space-y-3 flex-1 flex flex-col">

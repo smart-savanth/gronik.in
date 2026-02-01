@@ -453,12 +453,35 @@ const books = booksResponse?.data?.map(book => {
                   </div>
 
                   {/* Image */}
-                  <div className="mb-2 sm:mb-3 lg:mb-4 flex justify-center mt-1 sm:mt-2 lg:mt-4">
-                    <div className="relative w-20 h-28 sm:w-24 sm:h-32 lg:w-48 lg:h-64 
-    rounded-lg lg:rounded-xl overflow-hidden shadow-2xl">
-                      <img src={book.image} alt={book.title} className="w-full h-full object-cover" />
-                    </div>
-                  </div>
+                <div className="mb-2 sm:mb-3 lg:mb-4 flex justify-center mt-1 sm:mt-2 lg:mt-4">
+  <div
+    className="
+      relative
+      w-20 h-28
+      sm:w-24 sm:h-32
+      lg:w-48 lg:h-64
+      rounded-lg lg:rounded-xl
+      overflow-hidden
+      shadow-2xl
+      bg-black
+      isolate
+    "
+  >
+    <img
+      src={book.image}
+      alt={book.title}
+      loading="lazy"
+      draggable="false"
+      className="
+        absolute inset-0
+        w-full h-full
+        object-cover
+        scale-[1.03]
+      "
+    />
+  </div>
+</div>
+
 
                   {/* Text */}
                   <div className="text-center flex-1 flex flex-col justify-between">
