@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { User, Star, Quote, Plus, X, Send, ChevronLeft, ChevronRight } from 'lucide-react';
+import { saveReview } from "../../utils/reviewservice";
 
 // Redux actions (add these to your reviews slice)
 const addReview = (review) => ({
@@ -12,7 +13,7 @@ const setReviews = (reviews) => ({
   type: 'reviews/setReviews',
   payload: reviews
 });
-
+const user = useSelector(state => state.userAuth?.user);
 const ReviewsSection = () => {
   // Redux state
   const dispatch = useDispatch();
@@ -189,20 +190,53 @@ const ReviewsSection = () => {
     requestAnimationFrame(applyMomentum);
   };
 
-  const handleSubmitReview = () => {
-    if (newReview.text) {
-      const review = {
-        id: Date.now(),
-        ...newReview,
-        name: "Anonymous",
-        timestamp: new Date().toISOString()
-      };
-      dispatch(addReview(review));
-      setNewReview({ rating: 5, text: '', name: '' });
-      setShowForm(false);
-    }
-  };
+  const handleSubmitReview = async () => {
+  if (!newReview.text.trim()) return;
 
+  if (!user?.guid) {
+    alert("Please login first");
+    return;
+  }
+
+  try {
+    const payload = {
+      type: "site",
+      user_id: user.guid,
+      rating: newReview.rating,
+      review: newReview.text.trim()
+    };
+
+    console.log("Sending:", payload);
+
+    const res = await saveReview(payload);
+
+    console.log("Server response:", res.data);
+
+    const saved = res?.data?.data;
+
+    if (!saved) {
+      throw new Error("No data returned from server");
+    }
+
+    const review = {
+      id: saved._id,
+      rating: saved.rating,
+      text: saved.review,
+      name: saved.user_name || "Anonymous",
+      timestamp: saved.createdAt
+    };
+
+    // update redux AFTER successful save
+    dispatch(addReview(review));
+
+    setNewReview({ rating: 5, text: "", name: "" });
+    setShowForm(false);
+
+  } catch (err) {
+    console.error("Review submit error:", err.response?.data || err);
+    alert("Failed to submit review");
+  }
+};
   return (
     <section className="py-8 sm:py-12 md:py-16 lg:py-20 relative overflow-hidden bg-[#9B7BB8]">
       {/* Background Pattern */}
