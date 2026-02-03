@@ -13,6 +13,8 @@ const FALLBACK_REVIEWS = [
 
 
 const ReviewsSection = () => {
+  const [reviewError, setReviewError] = useState("");
+
   const location=useLocation()
   const navigate = useNavigate();
   const user = useSelector((state) => state.userAuth?.user);
@@ -243,7 +245,10 @@ const onPointerUp = (e) => {
 
   // submit review (unchanged)
   const handleSubmitReview = async () => {
-    if (!newReview.text.trim()) return;
+ if (newReview.text.trim().length < 15) {
+  setReviewError("Review must be at least 15 characters");
+  return;
+}
     if (!user?.guid) {
       navigate("/login", { state: { from: "/#reviews" } });
       return;
@@ -252,7 +257,7 @@ const onPointerUp = (e) => {
 
 
     try {
-      const payload = { type: "site", product: null, user_id: user.guid, rating: newReview.rating, review: newReview.text.trim() };
+      const payload = { type: "site", user_id: user.guid, rating: newReview.rating, review: newReview.text.trim() };
       const res = await saveReview(payload);
       const saved = res?.data?.data;
       if (saved) {
@@ -428,23 +433,39 @@ const onPointerUp = (e) => {
                 <label className="block text-sm font-medium text-[#2D1B3D] mb-2">Your Review</label>
                 <textarea
                   value={newReview.text}
-                  onChange={(e) => setNewReview({...newReview, text: e.target.value})}
+                  onChange={(e) => {
+  const value = e.target.value;
+  setNewReview({ ...newReview, text: value });
+
+  if (value.trim().length < 15) {
+    setReviewError("Review must be at least 15 characters");
+  } else {
+    setReviewError("");
+  }
+}}
                   rows={4}
-                  className="w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#9B7BB8] focus:border-transparent transition-all duration-300 resize-none
-                    px-3 py-2 text-sm
-                    sm:px-4 sm:py-3 sm:text-base
-                    lg:px-4 lg:py-3 lg:text-base"
+                  className={`w-full border rounded-lg focus:ring-2 focus:ring-[#9B7BB8] focus:border-transparent transition-all duration-300 resize-none
+px-3 py-2 text-sm sm:px-4 sm:py-3 sm:text-base lg:px-4 lg:py-3 lg:text-base
+${reviewError ? "border-red-500" : "border-gray-300"}`}
                   placeholder="Share your experience with our platform..."
                   maxLength={200}
                 />
-                <div className="text-right text-xs text-gray-500 mt-1">
-                  {newReview.text.length}/200
-                </div>
+                {reviewError && (
+  <p className="text-red-500 text-xs mt-1 font-medium">
+    {reviewError}
+  </p>
+)}
+                <div className={`text-right text-xs mt-1 ${
+  newReview.text.length < 15 ? "text-red-500" : "text-green-600"
+}`}>
+  {newReview.text.length}/200 
+  
+</div>
               </div>
               
               <button
                 onClick={handleSubmitReview}
-                disabled={!newReview.text.trim()}
+                disabled={newReview.text.trim().length < 15}
                 className="w-full bg-[#2D1B3D] text-white rounded-lg hover:bg-[#3D2A54] transition-all duration-300 font-medium flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 active:scale-95
                   py-2 text-sm
                   sm:py-3 sm:text-base
