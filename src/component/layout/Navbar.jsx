@@ -1,29 +1,85 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Search, ShoppingCart, User, Menu, X, BookOpen, Heart } from 'lucide-react';
+import { Search, ShoppingCart, User, Menu, X, BookOpen, Heart, ChevronDown } from 'lucide-react';
 // Import centralizedBooksData for search
 import { centralizedBooksData } from '../pages/LibrarySection';
+import { useSelector } from 'react-redux';
+import { useGetAllBooksQuery } from '../../utils/booksService';
 
 const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+
   const [isScrolled, setIsScrolled] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isMobile, setIsMobile] = useState(false);
+  
+  // Search Suggestions State
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [suggestions, setSuggestions] = useState([]);
+  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
 
+  
   const navigate = useNavigate();
   const location = useLocation();
+  // const user = useSelector((state) => state.userAuth.user);
+  const searchRef = useRef(null);
+  const suggestionsRef = useRef(null);
+  const searchTimeoutRef = useRef(null);
 
+  // ---- CART BADGE STATE (LOCAL STORAGE + LISTENERS) ----
+const [localCartCount, setLocalCartCount] = useState(() => {
+  try {
+    const local = JSON.parse(localStorage.getItem("cart")) || [];
+    return local.length;
+  } catch {
+    return 0;
+  }
+});
+
+useEffect(() => {
+  const update = () => {
+    try {
+      const local = JSON.parse(localStorage.getItem("cart")) || [];
+      setLocalCartCount(local.length);
+    } catch {
+      setLocalCartCount(0);
+    }
+  };
+
+  window.addEventListener("cart-updated", update);
+  window.addEventListener("storage", update);
+
+  return () => {
+    window.removeEventListener("cart-updated", update);
+    window.removeEventListener("storage", update);
+  };
+}, []);
+
+
+
+
+// FINAL COUNT TO SHOW IN BADGE
+const finalCartCount = localCartCount || cartCount;
+
+
+   const user = useSelector((state) => state.userAuth.user);
+    const { data: booksResponse, isLoading, isError } = useGetAllBooksQuery({
+        page: 1,
+        pageSize: 10,
+      });
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
+      setIsMobile(window.innerWidth <= 1000);
     };
     checkMobile();
     window.addEventListener('resize', checkMobile);
 
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
-      if (window.innerWidth >= 768) {
+      if (window.innerWidth >= 1000) {
         setIsScrolled(currentScrollY > 100);
       } else {
         setIsScrolled(false);
@@ -41,15 +97,123 @@ const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
     if (isMenuOpen) setIsMenuOpen(false);
   }, [location.pathname]);
 
-  const scrollToSection = (sectionId) => {
-    if (location.pathname !== '/') {
-      navigate('/');
+  // Handle click outside to close suggestions
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        setShowSuggestions(false);
+        setIsSearchFocused(false);
+        setSelectedSuggestionIndex(-1);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Scroll to section when navigating from other pages
+  useEffect(() => {
+    if (location.state?.scrollTo) {
       setTimeout(() => {
-        const element = document.getElementById(sectionId);
+        const element = document.getElementById(location.state.scrollTo);
         if (element) {
           element.scrollIntoView({ behavior: 'smooth' });
         }
-      }, 100);
+        // Clear the state
+        navigate(location.pathname, { replace: true, state: {} });
+      }, 300);
+    }
+  }, [location, navigate]);
+
+  // Generate search suggestions
+  const generateSuggestions = (query) => {
+    if (!query.trim() || query.length < 2) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    const q = query.toLowerCase().trim();
+    const allSuggestions = [];
+
+    // Get book matches
+    centralizedBooksData.forEach(book => {
+      // Title matches
+      if (book.title.toLowerCase().includes(q)) {
+        allSuggestions.push({
+          type: 'book',
+          text: book.title,
+          author: book.author,
+          category: book.category,
+          image: book.image,
+          id: book.id,
+          priority: book.title.toLowerCase().startsWith(q) ? 1 : 2
+        });
+      }
+      
+      // Author matches
+      if (book.author.toLowerCase().includes(q) && !allSuggestions.find(s => s.text === book.author && s.type === 'author')) {
+        allSuggestions.push({
+          type: 'author',
+          text: book.author,
+          category: 'Author',
+          priority: book.author.toLowerCase().startsWith(q) ? 1 : 3
+        });
+      }
+      
+      // Category matches
+      if (book.category.toLowerCase().includes(q) && !allSuggestions.find(s => s.text === book.category && s.type === 'category')) {
+        allSuggestions.push({
+          type: 'category',
+          text: book.category,
+          category: 'Category',
+          priority: book.category.toLowerCase().startsWith(q) ? 1 : 4
+        });
+      }
+      
+      // Tag matches
+      if (book.tags) {
+        book.tags.forEach(tag => {
+          if (tag.toLowerCase().includes(q) && !allSuggestions.find(s => s.text === tag && s.type === 'tag')) {
+            allSuggestions.push({
+              type: 'tag',
+              text: tag,
+              category: 'Tag',
+              priority: tag.toLowerCase().startsWith(q) ? 1 : 5
+            });
+          }
+        });
+      }
+    });
+
+    // Sort by priority and limit results
+    const sortedSuggestions = allSuggestions
+      .sort((a, b) => a.priority - b.priority || a.text.localeCompare(b.text))
+      .slice(0, 8);
+
+    setSuggestions(sortedSuggestions);
+    setShowSuggestions(sortedSuggestions.length > 0);
+    setSelectedSuggestionIndex(-1);
+  };
+
+  // Debounced search
+  const handleSearchChange = (value) => {
+    setSearchQuery(value);
+    
+    // Clear previous timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    
+    // Set new timeout for debounced search
+    searchTimeoutRef.current = setTimeout(() => {
+      generateSuggestions(value);
+    }, 200);
+  };
+
+  const scrollToSection = (sectionId) => {
+    if (location.pathname !== '/') {
+      navigate('/', { state: { scrollTo: sectionId } });
     } else {
       const element = document.getElementById(sectionId);
       if (element) {
@@ -68,50 +232,244 @@ const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
     setIsMenuOpen(false);
   };
 
-  const handleSearchSubmit = () => {
-    if (searchQuery.trim()) {
-      // Enhanced search: match title, author, category, tags
-      const q = searchQuery.trim().toLowerCase();
-      const filtered = centralizedBooksData.filter(book =>
-        book.title.toLowerCase().includes(q) ||
-        book.author.toLowerCase().includes(q) ||
-        book.category.toLowerCase().includes(q) ||
-        (book.tags && book.tags.some(tag => tag.toLowerCase().includes(q)))
-      );
-      // Pass filtered results via state (or fallback to query param for now)
-      navigate(`/library?search=${encodeURIComponent(searchQuery.trim())}`);
+  const handleSearchSubmit = (suggestion = null) => {
+    let searchTerm = '';
+    
+    if (suggestion) {
+      if (suggestion.type === 'book') {
+        // Navigate to specific book
+        navigate(`/product/${suggestion.id}`);
+        setSearchQuery('');
+        setShowSuggestions(false);
+        setSelectedSuggestionIndex(-1);
+        return;
+      } else {
+        searchTerm = suggestion.text;
+      }
+    } else {
+      searchTerm = searchQuery.trim();
+    }
+    
+    if (searchTerm) {
+      navigate(`/library?search=${encodeURIComponent(searchTerm)}`);
       setSearchQuery('');
+      setShowSuggestions(false);
+      setSelectedSuggestionIndex(-1);
     }
   };
 
   const handleKeyPress = (e) => {
-    if (e.key === 'Enter') {
-      handleSearchSubmit();
+    if (!showSuggestions || suggestions.length === 0) {
+      if (e.key === 'Enter') {
+        handleSearchSubmit();
+      }
+      return;
+    }
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setSelectedSuggestionIndex(prev => 
+          prev < suggestions.length - 1 ? prev + 1 : 0
+        );
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setSelectedSuggestionIndex(prev => 
+          prev > 0 ? prev - 1 : suggestions.length - 1
+        );
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (selectedSuggestionIndex >= 0) {
+          handleSearchSubmit(suggestions[selectedSuggestionIndex]);
+        } else {
+          handleSearchSubmit();
+        }
+        break;
+      case 'Escape':
+        setShowSuggestions(false);
+        setSelectedSuggestionIndex(-1);
+        searchRef.current?.blur();
+        break;
     }
   };
 
+  const handleSearchFocus = () => {
+    setIsSearchFocused(true);
+    if (searchQuery.length >= 2) {
+      generateSuggestions(searchQuery);
+    }
+  };
+
+  const getSuggestionIcon = (type) => {
+    switch (type) {
+      case 'book':
+        return <BookOpen className="w-4 h-4 text-[#9B7BB8]" />;
+      case 'author':
+        return <User className="w-4 h-4 text-blue-500" />;
+      case 'category':
+        return <div className="w-4 h-4 bg-green-500 rounded-sm" />;
+      case 'tag':
+        return <div className="w-4 h-4 bg-orange-500 rounded-full" />;
+      default:
+        return <Search className="w-4 h-4 text-gray-500" />;
+    }
+  };
+
+  const renderSearchInput = (isMobileVersion = false) => (
+    <div className="relative w-full" ref={searchRef}>
+      <div className="relative">
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => handleSearchChange(e.target.value)}
+          onKeyDown={handleKeyPress}
+          onFocus={handleSearchFocus}
+          placeholder={isMobileVersion ? "Search..." : "Search books, authors, categories..."}
+          className={`w-full bg-gronik-secondary/20 text-gronik-light placeholder-gronik-light/60 px-3 py-1.5 rounded-lg focus:outline-none focus:border-gronik-accent focus:bg-gronik-secondary/30 focus:shadow-lg transition-all duration-200 ${
+            isMobileVersion ? 'text-xs border-2 border-white/40 pr-3' : 'border border-gronik-secondary/30 pr-8'
+          } ${showSuggestions ? 'rounded-b-none' : ''}`}
+        />
+        {!isMobileVersion && (
+          <button
+            onClick={() => handleSearchSubmit()}
+            className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 hover:bg-gronik-accent/20 rounded transition-all duration-200"
+          >
+            <Search className="w-3.5 h-3.5 text-gronik-light hover:text-gronik-accent" />
+          </button>
+        )}
+        
+        {showSuggestions && suggestions.length > 0 && !isMobileVersion && (
+          <>
+            <ChevronDown className="absolute right-7 top-1/2 -translate-y-1/2 w-2.5 h-2.5 text-gronik-light/60" />
+          </>
+        )}
+      </div>
+
+      {/* Search Suggestions Dropdown */}
+      {showSuggestions && suggestions.length > 0 && (
+        <div 
+          ref={suggestionsRef}
+          className={`absolute top-full left-0 right-0 backdrop-blur-xl rounded-b-lg shadow-2xl z-50 max-h-80 overflow-y-auto ${
+            isMobileVersion 
+              ? 'bg-white border-2 border-white/80' 
+              : 'bg-white/95 border border-gronik-secondary/30 border-t-0'
+          }`}
+        >
+          {suggestions.map((suggestion, index) => (
+            <div
+              key={`${suggestion.type}-${suggestion.text}-${index}`}
+              onClick={() => handleSearchSubmit(suggestion)}
+              className={`flex items-center space-x-3 px-3 py-3 cursor-pointer transition-colors duration-150 border-b last:border-b-0 ${
+                isMobileVersion 
+                  ? `${selectedSuggestionIndex === index ? 'bg-[#9B7BB8]/20' : 'hover:bg-[#9B7BB8]/10'} border-gray-200`
+                  : `${selectedSuggestionIndex === index ? 'bg-[#9B7BB8]/15' : 'hover:bg-[#9B7BB8]/10'} border-gronik-secondary/10`
+              }`}
+            >
+              <div className="flex-shrink-0">
+                {suggestion.type === 'book' && suggestion.image ? (
+                  <img 
+                    src={suggestion.image} 
+                    alt={suggestion.text}
+                    className={isMobileVersion ? "w-10 h-12 object-cover rounded shadow-md" : "w-8 h-10 object-cover rounded"}
+                  />
+                ) : (
+                  <div className={`bg-gronik-secondary/20 rounded flex items-center justify-center ${
+                    isMobileVersion ? 'w-10 h-12' : 'w-8 h-10'
+                  }`}>
+                    {getSuggestionIcon(suggestion.type)}
+                  </div>
+                )}
+              </div>
+              
+              <div className="flex-1 min-w-0">
+                <div className={`font-bold truncate ${
+                  isMobileVersion ? 'text-[#2D1B3D] text-sm' : 'text-[#2D1B3D] text-sm'
+                }`}>
+                  {suggestion.text}
+                </div>
+                <div className={`text-xs flex items-center space-x-2 ${
+                  isMobileVersion ? 'text-[#4A3B5C] font-medium' : 'text-[#2D1B3D]/60'
+                }`}>
+                  <span className="font-semibold">{suggestion.category}</span>
+                </div>
+              </div>
+              
+              {!isMobileVersion && (
+                <div className="flex-shrink-0 text-[#9B7BB8] opacity-0 group-hover:opacity-100 transition-opacity">
+                  <ChevronDown className="w-4 h-4 rotate-[-90deg]" />
+                </div>
+              )}
+            </div>
+          ))}
+          
+          {searchQuery.trim() && (
+            <div
+              onClick={() => handleSearchSubmit()}
+              className={`flex items-center space-x-3 px-3 py-3 cursor-pointer transition-colors duration-150 border-t-2 ${
+                isMobileVersion
+                  ? 'hover:bg-[#9B7BB8]/10 border-gray-300 bg-gray-50'
+                  : 'hover:bg-[#9B7BB8]/10 border-gronik-secondary/20 bg-gronik-secondary/5'
+              }`}
+            >
+              <Search className={`w-4 h-4 ${isMobileVersion ? 'text-[#9B7BB8]' : 'text-[#9B7BB8]'}`} />
+              <span className={`text-sm font-bold ${isMobileVersion ? 'text-[#2D1B3D]' : 'text-[#2D1B3D]'}`}>
+                Search for "<span className="text-[#9B7BB8]">{searchQuery}</span>"
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <>
-      {/* Mobile Navbar */}
+      {/* Mobile Navbar - CART INSTEAD OF WISHLIST */}
       {isMobile && (
         <nav className="fixed top-0 left-0 right-0 z-50 bg-gronik-primary/95 backdrop-blur-md shadow-lg border-b border-gronik-secondary/20">
-          <div className="flex items-center justify-between h-16 px-4">
-            <Link to="/" className="flex items-center">
-              <div className="w-32 h-14">
-                <img
-                  src="/images/logo.png"
-                  alt="Gronik Logo"
-                  className="w-full h-full object-contain"
-                />
+          <div className="flex items-center justify-between h-16 px-3 gap-2">
+            {/* Logo - Left */}
+            <div className="flex-shrink-0">
+              <Link to="/" className="flex items-center">
+                <div className="w-20 h-8">
+                  <img
+                    src="/images/logo.png"
+                    alt="Gronik Logo"
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+              </Link>
+            </div>
+
+            {/* Search Bar & Cart - Center */}
+            {/* <div className="flex-1 flex items-center gap-2 max-w-md">
+              <div className="flex-1">
+                {renderSearchInput(true)}
               </div>
-            </Link>
-            <button
-              className="p-2 text-gronik-light hover:text-gronik-accent"
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-            >
-              {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-            </button>
+              <Link to="/cart" className="p-2 rounded-lg relative flex-shrink-0">
+                <ShoppingCart className="w-5 h-5 text-gronik-light" />
+                {finalCartCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-gronik-accent text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold">
+                   {finalCartCount}
+                  </span>
+                )}
+              </Link>
+            </div> */}
+
+            {/* Menu Button - Right */}
+            <div className="flex-shrink-0">
+              <button
+                className="p-2 text-gronik-light hover:text-gronik-accent transition-colors duration-200"
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+              >
+                {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              </button>
+            </div>
           </div>
+
+          {/* Mobile Menu Dropdown - WISHLIST INSTEAD OF CART */}
           {isMenuOpen && (
             <div className="bg-gronik-primary/98 backdrop-blur-md border-t border-gronik-secondary/20 shadow-xl">
               <div className="p-4 space-y-3">
@@ -142,59 +500,52 @@ const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
                 >
                   Contact
                 </Link>
-                <div className="pt-3 border-t border-gronik-secondary/20">
-                  <div className="relative">
-                    <input
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      onKeyPress={handleKeyPress}
-                      placeholder="Search books..."
-                      className="w-full bg-gronik-secondary/20 text-gronik-light placeholder-gronik-light/60 px-4 py-2 pr-10 rounded-lg border border-gronik-secondary/30 focus:outline-none focus:border-gronik-accent"
-                    />
-                    <button
-                      onClick={handleSearchSubmit}
-                      className="absolute right-2 top-1/2 transform -translate-y-1/2 p-1"
-                    >
-                      <Search className="w-4 h-4 text-gronik-light" />
-                    </button>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between pt-3 border-t border-gronik-secondary/20">
-                  <div className="flex items-center space-x-4">
-                    <Link to="/wishlist" className="p-2 rounded-lg relative">
-                      <Heart className="w-5 h-5 text-gronik-light" />
+
+                {/* Actions Section */}
+                <div className="pt-3 border-t border-gronik-secondary/20 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Link to="/wishlist" className="flex items-center gap-2 text-gronik-light hover:text-gronik-accent">
+                      <Heart className="w-5 h-5" />
+                      <span className="font-medium">Wishlist</span>
                       {wishlistCount > 0 && (
-                        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                        <span className="bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
                           {wishlistCount}
                         </span>
                       )}
                     </Link>
-                    <Link to="/cart" className="p-2 rounded-lg relative">
-                      <ShoppingCart className="w-5 h-5 text-gronik-light" />
-                      {cartCount > 0 && (
-                        <span className="absolute -top-1 -right-1 bg-gronik-accent text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                          {cartCount}
-                        </span>
-                      )}
-                    </Link>
                     <Link
-                      to="/profile"
+                      to={user ? "/profile" : "/login"}
                       onClick={() => setIsMenuOpen(false)}
-                      className="p-2 rounded-lg"
+                      className="flex items-center gap-2 text-gronik-light hover:text-gronik-accent"
                     >
-                      <User className="w-5 h-5 text-gronik-light" />
+                      <User className="w-5 h-5" />
+                      <span className="font-medium">{user ? "Profile" : "Login"}</span>
                     </Link>
                   </div>
-                  <button
-                    onClick={() => {
-                      navigate('/login');
-                      setIsMenuOpen(false);
-                    }}
-                    className="bg-gradient-to-r from-gronik-accent to-gronik-secondary text-white px-4 py-2 rounded-lg font-medium"
-                  >
-                    Login
-                  </button>
+
+                  {/* Buttons */}
+                  <div className="flex flex-col gap-2">
+                    {!user && (
+                      <button
+                        onClick={() => {
+                          navigate('/login');
+                          setIsMenuOpen(false);
+                        }}
+                        className="bg-gradient-to-r from-gronik-accent to-gronik-secondary text-white px-4 py-2 rounded-lg font-medium text-sm text-center"
+                      >
+                        Login
+                      </button>
+                    )}
+                    {user && (
+                      <Link
+                        to="/admin"
+                        onClick={() => setIsMenuOpen(false)}
+                        className="bg-gradient-to-r from-gronik-accent to-gronik-secondary text-white px-4 py-2 rounded-lg font-medium text-sm text-center"
+                      >
+                        Admin
+                      </Link>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -206,23 +557,23 @@ const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
       {!isMobile && (
         <nav
           className={`fixed top-0 left-0 right-0 z-50 bg-gronik-primary/95 backdrop-blur-md shadow-lg border-b border-gronik-secondary/20 
-            ${(!isScrolled || isHovering) ? 'translate-y-0' : '-translate-y-full pointer-events-none'
-            } transition-transform duration-500 ease-in-out`}
+           ${(!isScrolled || isHovering) ? 'translate-y-0' : '-translate-y-full'}
+               transition-transform duration-500 ease-in-out`}
           onMouseEnter={() => isScrolled && setIsHovering(true)}
           onMouseLeave={() => setIsHovering(false)}
         >
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-            <div className="flex items-center justify-between h-24 px-2">
-            <Link to="/" className="flex items-center absolute left-0 -ml-16">
-          <div className="w-40 h-16 flex items-center justify-center">
-            <img
-              src="/images/logo.png"
-              alt="Gronik Logo"
-              className="w-full h-full mr-[150px]"
-            />
-          </div>
-        </Link>
-              <div className="flex items-center space-x-8 ml-48">
+        <div className="px-8 max-w-[1400px] mx-auto">
+            <div className="flex items-center justify-between h-24 w-full">
+              {/* LOGO LEFT SIDE */}
+                <Link to="/" className="flex items-center">
+                  <img
+                    src="/images/logo.png"
+                    alt="Gronik Logo"
+                    className="w-24 h-24 object-contain"
+                  />
+                </Link>
+
+              <div className="flex items-center space-x-10">
                 <Link
                   to="/"
                   className="text-gronik-light hover:text-gronik-accent transition-colors duration-200 font-medium hover:scale-105 transform"
@@ -248,23 +599,13 @@ const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
                   Contact
                 </Link>
               </div>
-              <div className="flex items-center space-x-4">
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    placeholder="Search books..."
-                    className="bg-gronik-secondary/20 text-gronik-light placeholder-gronik-light/60 px-4 py-2 pr-10 rounded-lg border border-gronik-secondary/30 focus:outline-none focus:border-gronik-accent focus:bg-gronik-secondary/30 focus:shadow-lg transition-all duration-200 w-64"
-                  />
-                  <button
-                    onClick={handleSearchSubmit}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-gronik-accent/20 rounded transition-all duration-200"
-                  >
-                    <Search className="w-4 h-4 text-gronik-light hover:text-gronik-accent" />
-                  </button>
-                </div>
+              <div className="flex items-center space-x-5">
+                              {!isMobile && (
+                    <div className="w-[350px]">
+                      {renderSearchInput(false)}
+                    </div>
+                  )}
+
                 <Link to="/wishlist" className="p-2 hover:bg-gronik-secondary/20 rounded-lg transition-colors duration-200 relative group">
                   <Heart className="w-5 h-5 text-gronik-light group-hover:text-gronik-accent transition-colors duration-200" />
                   {wishlistCount > 0 && (
@@ -275,30 +616,34 @@ const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
                 </Link>
                 <Link to="/cart" className="p-2 hover:bg-gronik-secondary/20 rounded-lg transition-colors duration-200 relative group">
                   <ShoppingCart className="w-5 h-5 text-gronik-light group-hover:text-gronik-accent transition-colors duration-200" />
-                  {cartCount > 0 && (
+                  {finalCartCount > 0 && (
                     <span className="absolute -top-1 -right-1 bg-gronik-accent text-white text-xs rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
-                      {cartCount}
+                      {finalCartCount}
                     </span>
                   )}
                 </Link>
                 <Link
-                  to="/profile"
+                  to={user ? "/profile" : "/login"}  
                   className="p-2 hover:bg-gronik-secondary/20 rounded-lg transition-colors duration-200 group"
                 >
                   <User className="w-5 h-5 text-gronik-light group-hover:text-gronik-accent transition-colors duration-200" />
                 </Link>
-                <button
-                  onClick={() => navigate('/login')}
-                  className="bg-gradient-to-r from-gronik-accent to-gronik-secondary hover:from-gronik-secondary hover:to-gronik-accent text-white px-6 py-2 rounded-lg transition-all duration-200 transform hover:scale-105 font-medium shadow-lg"
-                >
-                  Login
-                </button>
-                <Link
-                  to="/admin"
-                  className="bg-gradient-to-r from-gronik-accent to-gronik-secondary hover:from-gronik-secondary hover:to-gronik-accent text-white px-6 py-2 rounded-lg transition-all duration-200 transform hover:scale-105 font-medium shadow-lg"
-                >
-                  Admin
-                </Link>
+                {!user && (
+                  <button
+                    onClick={() => navigate('/login')}
+                    className="bg-gradient-to-r from-gronik-accent to-gronik-secondary hover:from-gronik-secondary hover:to-gronik-accent text-white px-6 py-2 rounded-lg transition-all duration-200 transform hover:scale-105 font-medium shadow-lg"
+                  >
+                    Login
+                  </button>
+                )}
+                {user && (
+                  <Link
+                    to="/admin"
+                    className="bg-gradient-to-r from-gronik-accent to-gronik-secondary hover:from-gronik-secondary hover:to-gronik-accent text-white px-6 py-2 rounded-lg transition-all duration-200 transform hover:scale-105 font-medium shadow-lg"
+                  >
+                    Admin
+                  </Link>
+                )}
               </div>
             </div>
           </div>
@@ -308,7 +653,7 @@ const Navbar = ({ cartCount = 0, wishlistCount = 0 }) => {
       {/* Floating G Logo - Desktop Only */}
       {!isMobile && (
         <div 
-          className={`fixed top-4 left-4 z-50 transition-all duration-500 ease-in-out ${
+          className={`fixed top-4 -left-1 z-50 transition-all duration-500 ease-in-out ${
             isScrolled && !isHovering
               ? 'opacity-100 scale-100 translate-y-0' 
               : 'opacity-0 scale-75 -translate-y-4 pointer-events-none'

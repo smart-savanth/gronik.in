@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShoppingCart, Search, Check, X, Filter, Calendar, Download, Clock } from 'lucide-react';
+import { ShoppingCart, Search, Check, X, Filter, Calendar, Download, Clock, MoreVertical } from 'lucide-react';
 import AdminLayout from './Adminlayout';
 
 const sampleOrders = [
@@ -30,21 +30,6 @@ const OrdersManagement = () => {
     const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
-
-  const handleStatusUpdate = (orderId, newStatus) => {
-    setOrders(orders.map(order => 
-      order.id === orderId ? { ...order, status: newStatus } : order
-    ));
-  };
-
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case 'completed': return <Check className="w-3 h-3" />;
-      case 'pending': return <Clock className="w-3 h-3" />;
-      case 'cancelled': return <X className="w-3 h-3" />;
-      default: return null;
-    }
-  };
 
   const handleExportOrders = () => {
     const csvContent = "data:text/csv;charset=utf-8," + 
@@ -150,7 +135,6 @@ const OrdersManagement = () => {
                   </td>
                   <td className="px-6 py-4">
                     <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border text-xs font-medium ${statusColors[order.status]} shadow-lg`}>
-                      {getStatusIcon(order.status)}
                       {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
                     </span>
                   </td>
@@ -161,42 +145,12 @@ const OrdersManagement = () => {
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="flex items-center justify-center space-x-2">
+                    <div className="flex items-center justify-center">
                       <button 
-                        onClick={() => handleStatusUpdate(order.id, 'completed')}
-                        disabled={order.status === 'completed' || order.status === 'cancelled'}
-                        className={`p-2 rounded-lg transition-all duration-300 group ${
-                          order.status === 'completed' || order.status === 'cancelled'
-                            ? 'opacity-30 cursor-not-allowed'
-                            : 'hover:bg-emerald-500/20'
-                        }`}
-                        title={order.status === 'completed' || order.status === 'cancelled' ? 'Already completed/cancelled' : 'Mark Complete'}
+                        className="p-2 rounded-lg hover:bg-white/10 transition-all duration-300 group"
+                        title="More actions"
                       >
-                        <Check className={`w-4 h-4 text-emerald-300 ${order.status !== 'completed' && order.status !== 'cancelled' ? 'group-hover:scale-110 transition-transform duration-300' : ''}`} />
-                      </button>
-                      <button 
-                        onClick={() => handleStatusUpdate(order.id, 'processing')}
-                        disabled={order.status === 'completed' || order.status === 'cancelled' || order.status === 'processing'}
-                        className={`p-2 rounded-lg transition-all duration-300 group ${
-                          order.status === 'completed' || order.status === 'cancelled' || order.status === 'processing'
-                            ? 'opacity-30 cursor-not-allowed'
-                            : 'hover:bg-amber-500/20'
-                        }`}
-                        title={order.status === 'completed' || order.status === 'cancelled' ? 'Already completed/cancelled' : order.status === 'processing' ? 'Already processing' : 'Mark Processing'}
-                      >
-                        <Clock className={`w-4 h-4 text-amber-300 ${order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'processing' ? 'group-hover:scale-110 transition-transform duration-300' : ''}`} />
-                      </button>
-                      <button 
-                        onClick={() => handleStatusUpdate(order.id, 'cancelled')}
-                        disabled={order.status === 'cancelled'}
-                        className={`p-2 rounded-lg transition-all duration-300 group ${
-                          order.status === 'cancelled'
-                            ? 'opacity-30 cursor-not-allowed'
-                            : 'hover:bg-red-500/20'
-                        }`}
-                        title={order.status === 'cancelled' ? 'Already cancelled' : 'Cancel Order'}
-                      >
-                        <X className={`w-4 h-4 text-red-300 ${order.status !== 'cancelled' ? 'group-hover:scale-110 transition-transform duration-300' : ''}`} />
+                        <MoreVertical className="w-5 h-5 text-white/60 group-hover:text-white transition-colors" />
                       </button>
                     </div>
                   </td>

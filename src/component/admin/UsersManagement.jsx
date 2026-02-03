@@ -1,74 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState,useEffect } from 'react';
 import { Search, Edit, Trash2, Eye, X, Save, Plus, Download, Mail, Phone, Calendar, ChevronDown } from 'lucide-react';
 import AdminLayout from './Adminlayout';
+import {getAllUsers ,updateUser,getUserById,blockUser} from '../../utils/userServices';
 
-const sampleUsers = [
-  { 
-    id: 1, 
-    name: 'Alice Johnson', 
-    email: 'alice@example.com', 
-    phone: '+1 (555) 123-4567',
-    role: 'User', 
-    status: 'active', 
-    joined: '2024-01-10',
-    lastLogin: '2024-06-08',
-    orders: 12,
-    totalSpent: 348.99,
-    avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face'
-  },
-  { 
-    id: 2, 
-    name: 'Bob Smith', 
-    email: 'bob@example.com', 
-    phone: '+1 (555) 987-6543',
-    role: 'User', 
-    status: 'blocked', 
-    joined: '2024-02-15',
-    lastLogin: '2024-06-05',
-    orders: 8,
-    totalSpent: 199.50,
-    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face'
-  },
-  { 
-    id: 3, 
-    name: 'Carol Brown', 
-    email: 'carol@example.com', 
-    phone: '+1 (555) 456-7890',
-    role: 'Admin', 
-    status: 'active', 
-    joined: '2024-03-20',
-    lastLogin: '2024-06-08',
-    orders: 25,
-    totalSpent: 750.25,
-    avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face'
-  },
-  { 
-    id: 4, 
-    name: 'David Lee', 
-    email: 'david@example.com', 
-    phone: '+1 (555) 234-5678',
-    role: 'User', 
-    status: 'active', 
-    joined: '2024-04-05',
-    lastLogin: '2024-06-07',
-    orders: 15,
-    totalSpent: 425.75,
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face'
-  },
-  { 
-    id: 5, 
-    name: 'Emma Wilson', 
-    email: 'emma@example.com', 
-    phone: '+1 (555) 345-6789',
-    role: 'User', 
-    status: 'active', 
-    joined: '2024-05-12',
-    lastLogin: '2024-06-08',
-    orders: 6,
-    totalSpent: 189.99,
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop&crop=face'
-  },
-];
 
 const statusColors = {
   active: 'bg-green-500/20 text-green-400 border-green-500/30',
@@ -77,22 +11,25 @@ const statusColors = {
 };
 
 const roleColors = {
-  Admin: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
-  User: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+  ADMIN: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
+  USER: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
 };
 
 const UsersManagement = () => {
   const [search, setSearch] = useState('');
-  const [users, setUsers] = useState(sampleUsers);
+   const [users, setUsers] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
-  const [filterStatus, setFilterStatus] = useState('all');
+    const [filterStatus, setFilterStatus] = useState('all');
   const [filterRole, setFilterRole] = useState('all');
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
   const [roleDropdownOpen, setRoleDropdownOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+
   const [newUser, setNewUser] = useState({
     name: '',
     email: '',
@@ -110,67 +47,169 @@ const UsersManagement = () => {
   React.useEffect(() => {
   }, []);
 
-  const filteredUsers = users.filter(user => {
-    const matchesSearch = user.name.toLowerCase().includes(search.toLowerCase()) ||
-                         user.email.toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = filterStatus === 'all' || user.status === filterStatus;
-    const matchesRole = filterRole === 'all' || user.role === filterRole;
-    return matchesSearch && matchesStatus && matchesRole;
-  });
+  // const filteredUsers = users.filter(user => {
+  //   const matchesSearch = user.name.toLowerCase().includes(search.toLowerCase()) ||
+  //                        user.email.toLowerCase().includes(search.toLowerCase());
+  //   const matchesStatus = filterStatus === 'all' || user.status === filterStatus;
+  //   const matchesRole = filterRole === 'all' || user.role === filterRole;
+  //   return matchesSearch && matchesStatus && matchesRole;
+  // });
 
-  const handleViewUser = (user) => {
-    setSelectedUser(user);
-    setIsViewModalOpen(true);
+  useEffect(() => {
+  const handler = setTimeout(() => {
+    setDebouncedSearch(search);
+  }, 500); 
+
+  return () => {
+    clearTimeout(handler);
   };
+}, [search]);
 
-  const handleEditUser = (user) => {
-    setEditingUser({...user});
-    setIsEditModalOpen(true);
-  };
+useEffect(() => {
+  const fetchUsers = async () => {
+    try {
+      let payload = { page: 1, pageSize: 10 };
 
-  const handleSaveEdit = () => {
-    setUsers(users.map(user => 
-      user.id === editingUser.id ? editingUser : user
-    ));
-    setIsEditModalOpen(false);
-    setEditingUser(null);
-  };
+      if (filterStatus === "active") {
+        payload.status = "Active";
+      } else if (filterStatus === "deactivated") {
+        payload.status = "Inactive";
+      } else if (filterStatus === "blocked") {
+        payload.status = "Blocked";
+      }
 
-  const handleDeleteUser = (userId) => {
-    if (window.confirm('Are you sure you want to delete this user?')) {
-      setUsers(users.filter(user => user.id !== userId));
+      if (debouncedSearch.trim()) {
+        payload.searchString = debouncedSearch.trim();
+      }
+
+      const response = await getAllUsers(payload);
+      setUsers(response.data.data);
+    } catch (error) {
+      console.error("Error fetching users:", error);
     }
   };
 
-  const handleExportUsers = () => {
-    const csvContent = "data:text/csv;charset=utf-8," + 
-      "Name,Email,Phone,Role,Status,Joined,Orders,Total Spent\n" +
-      filteredUsers.map(user => 
-        `${user.name},${user.email},${user.phone},${user.role},${user.status},${user.joined},${user.orders},$${user.totalSpent}`
-      ).join("\n");
+  fetchUsers();
+}, [filterStatus, debouncedSearch]);
+
+
+
+const handleViewUser = async (guid) => {
+  try {
+    const response = await getUserById(guid); 
+    setSelectedUser(response.data.data); 
+    setIsViewModalOpen(true);
+  } catch (error) {
+    console.error("Error fetching user by id:", error);
+  }
+};
+const formatDate = (dateString) => {
+  if (!dateString) return "-";
+  return new Date(dateString).toISOString().split("T")[0];
+};
+
+ const handleEditUser = async (guid) => {
+  try {
+    const response = await getUserById(guid);
+    const user = response.data.data;
+
+    setEditingUser({
+      id: user.id,
+      guid: user.guid,
+      name: user.full_name,
+      email: user.email,
+      phone: user.mobile,
+      role: user.role_name, 
+      status: user.is_active
+    });
+
+    setIsEditModalOpen(true);
+  } catch (error) {
+    console.error("Error fetching user for edit:", error);
+  }
+};
+
+const handleSaveEdit = async () => {
+  if (!editingUser) return;
+
+  try {
+    setIsSaving(true);
+
+    const payload = {
+      guid: editingUser.guid,
+      full_name: editingUser.name,
+      email: editingUser.email,
+      mobile: editingUser.phone,
+      is_active: editingUser.status,
+      role_name: editingUser.role
+    };
+
+    await updateUser(editingUser.guid, payload);
+
+    const refreshed = await getAllUsers({ page: 1, pageSize: 10 });
+    setUsers(refreshed.data.data);
+
+    setIsEditModalOpen(false);
+    setEditingUser(null);
+  } catch (error) {
+    console.error("Error saving user:", error);
+  } 
+  finally {
+    setIsSaving(false);
+  }
+};
+
+  const handleDeleteUser = async (guid) => {
+  if (window.confirm("Are you sure you want to delete this user?")) {
+    try {
+      await blockUser(guid);
+
+      const refreshed = await getAllUsers({ page: 1, pageSize: 10 });
+      setUsers(refreshed.data.data);
+
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      alert("Failed to delete user. Please try again.");
+    }
+  }
+};
+
+  // const handleExportUsers = () => {
+  //   const csvContent = "data:text/csv;charset=utf-8," + 
+  //     "Name,Email,Phone,Role,Status,Joined,Orders,Total Spent\n" +
+  //     filteredUsers.map(user => 
+  //       `${user.name},${user.email},${user.phone},${user.role},${user.status},${user.joined},${user.orders},$${user.totalSpent}`
+  //     ).join("\n");
     
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", "users_export.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
+  //   const encodedUri = encodeURI(csvContent);
+  //   const link = document.createElement("a");
+  //   link.setAttribute("href", encodedUri);
+  //   link.setAttribute("download", "users_export.csv");
+  //   document.body.appendChild(link);
+  //   link.click();
+  //   document.body.removeChild(link);
+  // };
 
   const handleStatusSelect = (status) => {
     setFilterStatus(status);
     setStatusDropdownOpen(false);
   };
 
-  const getStatusLabel = () => {
-    switch(filterStatus) {
-      case 'active': return 'Active';
-      case 'blocked': return 'Blocked';
-      case 'deactivated': return 'Deactivated';
-      default: return 'All Status';
-    }
-  };
+const getStatusLabel = (isActive) => {
+  if (isActive === true) return "active";
+  if (isActive === false) return "blocked";
+  if (isActive === "blocked") return "deactivated"; 
+  return "deactivated";
+};
+
+const getFilterStatusLabel = (filterStatus) => {
+  if (filterStatus === "all") return "All Status";
+  if (filterStatus === "active") return "Active";
+  if (filterStatus === "blocked") return "Blocked";
+  if (filterStatus === "deactivated") return "Deactivated";
+  return "All Status";
+};
+
 
   // Add User button handler
   const openAddModal = () => {
@@ -256,7 +295,7 @@ const UsersManagement = () => {
                 onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
                 className="flex items-center space-x-2 px-4 py-2 bg-[#2D1B3D] text-white rounded-lg border border-white/10 focus:outline-none focus:border-white/20 text-sm min-w-[120px]"
               >
-                <span>{getStatusLabel()}</span>
+                <span>{getFilterStatusLabel()}</span>
                 <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${statusDropdownOpen ? 'rotate-180' : ''}`} />
               </button>
               {statusDropdownOpen && (
@@ -289,7 +328,7 @@ const UsersManagement = () => {
               )}
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          {/* <div className="flex items-center gap-3">
             <button
               onClick={handleExportUsers}
               className="flex items-center space-x-2 px-4 py-2 bg-[#2D1B3D] text-white rounded-lg hover:bg-[#9B7BB8] transition-colors text-sm"
@@ -304,7 +343,7 @@ const UsersManagement = () => {
               <Plus className="w-4 h-4" />
               <span>Add Admin</span>
             </button>
-          </div>
+          </div> */}
         </div>
         {/* Users Table */}
         <div className="overflow-x-auto rounded-2xl shadow-lg bg-[#2D1B3D]/80 border border-white/10">
@@ -320,7 +359,7 @@ const UsersManagement = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-white/10">
-              {filteredUsers.map((user, index) => (
+              {users.map((user, index) => (
                 <tr key={user.id} className="hover:bg-white/5 transition-all duration-300">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center space-x-3">
@@ -346,50 +385,59 @@ const UsersManagement = () => {
                       </div>
                       <div className="flex items-center space-x-2">
                         <Phone className="w-3 h-3 text-white/40" />
-                        <span className="text-white/60 text-sm">{user.phone}</span>
+                        <span className="text-white/60 text-sm">{user.mobile}</span>
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium border ${roleColors[user.role]}`}>
-                      {user.role}
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium border ${roleColors[user.role_name]}`}>
+                      {user.role_name}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium border ${statusColors[user.status]}`}>
-                      {user.status}
-                    </span>
-                  </td>
+               <td className="px-6 py-4 whitespace-nowrap">
+  {(() => {
+    const status = getStatusLabel(user.is_active); 
+    return (
+      <span
+        className={`px-3 py-1 rounded-full text-xs font-medium border ${statusColors[status]}`}
+      >
+        {status.charAt(0).toUpperCase() + status.slice(1)}
+      </span>
+    );
+  })()}
+</td>
+
+
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="space-y-1">
                       <div className="flex items-center space-x-2">
                         <Calendar className="w-3 h-3 text-white/40" />
-                        <span className="text-white/60 text-sm">Joined: {user.joined}</span>
+                        <span className="text-white/60 text-sm">Joined: {formatDate(user.created_at)}</span>
                       </div>
                       <div className="flex items-center space-x-2">
                         <Eye className="w-3 h-3 text-white/40" />
-                        <span className="text-white/60 text-sm">Last: {user.lastLogin}</span>
+                        <span className="text-white/60 text-sm">Last: {formatDate(user.updated_at)}</span>
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-center">
                     <div className="flex items-center justify-center space-x-2">
                       <button 
-                        onClick={() => handleViewUser(user)}
+                        onClick={() => handleViewUser(user.guid)}
                         className="p-2 rounded-lg hover:bg-blue-500/20 transition-all duration-300 group"
                         title="View Details"
                       >
                         <Eye className="w-4 h-4 text-blue-400 group-hover:scale-110 transition-transform duration-300" />
                       </button>
                       <button 
-                        onClick={() => handleEditUser(user)}
+                        onClick={() => handleEditUser(user.guid)}
                         className="p-2 rounded-lg hover:bg-green-500/20 transition-all duration-300 group"
                         title="Edit User"
                       >
                         <Edit className="w-4 h-4 text-green-400 group-hover:scale-110 transition-transform duration-300" />
                       </button>
                       <button 
-                        onClick={() => handleDeleteUser(user.id)}
+                        onClick={() => handleDeleteUser(user.guid)}
                         className="p-2 rounded-lg hover:bg-red-500/20 transition-all duration-300 group"
                         title="Delete User"
                       >
@@ -437,11 +485,11 @@ const UsersManagement = () => {
                     <div className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-4 border-[#2D1B3D] ${selectedUser.status === 'active' ? 'bg-green-400' : 'bg-red-400'}`} />
                   </div>
                   <div>
-                    <h4 className="text-2xl font-bold text-white">{selectedUser.name}</h4>
+                    <h4 className="text-2xl font-bold text-white">{selectedUser.full_name}</h4>
                     <p className="text-white/70">User ID: {selectedUser.id}</p>
                     <div className="flex items-center space-x-2 mt-2">
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium border ${roleColors[selectedUser.role]}`}>
-                        {selectedUser.role}
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium border ${roleColors[selectedUser.role_name]}`}>
+                        {selectedUser.role_name}
                       </span>
                       <span className={`px-3 py-1 rounded-full text-xs font-medium border ${statusColors[selectedUser.status]}`}>
                         {selectedUser.status}
@@ -460,7 +508,7 @@ const UsersManagement = () => {
                       </div>
                       <div className="flex items-center space-x-3">
                         <Phone className="w-5 h-5 text-white/40" />
-                        <span className="text-white/80">{selectedUser.phone}</span>
+                        <span className="text-white/80">{selectedUser.mobile}</span>
                       </div>
                     </div>
                   </div>
@@ -470,11 +518,11 @@ const UsersManagement = () => {
                     <div className="space-y-3">
                       <div className="flex items-center space-x-3">
                         <Calendar className="w-5 h-5 text-white/40" />
-                        <span className="text-white/80">Joined: {selectedUser.joined}</span>
+                        <span className="text-white/80">Joined: {formatDate(selectedUser.created_at)}</span>
                       </div>
                       <div className="flex items-center space-x-3">
                         <Eye className="w-5 h-5 text-white/40" />
-                        <span className="text-white/80">Last Login: {selectedUser.lastLogin}</span>
+                        <span className="text-white/80">Last Login: {formatDate(selectedUser.updated_at)}</span>
                       </div>
                     </div>
                   </div>
@@ -546,7 +594,7 @@ const UsersManagement = () => {
           </div>
         )}
         {/* Add User Modal */}
-        {isAddModalOpen && (
+        {/* {isAddModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
             <form onSubmit={handleAddSubmit} className="bg-[#2D1B3D] rounded-2xl p-8 w-full max-w-md shadow-2xl border border-white/10 relative">
               <button type="button" onClick={closeAddModal} className="absolute top-4 right-4 text-white/60 hover:text-white"><X className="w-6 h-6" /></button>
@@ -621,7 +669,7 @@ const UsersManagement = () => {
               </div>
             </form>
           </div>
-        )}
+        )} */}
       </div>
     </AdminLayout>
   );

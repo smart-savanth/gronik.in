@@ -1,33 +1,37 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice } from "@reduxjs/toolkit";
 
 const initialState = {
-  items: JSON.parse(localStorage.getItem('gronik-wishlist')) || [],
+  items: [], 
 };
 
 const wishlistSlice = createSlice({
-  name: 'wishlist',
+  name: "wishlist",
   initialState,
   reducers: {
-    addToWishlist: (state, action) => {
-      if (!state.items.find(item => item.id === action.payload.id)) {
-        state.items.push(action.payload);
-        localStorage.setItem('gronik-wishlist', JSON.stringify(state.items));
-      }
-    },
-    removeFromWishlist: (state, action) => {
-      state.items = state.items.filter(item => item.id !== action.payload);
-      localStorage.setItem('gronik-wishlist', JSON.stringify(state.items));
-    },
+    // Set wishlist (e.g., when fetching from backend)
     setWishlist: (state, action) => {
       state.items = action.payload;
-      localStorage.setItem('gronik-wishlist', JSON.stringify(state.items));
     },
+
+    // Add item to wishlist
+    addToWishlist: (state, action) => {
+      const exists = state.items.find(item => item.id === action.payload._id);
+      if (!exists) {
+        state.items.push(action.payload);
+      }
+    },
+
+    // Remove item from wishlist
+    removeFromWishlist: (state, action) => {
+      state.items = state.items.filter(item => item.id !== action.payload);
+    },
+
+    // Clear entire wishlist
     clearWishlist: (state) => {
       state.items = [];
-      localStorage.setItem('gronik-wishlist', JSON.stringify(state.items));
     },
   },
 });
 
-export const { addToWishlist, removeFromWishlist, setWishlist, clearWishlist } = wishlistSlice.actions;
-export default wishlistSlice.reducer; 
+export const { setWishlist, addToWishlist, removeFromWishlist, clearWishlist } = wishlistSlice.actions;
+export default wishlistSlice.reducer;

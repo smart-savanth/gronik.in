@@ -1,34 +1,95 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef ,useEffect} from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Mail, Phone, Edit, Save, X, BookOpen, ShoppingCart, LogOut, Heart, Settings, Camera, Trash2 } from 'lucide-react';
+import { User, Mail, Phone, Edit, Save, X, BookOpen, ShoppingCart, LogOut, Heart, Settings, Camera, Trash2, Lock } from 'lucide-react';
 import { useSelector, useDispatch } from 'react-redux';
-import { setUser } from '../../slices/userAuthSlice';
-
+import { setUser,logout } from '../../slices/userAuthSlice';
+import { getUserById,updateUser ,updateUserStatus} from '../../utils/userServices';
 const DEFAULT_AVATAR = '';
 
 const ProfileSection = () => {
   const navigate = useNavigate();
   // Simulate login method: 'email' or 'mobile'
   const [loginMethod] = useState('email'); // Change to 'mobile' to test mobile login
-  const user = useSelector(state => state.userAuth.user);
+  const { user, token } = useSelector((state) => state.userAuth);
   const dispatch = useDispatch();
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState(user || {});
   const [imagePreview, setImagePreview] = useState(user?.profileImage || '');
   const fileInputRef = useRef(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [userDetails, setUserDetails] = useState(null);
 
-  const handleEdit = () => {
+ const handleEdit = async () => {
+  try {
+    if (!user?.guid) {
+      console.error("No user GUID found");
+      return;
+    }
+
+    const response = await getUserById(user.guid);
+    const fetchedUser = response.data.data;
+
+    setEditData({
+      guid: fetchedUser.guid,
+      full_name: fetchedUser.full_name,
+      role_name: fetchedUser.role_name,
+    });
+
+    setImagePreview(fetchedUser.profileImage || "");
+
     setIsEditing(true);
-    setEditData(user || {});
-    setImagePreview(user?.profileImage || '');
-  };
+  } catch (error) {
+    console.error("Error fetching user details:", error);
+  }
+};
 
-  const handleSave = () => {
-    const updatedUser = { ...editData, profileImage: imagePreview };
+  
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        if (user?.guid) {
+          const response = await getUserById(user.guid);
+          setUserDetails(response.data.data); 
+        } 
+      } catch (error) {
+        console.error("Error fetching user details:", error);
+      }
+    };
+
+    fetchUser();
+  }, [user]);
+const handleSave = async () => {
+  try {
+    if (!editData?.guid) {
+      console.error("No user GUID found");
+      return;
+    }
+
+    const payload = {
+      guid: editData.guid,
+      role_name: editData.role_name,
+      full_name: editData.full_name,
+    };
+
+    // Call API
+    await updateUser(editData.guid, payload);
+
+    // Optionally refetch user data from backend to get updated record
+    const refreshed = await getUserById(editData.guid);
+    const updatedUser = refreshed.data.data;
+
+    // Update Redux store so rest of app sees latest info
     dispatch(setUser(updatedUser));
+
+    // Update local state (for immediate UI feedback)
+    setUserDetails(updatedUser);
     setIsEditing(false);
-  };
+
+  } catch (error) {
+    console.error("Error updating user:", error);
+  }
+};
+
 
   const handleCancel = () => {
     setEditData(user || {});
@@ -55,20 +116,36 @@ const ProfileSection = () => {
     if (fileInputRef.current) fileInputRef.current.click();
   };
 
-  const handleLogout = () => {
-    // Dummy logout: clear user, redirect to login
-    alert('Logged out!');
+const handleLogout = () => {
+  if (window.confirm('Are you sure you want to logout?')) {
+    dispatch(logout());  
     navigate('/login');
-  };
+  }
+};
+
   const handleDeleteAccount = () => {
     setShowDeleteConfirm(true);
   };
-  const confirmDeleteAccount = () => {
+  const confirmDeleteAccount = async () => {
+  try {
     setShowDeleteConfirm(false);
-    alert('Account deleted! (dummy handler)');
-    // Here you would call your backend to delete the account
-    navigate('/login');
-  };
+
+    if (!user?.guid) {
+      console.error("No user GUID found!");
+      return;
+    }
+
+    // ✅ Hit API to delete/block account
+    await updateUserStatus(user.guid);
+
+    // Optionally clear redux/localstorage
+    dispatch(setUser(null));;
+
+    navigate("/login");
+  } catch (error) {
+    console.error("Error deleting account:", error);
+  }
+};
   const cancelDeleteAccount = () => {
     setShowDeleteConfirm(false);
   };
@@ -109,7 +186,6 @@ const ProfileSection = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <h1 className="text-2xl font-bold text-white mb-1">{isEditing ? 'Edit Profile' : 'My Profile'}</h1>
-
                   </div>
                   {!isEditing ? (
                     <button 
@@ -136,76 +212,79 @@ const ProfileSection = () => {
                     </div>
                   )}
                 </div>
-                {/* Name Field */}
+                {/* Name Field - EDITABLE */}
                 <div className="mt-4">
                   <p className="text-xs text-white/60 uppercase tracking-wide font-medium mb-1">Name</p>
                   {isEditing ? (
                     <input
                       type="text"
-                      value={editData.fullName}
-                      onChange={e => handleInputChange('fullName', e.target.value)}
+                      value={editData.full_name}
+                      onChange={e => handleInputChange('full_name', e.target.value)}
                       className="w-full bg-[#9B7BB8]/20 text-white p-2 rounded-lg border border-[#9B7BB8]/30 focus:outline-none focus:ring-2 focus:ring-[#9B7BB8] transition-all duration-200 text-sm placeholder-white/50"
+                      placeholder="Enter your full name"
                     />
                   ) : (
-                    <p className="text-white font-medium text-sm truncate">{user?.fullName}</p>
+                    <p className="text-white font-medium text-sm truncate">{userDetails?.full_name}</p>
                   )}
                 </div>
               </div>
             </div>
-            {/* Contact Information */}
+            
+            {/* Contact Information - READ ONLY */}
             <div className="space-y-4 mt-4">
-              {/* Email Field */}
-              <div className="flex items-center space-x-3 p-3 bg-[#9B7BB8]/20 rounded-2xl">
+              {/* Email Field - NON-EDITABLE */}
+              <div className="flex items-center space-x-3 p-3 bg-[#9B7BB8]/20 rounded-2xl relative">
                 <div className="w-10 h-10 rounded-full bg-[#9B7BB8]/30 flex items-center justify-center">
                   <Mail className="w-5 h-5 text-[#9B7BB8]" />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs text-white/60 uppercase tracking-wide font-medium mb-1">Email Address</p>
-                  {isEditing ? (
-                    <input
-                      type="email"
-                      value={editData.email}
-                      onChange={e => handleInputChange('email', e.target.value)}
-                      className="w-full bg-[#9B7BB8]/20 text-white p-2 rounded-lg border border-[#9B7BB8]/30 focus:outline-none focus:ring-2 focus:ring-[#9B7BB8] transition-all duration-200 text-sm placeholder-white/50"
-                    />
-                  ) : (
-                    <p className="text-white font-medium text-sm truncate">{user?.email}</p>
-                  )}
-                </div>
+                            <div className="flex-1 min-w-0">
+                <p className="text-xs text-white/60 uppercase tracking-wide font-medium mb-1">
+                  Email Address
+                </p>
+                <p className="text-white font-medium text-sm truncate">
+                  {userDetails?.email}
+                </p>
               </div>
-              {/* Mobile Field */}
-              <div className="flex items-center space-x-3 p-3 bg-[#9B7BB8]/20 rounded-2xl">
+
+              </div>
+
+              {/* Mobile Field - NON-EDITABLE */}
+              <div className="flex items-center space-x-3 p-3 bg-[#9B7BB8]/20 rounded-2xl relative">
                 <div className="w-10 h-10 rounded-full bg-[#9B7BB8]/30 flex items-center justify-center">
                   <Phone className="w-5 h-5 text-[#9B7BB8]" />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs text-white/60 uppercase tracking-wide font-medium mb-1">Mobile Number</p>
-                  {isEditing ? (
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={editData.countryCode || ''}
-                        onChange={e => handleInputChange('countryCode', e.target.value)}
-                        className="w-20 bg-[#9B7BB8]/20 text-white p-2 rounded-lg border border-[#9B7BB8]/30 focus:outline-none focus:ring-2 focus:ring-[#9B7BB8] transition-all duration-200 text-sm placeholder-white/50"
-                        placeholder="+91"
-                      />
-                      <input
-                        type="tel"
-                        value={editData.mobile || ''}
-                        onChange={e => handleInputChange('mobile', e.target.value)}
-                        className="flex-1 bg-[#9B7BB8]/20 text-white p-2 rounded-lg border border-[#9B7BB8]/30 focus:outline-none focus:ring-2 focus:ring-[#9B7BB8] transition-all duration-200 text-sm placeholder-white/50"
-                        placeholder="Mobile number"
-                      />
-                    </div>
-                  ) : (
-                    <p className="text-white font-medium text-sm truncate">{user?.countryCode} {user?.mobile}</p>
-                  )}
-                </div>
+                          <div className="flex-1 min-w-0">
+                <p className="text-xs text-white/60 uppercase tracking-wide font-medium mb-1">
+                  Mobile Number
+                </p>
+                <p className="text-white font-medium text-sm truncate">
+                  {userDetails?.countryCode} {userDetails?.mobile}
+                </p>
+              </div>
+
               </div>
             </div>
+
+            {/* Edit Mode Info Message */}
+            {isEditing && (
+              <div className="mt-4 p-3 bg-blue-500/20 rounded-xl border border-blue-500/30">
+                <div className="flex items-start space-x-2">
+                  <div className="w-5 h-5 rounded-full bg-blue-500/20 flex items-center justify-center mt-0.5">
+                    <span className="text-xs text-blue-400">ℹ</span>
+                  </div>
+                  <div>
+                    <p className="text-sm text-blue-400 font-medium">Security Note</p>
+                    <p className="text-xs text-blue-300/80 mt-1">
+                      Only your name and profile picture can be updated. Email and mobile number are protected for account security.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
-        {/* Quick Actions Card (untouched) */}
+
+        {/* Quick Actions Card */}
         <div className="bg-[#2D1B3D]/95 backdrop-blur-sm rounded-3xl shadow-2xl overflow-hidden">
           <div className="p-6">
             <h3 className="text-xl font-bold text-white mb-6 flex items-center">
@@ -240,7 +319,10 @@ const ProfileSection = () => {
                 </div>
               </button>
             </div>
-            <button className="w-full flex items-center justify-center space-x-3 p-4 rounded-2xl bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 transition-all duration-300 text-white font-semibold mt-6 shadow-lg transform hover:scale-[1.02]" onClick={handleLogout}>
+            <button 
+              className="w-full flex items-center justify-center space-x-3 p-4 rounded-2xl bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 transition-all duration-300 text-white font-semibold mt-6 shadow-lg transform hover:scale-[1.02]" 
+              onClick={handleLogout}
+            >
               <LogOut className="w-5 h-5" />
               <span>Sign Out</span>
             </button>
@@ -253,6 +335,7 @@ const ProfileSection = () => {
             </button>
           </div>
         </div>
+
         {/* Delete Confirmation Dialog */}
         {showDeleteConfirm && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
@@ -261,8 +344,18 @@ const ProfileSection = () => {
               <h2 className="text-xl font-bold text-[#2D1B3D] mb-2">Delete Account?</h2>
               <p className="text-[#2D1B3D]/80 mb-6">This action cannot be undone. Are you sure you want to delete your account?</p>
               <div className="flex gap-4 justify-center">
-                <button onClick={confirmDeleteAccount} className="px-6 py-2 rounded-lg bg-red-500 text-white font-bold hover:bg-red-600 transition">Yes, Delete</button>
-                <button onClick={cancelDeleteAccount} className="px-6 py-2 rounded-lg bg-gray-200 text-[#2D1B3D] font-bold hover:bg-gray-300 transition">Cancel</button>
+                <button 
+                  onClick={confirmDeleteAccount} 
+                  className="px-6 py-2 rounded-lg bg-red-500 text-white font-bold hover:bg-red-600 transition"
+                >
+                  Yes, Delete
+                </button>
+                <button 
+                  onClick={cancelDeleteAccount} 
+                  className="px-6 py-2 rounded-lg bg-gray-200 text-[#2D1B3D] font-bold hover:bg-gray-300 transition"
+                >
+                  Cancel
+                </button>
               </div>
             </div>
           </div>

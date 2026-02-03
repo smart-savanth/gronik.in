@@ -17,7 +17,8 @@ const LoginPage = () => {
     otp: ['', '', '', '', '', ''], // 6-digit OTP
     jwtToken: '',
     fullName: '',
-    countryCode: ''
+    countryCode: '+91',
+    customCountryCode: ''
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
@@ -38,13 +39,6 @@ const LoginPage = () => {
   const user = useSelector(state => state.userAuth.user);
   const navigate = useNavigate();
 
-  // Mock existing users database
-  // const existingUsers = [
-  //   { email: 'user@example.com', mobile: '9876543210', password: 'Password123!' },
-  //   { email: 'test@gronik.com', mobile: '9123456789', password: 'Test@123' }
-  // ];
-
-  // Validation functions
   const validatePassword = (password) => {
     const requirements = {
       length: password.length >= 8,
@@ -53,7 +47,6 @@ const LoginPage = () => {
       number: /\d/.test(password),
       special: /[!@#$%^&*(),.?":{}|<>]/.test(password)
     };
-    
     const isValid = Object.values(requirements).every(req => req);
     return { isValid, requirements };
   };
@@ -63,15 +56,24 @@ const LoginPage = () => {
     return emailRegex.test(email);
   };
 
-  const validateMobile = (mobile) => {
-    const mobileRegex = /^[6-9]\d{9}$/;
-    return mobileRegex.test(mobile);
+  const validateMobile = (mobile, countryCode) => {
+    const code = (countryCode || '').trim();
+    const digitsOnly = (mobile || '').replace(/\D/g, '');
+    if (!digitsOnly) return false;
+    const patterns = {
+      '+91': /^[6-9]\d{9}$/,
+      '+1': /^\d{10}$/,
+      '+44': /^\d{9,10}$/,
+      '+61': /^\d{9}$/,
+      '+971': /^\d{9}$/
+    };
+    const pattern = patterns[code];
+    if (pattern) return pattern.test(digitsOnly);
+    return /^\d{6,15}$/.test(digitsOnly);
   };
 
-  // Add country code validation function
   const validateCountryCode = (code) => /^\+\d{1,4}$/.test(code);
 
-  // Handle input changes
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (errors[field]) {
@@ -79,36 +81,26 @@ const LoginPage = () => {
     }
   };
 
-  // Mock OTP generation (in real app, this would come from backend)
   const generateOTP = () => {
     return Math.floor(100000 + Math.random() * 900000).toString();
   };
 
-  // Mock JWT token generation
   const generateJWT = (userData) => {
-    // In real app, this would be a proper JWT token from backend
     return `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.${btoa(JSON.stringify(userData))}`;
   };
 
-  // OTP input handling
   const handleOtpChange = (index, value) => {
-    if (value.length > 1) return; // Only allow single digit
-    
+    if (value.length > 1) return;
     const newOtp = [...formData.otp];
     newOtp[index] = value;
     setFormData(prev => ({ ...prev, otp: newOtp }));
-
-    // Auto-focus next input
     if (value && index < 5) {
       const nextInput = document.querySelector(`input[data-otp-index="${index + 1}"]`);
       if (nextInput) nextInput.focus();
     }
-
-    // Clear error when user starts typing
     if (otpError) setOtpError('');
   };
 
-  // Handle OTP key events
   const handleOtpKeyDown = (index, e) => {
     if (e.key === 'Backspace' && !formData.otp[index] && index > 0) {
       const prevInput = document.querySelector(`input[data-otp-index="${index - 1}"]`);
@@ -116,22 +108,15 @@ const LoginPage = () => {
     }
   };
 
-  // Send OTP function
   const sendOTP = async (emailOrMobile) => {
     setIsLoading(true);
     setOtpError('');
-    
-    // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1500));
-    
     const otp = generateOTP();
-    console.log(`OTP sent to ${emailOrMobile}: ${otp}`); // For testing purposes
-    
+    console.log(`OTP sent to ${emailOrMobile}: ${otp}`);
     setOtpSent(true);
     setIsLoading(false);
-    setResendCooldown(60); // 60 seconds cooldown
-    
-    // Start cooldown timer
+    setResendCooldown(60);
     const timer = setInterval(() => {
       setResendCooldown(prev => {
         if (prev <= 1) {
@@ -143,35 +128,25 @@ const LoginPage = () => {
     }, 1000);
   };
 
-  // Verify OTP function
   const verifyOTP = async () => {
     const enteredOtp = formData.otp.join('');
     if (enteredOtp.length !== 6) {
       setOtpError('Please enter a 6-digit OTP');
       return;
     }
-
     setIsLoading(true);
     setOtpError('');
-
-    // Simulate API verification
     await new Promise(resolve => setTimeout(resolve, 1000));
-
-    // For demo purposes, accept any 6-digit OTP
     if (enteredOtp.length === 6) {
       setOtpVerified(true);
       setIsLoading(false);
-      
-      // Generate JWT token
       const userData = {
         email: formData.email || formData.mobile,
         loginMethod: loginMethod,
         timestamp: new Date().toISOString()
       };
-      
       const jwtToken = generateJWT(userData);
       setFormData(prev => ({ ...prev, jwtToken }));
-      
       dispatch(login({ token: jwtToken, user: userData }));
       setShowAuthSuccess(true);
       setTimeout(() => {
@@ -183,128 +158,118 @@ const LoginPage = () => {
     }
   };
 
-  // Resend OTP function
   const handleResendOTP = async () => {
     if (resendCooldown > 0) return;
-    
     await sendOTP(loginMethod === 'email' ? formData.email : formData.mobile);
   };
 
   // Handle signup
-  const handleSignup = async () => {
-    const newErrors = {};
-    
-    if (!formData.fullName) {
-      newErrors.fullName = 'Full name is required';
+const handleSignup = async () => {
+  const newErrors = {};
+
+  if (!formData.fullName) newErrors.fullName = 'Full name is required';
+
+  setErrors(newErrors);
+
+  if (Object.keys(newErrors).length === 0) {
+    try {
+      await api.post('/auth/signUp', {
+        full_name: formData.fullName,
+        country_code: formData.mobile
+          ? (formData.countryCode === 'other'
+              ? formData.customCountryCode
+              : formData.countryCode)
+          : undefined,
+        mobile: formData.mobile || undefined,
+        email: formData.email,
+        password: formData.password,
+        role_name: "USER",
+      });
+
+      const loginResponse = await api.post('/auth/login', {
+        email: formData.email,
+        password: formData.password,
+      });
+
+      const userData = loginResponse.data.data.user;
+      const token = loginResponse.data.data.access_token;
+
+      dispatch(login({ token, user: userData }));
+
+      setShowAuthSuccess(true);
+      setTimeout(() => {
+        navigate('/');
+      }, 500);
+
+    } catch (error) {
+      setErrors({
+        api: error.response?.data?.message || 'Registration or login failed. Please try again.',
+      });
     }
-    if (!formData.countryCode) {
-      newErrors.countryCode = 'Country code is required';
-    }
-    if (!validateCountryCode(formData.countryCode)) {
-      newErrors.countryCode = 'Invalid country code';
-    }
-    if (!formData.mobile) {
-      newErrors.mobile = 'Mobile number is required';
-    } else if (!validateMobile(formData.mobile)) {
-      newErrors.mobile = 'Please enter a valid 10-digit mobile number';
-    }
+  }
+};
+
+
+  // Handle login
+const handleLogin = async () => {
+  const newErrors = {};
+
+
+  if (loginMethod === 'email') {
     if (!formData.email) {
       newErrors.email = 'Email is required';
     } else if (!validateEmail(formData.email)) {
       newErrors.email = 'Please enter a valid email address';
     }
+  } else {
+    const code = formData.countryCode === 'other' ? formData.customCountryCode : formData.countryCode;
+    if (!formData.mobile) {
+      newErrors.mobile = 'Mobile number is required';
+    } else if (!validateMobile(formData.mobile, code)) {
+      newErrors.mobile = 'Invalid mobile number for selected country code';
+    }
+  }
 
-    const passwordValidation = validatePassword(formData.password);
-    if (!formData.password) {
-      newErrors.password = 'Password is required';
-    } else if (!passwordValidation.isValid) {
-      newErrors.password = 'Password does not meet requirements';
-    }
+  if (!formData.password) {
+    newErrors.password = 'Password is required';
+  }
 
-    if (!formData.confirmPassword) {
-      newErrors.confirmPassword = 'Please confirm your password';
-    } else if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
-    }
+  setErrors(newErrors);
 
-    setErrors(newErrors);
 
-    if (Object.keys(newErrors).length === 0) {
-      try {
-        const response = await api.post('/auth/signUp', {
-          fullName: formData.fullName,
-          countryCode: formData.countryCode,
-          mobile: formData.mobile,
-          email: formData.email,
-          password: formData.password
-        });
-        const userData = response.data.user;
-        const token = response.data.token;
-        dispatch(login({ token, user: userData }));
-        setShowAuthSuccess(true);
-        setTimeout(() => {
-          navigate('/');
-        }, 500);
-      } catch (error) {
-        setErrors({ api: error.response?.data?.message || 'Registration failed. Please try again.' });
-      }
-    }
-  };
+  if (Object.keys(newErrors).length === 0) {
+    try {
+      const response = await api.post('/auth/login', {
+        email: loginMethod === 'email' ? formData.email : undefined,
+        mobile: loginMethod === 'mobile' ? formData.mobile : undefined,
+        country_code:
+          loginMethod === 'mobile'
+            ? formData.countryCode === 'other'
+              ? formData.customCountryCode
+              : formData.countryCode
+            : undefined,
+        password: formData.password,
+      });
 
-  // Handle login
-  const handleLogin = async () => {
-    const newErrors = {};
-    if (loginMethod === 'email') {
-      if (!formData.email) {
-        newErrors.email = 'Email is required';
-      } else if (!validateEmail(formData.email)) {
-        newErrors.email = 'Please enter a valid email address';
-      }
-    } else {
-      if (!formData.mobile) {
-        newErrors.mobile = 'Mobile number is required';
-      } else if (!validateMobile(formData.mobile)) {
-        newErrors.mobile = 'Please enter a valid 10-digit mobile number';
-      }
-    }
-    if (!formData.password) {
-      newErrors.password = 'Password is required';
-    }
-    // Redux user lookup
-    const reduxUser = user;
-    let credentialsMatch = false;
-    if (reduxUser) {
-      if (loginMethod === 'email' && reduxUser.email === formData.email && reduxUser.password === formData.password) {
-        credentialsMatch = true;
-      } else if (loginMethod === 'mobile' && reduxUser.mobile === formData.mobile && reduxUser.password === formData.password) {
-        credentialsMatch = true;
-      }
-    }
-    if (!credentialsMatch && Object.keys(newErrors).length === 0) {
-      newErrors.password = 'Invalid credentials. Please check your email/mobile and password.';
-    }
-    setErrors(newErrors);
-    if (Object.keys(newErrors).length === 0 && credentialsMatch) {
-      try {
-        const response = await api.post('/auth/login', {
-          email: loginMethod === 'email' ? formData.email : undefined,
-          mobile: loginMethod === 'mobile' ? formData.mobile : undefined,
-          password: formData.password
-        });
-        const userData = response.data.user;
-        const token = response.data.token;
-        dispatch(login({ token, user: userData }));
-        setShowAuthSuccess(true);
-        setTimeout(() => {
-          navigate('/profile');
-        }, 500);
-      } catch (error) {
-        setErrors({ api: error.response?.data?.message || 'Login failed. Please try again.' });
-      }
-    }
-  };
+      const userData = response.data.data.user; 
+      const token = response.data.data.access_token; 
+      dispatch(login({ token, user: userData }));
 
-  // Handle forgot password submit (step 1)
+      setShowAuthSuccess(true);
+
+      setTimeout(() => {
+        navigate('/');
+      }, 500);
+    } catch (error) {
+      setErrors({
+        api: error.response?.data?.message || 'Login failed. Please try again.',
+      });
+    }
+  }
+};
+
+
+
   const handleForgotSubmit = () => {
     const newErrors = {};
     if (loginMethod === 'email') {
@@ -330,7 +295,6 @@ const LoginPage = () => {
     }
   };
 
-  // Handle password reset (step 2)
   const handleResetPassword = () => {
     const newErrors = {};
     const passwordValidation = validatePassword(formData.newPassword);
@@ -346,7 +310,6 @@ const LoginPage = () => {
     }
     setErrors(newErrors);
     if (Object.keys(newErrors).length === 0) {
-      // Update Redux user password
       const updatedUser = { ...user };
       updatedUser.password = formData.newPassword;
       dispatch(setUser(updatedUser));
@@ -359,10 +322,8 @@ const LoginPage = () => {
     }
   };
 
-  // Password requirements component
   const PasswordRequirements = ({ password }) => {
     const { requirements } = validatePassword(password);
-    
     const requirementsList = [
       { key: 'length', text: 'At least 8 characters', met: requirements.length },
       { key: 'uppercase', text: 'One uppercase letter', met: requirements.uppercase },
@@ -370,9 +331,8 @@ const LoginPage = () => {
       { key: 'number', text: 'One number', met: requirements.number },
       { key: 'special', text: 'One special character', met: requirements.special }
     ];
-
     return (
-              <div className="mt-4 p-4 bg-[#2D1B3D]/30 rounded-xl border border-[#2D1B3D]/50 backdrop-blur-sm">
+      <div className="mt-4 p-4 bg-[#2D1B3D]/30 rounded-xl border border-[#2D1B3D]/50 backdrop-blur-sm">
         <h4 className="text-sm font-medium text-white mb-3">Password Requirements:</h4>
         <div className="grid grid-cols-1 gap-2">
           {requirementsList.map(req => (
@@ -394,7 +354,6 @@ const LoginPage = () => {
     );
   };
 
-  // Reset showAuthSuccess when returning to choice/login/signup
   useEffect(() => {
     if (currentStep === 'choice' || currentStep === 'login' || currentStep === 'signup') {
       setShowAuthSuccess(false);
@@ -403,7 +362,6 @@ const LoginPage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gronik-primary via-gronik-bg to-gronik-secondary relative flex items-center justify-center p-4" style={{ paddingTop: '6rem' }}>
-      {/* Animated background elements with glow effects */}
       <div className="absolute inset-0">
         <div className="absolute top-10 left-10 w-40 h-40 bg-[#2D1B3D]/20 rounded-full blur-3xl animate-pulse shadow-2xl shadow-[#2D1B3D]/30"></div>
         <div className="absolute bottom-20 right-10 w-60 h-60 bg-[#2D1B3D]/15 rounded-full blur-3xl animate-pulse delay-1000 shadow-2xl shadow-[#2D1B3D]/20"></div>
@@ -412,12 +370,9 @@ const LoginPage = () => {
         <div className="absolute bottom-10 left-1/4 w-32 h-32 bg-[#2D1B3D]/20 rounded-full blur-3xl animate-pulse delay-300 shadow-2xl shadow-[#2D1B3D]/25"></div>
       </div>
 
-      {/* Centered Login Container */}
       <div className="relative z-10 w-full max-w-sm sm:max-w-lg">
-        {/* Form Container */}
         <div className="bg-[#2D1B3D]/90 backdrop-blur-xl rounded-3xl border border-[#2D1B3D]/50 shadow-2xl shadow-[#2D1B3D]/20 overflow-hidden mt-8 mb-8">
           <div className="p-6 sm:p-10">
-            {/* Logo/Title */}
             <div className="text-center mb-8">
               <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2 drop-shadow-lg">
                 {currentStep === 'choice' ? 'Login' : 
@@ -429,7 +384,6 @@ const LoginPage = () => {
               </p>
             </div>
 
-            {/* Step 1: Choose Login Method */}
             {currentStep === 'choice' && (
               <div className="space-y-6">
                 <div>
@@ -477,7 +431,6 @@ const LoginPage = () => {
               </div>
             )}
 
-            {/* Step 2: Signup Form */}
             {currentStep === 'signup' && (
               <div className="space-y-4">
                 <div>
@@ -496,41 +449,51 @@ const LoginPage = () => {
                     </p>
                   )}
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-white/80 mb-2">COUNTRY CODE</label>
-                  <input
-                    type="text"
-                    value={formData.countryCode || ''}
-                    onChange={e => handleInputChange('countryCode', e.target.value)}
-                    className="w-full bg-transparent border-b-2 border-white/30 text-white pl-2 pr-4 py-3 focus:outline-none focus:border-white focus:shadow-lg focus:shadow-white/20 transition-all duration-300 placeholder-white/40 text-sm"
-                    placeholder="e.g. +91"
-                  />
-                  {errors.countryCode && (
-                    <p className="text-red-400 text-xs mt-1 flex items-center space-x-1">
-                      <X className="w-3 h-3" />
-                      <span>{errors.countryCode}</span>
-                    </p>
-                  )}
-                </div>
-                {validateCountryCode(formData.countryCode) && (
+
+                {/* >>> Only ONE identifier shown based on loginMethod <<< */}
+                {loginMethod === 'mobile' && (
                   <div>
-                    <label className="block text-xs font-medium text-white/80 mb-2">MOBILE NUMBER</label>
-                    <input
-                      type="tel"
-                      value={formData.mobile || ''}
-                      onChange={e => handleInputChange('mobile', e.target.value)}
-                      className="w-full bg-transparent border-b-2 border-white/30 text-white pl-2 pr-4 py-3 focus:outline-none focus:border-white focus:shadow-lg focus:shadow-white/20 transition-all duration-300 placeholder-white/40 text-sm"
-                      placeholder="Enter your mobile number"
-                    />
-                    {errors.mobile && (
+                    <label className="block text-xs font-medium text-white/80 mb-2">PHONE NUMBER</label>
+                    <div className="flex items-center gap-2">
+                      <select
+                        value={formData.countryCode}
+                        onChange={e => handleInputChange('countryCode', e.target.value)}
+                        className="w-32 bg-transparent border-b-2 border-white/30 text-white py-3 focus:outline-none focus:border-white focus:shadow-lg focus:shadow-white/20 transition-all duration-300 text-sm"
+                      >
+                        <option className="bg-[#2D1B3D]" value="+91">+91 (IN)</option>
+                        <option className="bg-[#2D1B3D]" value="+1">+1 (US)</option>
+                        <option className="bg-[#2D1B3D]" value="+44">+44 (UK)</option>
+                        <option className="bg-[#2D1B3D]" value="+61">+61 (AU)</option>
+                        <option className="bg-[#2D1B3D]" value="+971">+971 (UAE)</option>
+                        <option className="bg-[#2D1B3D]" value="other">Other</option>
+                      </select>
+                      {formData.countryCode === 'other' && (
+                        <input
+                          type="text"
+                          value={formData.customCountryCode}
+                          onChange={e => handleInputChange('customCountryCode', e.target.value)}
+                          className="w-24 bg-transparent border-b-2 border-white/30 text-white pl-2 pr-2 py-3 focus:outline-none focus:border-white focus:shadow-lg focus:shadow-white/20 transition-all duration-300 text-sm"
+                          placeholder="+XX"
+                        />
+                      )}
+                      <input
+                        type="tel"
+                        value={formData.mobile || ''}
+                        onChange={e => handleInputChange('mobile', e.target.value)}
+                        className="flex-1 bg-transparent border-b-2 border-white/30 text-white pl-2 pr-4 py-3 focus:outline-none focus:border-white focus:shadow-lg focus:shadow-white/20 transition-all duration-300 placeholder-white/40 text-sm"
+                        placeholder="Enter your mobile number"
+                      />
+                    </div>
+                    {(errors.countryCode || errors.mobile) && (
                       <p className="text-red-400 text-xs mt-1 flex items-center space-x-1">
                         <X className="w-3 h-3" />
-                        <span>{errors.mobile}</span>
+                        <span>{errors.countryCode || errors.mobile}</span>
                       </p>
                     )}
                   </div>
                 )}
-                {validateCountryCode(formData.countryCode) && formData.mobile && (
+
+                {loginMethod === 'email' && (
                   <div>
                     <label className="block text-xs font-medium text-white/80 mb-2">EMAIL</label>
                     <input
@@ -548,8 +511,8 @@ const LoginPage = () => {
                     )}
                   </div>
                 )}
+                {/* >>> END conditional identifier <<< */}
 
-                {/* Password Input */}
                 <div>
                   <label className="block text-xs font-medium text-white/80 mb-2">PASSWORD</label>
                   <div className="relative">
@@ -579,7 +542,6 @@ const LoginPage = () => {
                   {formData.password && <PasswordRequirements password={formData.password} />}
                 </div>
 
-                {/* Confirm Password Input */}
                 <div>
                   <label className="block text-xs font-medium text-white/80 mb-2">CONFIRM PASSWORD</label>
                   <div className="relative">
@@ -608,7 +570,6 @@ const LoginPage = () => {
                   )}
                 </div>
 
-                {/* Submit Button */}
                 <button
                   onClick={handleSignup}
                   disabled={isLoading}
@@ -636,38 +597,73 @@ const LoginPage = () => {
               </div>
             )}
 
-            {/* Step 3: Login Form */}
             {currentStep === 'login' && (
               <div className="space-y-4">
-                {/* Email/Mobile Input */}
                 <div>
-                  <label className="block text-xs font-medium text-white/80 mb-2 uppercase tracking-wider">
-                    {loginMethod === 'email' ? 'Email' : 'Mobile'}
-                  </label>
-                  <div className="relative">
-                    <div className="absolute top-0 left-0 flex items-center">
-                      {loginMethod === 'email' ? 
-                        <Mail className="w-4 h-4 text-white/60" /> : 
-                        <Phone className="w-4 h-4 text-white/60" />
-                      }
-                    </div>
-                    <input
-                      type={loginMethod === 'email' ? 'email' : 'tel'}
-                      value={loginMethod === 'email' ? formData.email : formData.mobile}
-                      onChange={(e) => handleInputChange(loginMethod, e.target.value)}
-                      placeholder=""
-                      className="w-full bg-transparent border-b-2 border-white/30 text-white pl-6 pr-4 py-3 focus:outline-none focus:border-white focus:shadow-lg focus:shadow-white/20 transition-all duration-300 placeholder-white/40 text-sm"
-                    />
-                  </div>
-                  {errors[loginMethod] && (
-                    <p className="text-red-400 text-xs mt-1 flex items-center space-x-1">
-                      <X className="w-3 h-3" />
-                      <span>{errors[loginMethod]}</span>
-                    </p>
+                  {loginMethod === 'email' ? (
+                    <>
+                      <label className="block text-xs font-medium text-white/80 mb-2 uppercase tracking-wider">Email</label>
+                      <div className="relative">
+                        <div className="absolute top-0 left-0 flex items-center">
+                          <Mail className="w-4 h-4 text-white/60" />
+                        </div>
+                        <input
+                          type="email"
+                          value={formData.email}
+                          onChange={(e) => handleInputChange('email', e.target.value)}
+                          className="w-full bg-transparent border-b-2 border-white/30 text-white pl-6 pr-4 py-3 focus:outline-none focus:border-white focus:shadow-lg focus:shadow-white/20 transition-all duration-300 placeholder-white/40 text-sm"
+                        />
+                      </div>
+                      {errors.email && (
+                        <p className="text-red-400 text-xs mt-1 flex items-center space-x-1">
+                          <X className="w-3 h-3" />
+                          <span>{errors.email}</span>
+                        </p>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <label className="block text-xs font-medium text-white/80 mb-2 uppercase tracking-wider">Mobile</label>
+                      <div className="flex items-center gap-2">
+                        <select
+                          value={formData.countryCode}
+                          onChange={e => handleInputChange('countryCode', e.target.value)}
+                          className="w-32 bg-transparent border-b-2 border-white/30 text-white py-3 focus:outline-none focus:border-white focus:shadow-lg focus:shadow-white/20 transition-all duration-300 text-sm"
+                        >
+                          <option className="bg-[#2D1B3D]" value="+91">+91 (IN)</option>
+                          <option className="bg-[#2D1B3D]" value="+1">+1 (US)</option>
+                          <option className="bg-[#2D1B3D]" value="+44">+44 (UK)</option>
+                          <option className="bg-[#2D1B3D]" value="+61">+61 (AU)</option>
+                          <option className="bg-[#2D1B3D]" value="+971">+971 (UAE)</option>
+                          <option className="bg-[#2D1B3D]" value="other">Other</option>
+                        </select>
+                        {formData.countryCode === 'other' && (
+                          <input
+                            type="text"
+                            value={formData.customCountryCode}
+                            onChange={e => handleInputChange('customCountryCode', e.target.value)}
+                            className="w-24 bg-transparent border-b-2 border-white/30 text-white pl-2 pr-2 py-3 focus:outline-none focus:border-white focus:shadow-lg focus:shadow-white/20 transition-all duration-300 text-sm"
+                            placeholder="+XX"
+                          />
+                        )}
+                        <input
+                          type="tel"
+                          value={formData.mobile}
+                          onChange={(e) => handleInputChange('mobile', e.target.value)}
+                          className="flex-1 bg-transparent border-b-2 border-white/30 text-white pl-2 pr-4 py-3 focus:outline-none focus:border-white focus:shadow-lg focus:shadow-white/20 transition-all duration-300 placeholder-white/40 text-sm"
+                          placeholder="Enter your mobile number"
+                        />
+                      </div>
+                      {(errors.countryCode || errors.mobile) && (
+                        <p className="text-red-400 text-xs mt-1 flex items-center space-x-1">
+                          <X className="w-3 h-3" />
+                          <span>{errors.countryCode || errors.mobile}</span>
+                        </p>
+                      )}
+                    </>
                   )}
                 </div>
 
-                {/* Password Input */}
                 <div>
                   <label className="block text-xs font-medium text-white/80 mb-2 uppercase tracking-wider">Password</label>
                   <div className="relative">
@@ -697,7 +693,6 @@ const LoginPage = () => {
                   )}
                 </div>
 
-                {/* Forgot Password */}
                 <div className="text-right">
                   <button
                     type="button"
@@ -708,7 +703,6 @@ const LoginPage = () => {
                   </button>
                 </div>
 
-                {/* Submit Button */}
                 <button
                   onClick={handleLogin}
                   disabled={isLoading}
@@ -733,7 +727,6 @@ const LoginPage = () => {
               </div>
             )}
 
-            {/* Step 4: OTP Verification */}
             {currentStep === 'otp' && (
               <div className="space-y-6">
                 <div className="text-center mb-6">
@@ -746,7 +739,6 @@ const LoginPage = () => {
                   </p>
                 </div>
 
-                {/* OTP Input */}
                 <div className="space-y-4">
                   <label className="block text-xs font-medium text-white/80 mb-3 text-center">
                     ENTER VERIFICATION CODE
@@ -775,7 +767,6 @@ const LoginPage = () => {
                   )}
                 </div>
 
-                {/* Verify Button */}
                 <button
                   onClick={verifyOTP}
                   disabled={isLoading || formData.otp.join('').length !== 6}
@@ -794,7 +785,6 @@ const LoginPage = () => {
                   )}
                 </button>
 
-                {/* Resend OTP */}
                 <div className="text-center">
                   <p className="text-white/60 text-xs mb-2">Didn't receive the code?</p>
                   <button
@@ -812,7 +802,6 @@ const LoginPage = () => {
                   </button>
                 </div>
 
-                {/* Back Button */}
                 <button
                   onClick={() => {
                     setCurrentStep('choice');
@@ -826,7 +815,6 @@ const LoginPage = () => {
               </div>
             )}
 
-            {/* Step 5: Forgot Password - Enter Email/Mobile */}
             {currentStep === 'forgot' && (
               <div className="space-y-4">
                 <div className="text-center mb-2">
@@ -881,7 +869,6 @@ const LoginPage = () => {
               </div>
             )}
 
-            {/* Step 6: Reset Password - Enter New Password */}
             {currentStep === 'reset' && (
               <div className="space-y-4">
                 <div className="text-center mb-2">
@@ -969,7 +956,6 @@ const LoginPage = () => {
               </div>
             )}
 
-            {/* Authentication Success Message */}
             {showAuthSuccess && (
               <div className="space-y-4">
                 <div className="text-center mb-6">
@@ -1006,7 +992,6 @@ const LoginPage = () => {
   outline: none;
   transition: box-shadow 0.18s cubic-bezier(.4,1.2,.6,1), background 0.18s cubic-bezier(.4,1.2,.6,1);
 }
-/* Modern button animation: scale and soft shadow, purple palette */
 .modern-animated-btn {
   transition: all 0.18s cubic-bezier(.4,1.2,.6,1);
   box-shadow: 0 2px 12px 0 #2D1B3D33;

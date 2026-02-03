@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import './index.css';
 import Navbar from './component/layout/Navbar';
+import Notification from './component/layout/Notification';
 import HeroSection from './component/home/HeroSection';
 import AboutSection from './component/home/AboutSection';
 import FeaturedBooks from './component/home/FeaturedBooks';
@@ -22,6 +23,7 @@ import AdminDashboard from './component/admin/AdminDashboard';
 import BooksManagement from './component/admin/BooksManagement';
 import UsersManagement from './component/admin/UsersManagement';
 import OrdersManagement from './component/admin/OrdersManagement';
+import Transactions from './component/admin/Transactions'; // ADD THIS
 import SettingsPage from './component/admin/Settings';
 import CheckoutSection from './component/pages/CheckoutSection';
 import AdminLogin from './component/admin/AdminLogin';
@@ -32,18 +34,89 @@ import AccessDenied from './component/pages/AccessDenied';
 import { useSelector, useDispatch } from 'react-redux';
 import { addToCart, removeFromCart, updateCartItemQuantity } from './slices/cartSlice';
 import { addToWishlist, removeFromWishlist } from './slices/wishlistSlice';
+import { useNotification } from './hooks/useNotification';
+import TermsAndConditions from './component/pages/TermsAndConditions';
+import PrivacyPolicy from './component/pages/PrivacyPolicy';
 
 function App() {
-  const cart = useSelector(state => state.cart.items);
-  const wishlist = useSelector(state => state.wishlist.items);
+  const [cart, setCart] = useState([]);
+const [wishlist, setWishlist] = useState([]);
   const dispatch = useDispatch();
+  const notification = useNotification();
 
-  // HANDLERS
-  const handleAddToCart = (book) => dispatch(addToCart(book));
-  const handleRemoveFromCart = (id) => dispatch(removeFromCart(id));
-  const handleUpdateCartItemQuantity = (id, newQuantity) => dispatch(updateCartItemQuantity({ id, newQuantity }));
-  const handleAddToWishlist = (book) => dispatch(addToWishlist(book));
-  const handleRemoveFromWishlist = (id) => dispatch(removeFromWishlist(id));
+  // ENHANCED HANDLERS WITH NOTIFICATIONS
+  const handleAddToCart = (book) => {
+  let local = JSON.parse(localStorage.getItem("cart")) || [];
+
+  const exists = local.some(item => item.id === book._id || item.id === book.id);
+
+  if (!exists) {
+    local.push({
+      id: book._id || book.id,
+      title: book.title,
+      image: book.coverImageUrl,
+      price: book.final_price,
+      originalPrice: book.original_price,
+      author: book.author,
+      quantity: 1
+    });
+
+    localStorage.setItem("cart", JSON.stringify(local));
+    setCart(local);
+
+    // notify navbar
+    window.dispatchEvent(new Event("cart-updated"));
+  }
+
+  notification.addToCart(book.title);
+};
+
+
+const handleRemoveFromCart = (id) => {
+  const local = JSON.parse(localStorage.getItem("cart")) || [];
+  const updated = local.filter(item => item.id !== id);
+
+  localStorage.setItem("cart", JSON.stringify(updated));
+  setCart(updated);
+
+  window.dispatchEvent(new Event("cart-updated"));
+  notification.removeFromCart();
+};
+
+
+  const handleUpdateCartItemQuantity = (id, newQuantity) => {
+    
+    if (newQuantity > 0) {
+      notification.custom('Cart updated successfully!', 'success');
+    }
+  };
+
+const handleAddToWishlist = (book) => {
+  let local = JSON.parse(localStorage.getItem("wishlist")) || [];
+  if (!local.some(item => item.id === book.id || item.id === book._id)) {
+    local.push({
+      id: book._id || book.id,
+      title: book.title,
+      image: book.coverImageUrl,
+      price: book.final_price,
+      author: book.author
+    });
+    localStorage.setItem("wishlist", JSON.stringify(local));
+    setWishlist(local);
+  }
+
+  window.dispatchEvent(new Event("wishlist-updated"));
+  notification.addToWishlist(book.title);
+};
+
+
+  const handleRemoveFromWishlist = (id) => {
+    const bookToRemove = wishlist.find(item => item.id === id);
+    
+    notification.removeFromWishlist(bookToRemove?.title);
+  };
+
+
 
   // HOME PAGE
   const HomePage = () => (
@@ -58,7 +131,9 @@ function App() {
       />
       <FeaturedBooks
         onAddToCart={handleAddToCart}
+        onRemoveFromCart={handleRemoveFromCart}
         onAddToWishlist={handleAddToWishlist}
+        onRemoveFromWishlist={handleRemoveFromWishlist}
         cart={cart}
         wishlist={wishlist}
       />
@@ -71,7 +146,9 @@ function App() {
   const LibraryPageWrapper = () => (
     <LibraryPage
       onAddToCart={handleAddToCart}
+      onRemoveFromCart={handleRemoveFromCart}
       onAddToWishlist={handleAddToWishlist}
+      onRemoveFromWishlist={handleRemoveFromWishlist}
       cart={cart}
       wishlist={wishlist}
     />
@@ -79,13 +156,15 @@ function App() {
 
   const location = useLocation();
   const isAdminRoute = location.pathname.startsWith('/admin');
-  // Dummy admin check (replace with real auth/role check after backend integration)
   const isAdmin = useSelector(state => state.adminAuth.adminRole) === 'admin';
 
   return (
     <div className="App">
       {!isAdminRoute && <Navbar cartCount={cart.length} wishlistCount={wishlist.length} />}
       <ScrollToTop />
+      
+      <Notification />
+      
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/library" element={<LibraryPageWrapper />} />
@@ -122,17 +201,24 @@ function App() {
         <Route path="/my-library" element={<MyLibrarySection />} />
         <Route path="/login" element={<LoginSection />} />
         <Route path="/checkout" element={<CheckoutSection cart={cart} />} />
+        <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicy/>} />
+        
         {/* Admin Login Route */}
         <Route path="/admin-login" element={<AdminLogin />} />
-        {/* Admin Routes (protected) */}
+        
+        {/* Admin Routes */}
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/admin/books" element={<BooksManagement />} />
         <Route path="/admin/users" element={<UsersManagement />} />
         <Route path="/admin/orders" element={<OrdersManagement />} />
+        <Route path="/admin/transactions" element={<Transactions />} /> {/* ADD THIS LINE */}
         <Route path="/admin/settings" element={<SettingsPage />} />
+        
         <Route path="/access-denied" element={<AccessDenied />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
+      
       {!isAdminRoute && <Footer />}
       {!isAdminRoute && <WhyEbooksButton />}
     </div>

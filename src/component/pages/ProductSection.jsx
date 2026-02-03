@@ -1,90 +1,142 @@
 import React, { useState, useEffect, useRef, Fragment } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, ShoppingCart, Heart, Star, Eye, Users, Zap, Check, BookOpen, ChevronDown, ChevronRight, Quote, Plus, X, Send } from 'lucide-react';
+import { useSelector, useDispatch } from 'react-redux';
+import { ArrowLeft, ShoppingCart, Heart, Star, Eye, Users, Check, BookOpen, ChevronDown, Quote, Plus, X, Send, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
 import { centralizedBooksData } from './LibrarySection';
+import { useGetAllBooksQuery } from '../../utils/booksService';
 
 const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCart, onAddToWishlist, onRemoveFromWishlist }) => {
   const { productId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const dispatch = useDispatch();
+  
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [activeTab, setActiveTab] = useState('overview');
   const [cartButtonClicked, setCartButtonClicked] = useState(false);
+  const [expandedDescription, setExpandedDescription] = useState(false);
   const [wishlistButtonClicked, setWishlistButtonClicked] = useState(false);
   const [expandedSections, setExpandedSections] = useState({});
   const reviewsSectionRef = useRef(null);
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
-  const [newReview, setNewReview] = useState({
-    rating: 5,
-    text: '',
-    name: ''
-  });
-
-  // Track image errors for sections and chapters
+  const [newReview, setNewReview] = useState({ rating: 5, text: '', name: '' });
   const [imageErrors, setImageErrors] = useState({});
   const [selectedChapter, setSelectedChapter] = useState(null);
   const [showChapterModal, setShowChapterModal] = useState(false);
+  const [currentCarouselIndex, setCurrentCarouselIndex] = useState(0);
+  
+  // Suggested books state
+  const [suggestedCartClicked, setSuggestedCartClicked] = useState({});
+  const [suggestedWishlistClicked, setSuggestedWishlistClicked] = useState({});
+  const [animatingSuggestedCart, setAnimatingSuggestedCart] = useState({});
+  const [animatingSuggestedWishlist, setAnimatingSuggestedWishlist] = useState({});
+  const [hoveredSuggested, setHoveredSuggested] = useState(null);
+  
+  const scrollContainerRef = useRef(null);
+  const currentTransformRef = useRef(0);
 
-  // Shared reviews data (same as home page) - MUST be at top level
-  const [reviews] = useState([
-    { 
+  // Carousel data
+  const carouselBooks = [
+    {
       id: 1,
-      rating: 5, 
-      text: "Books are easy to get and the quality is amazing! The reading experience is seamless and the collection is vast.",
-      name: "Aarav Sharma"
+      image: "/images/book1.jpg",
+      description: "Unlock the secrets to wealth and success with timeless principles that have transformed millions of lives worldwide."
     },
-    { 
+    {
       id: 2,
-      rating: 5, 
-      text: "Great collection and smooth reading experience. Love the variety and user interface. Perfect for daily reading.",
-      name: "Priya Patel"
+      image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&h=400&fit=crop",
+      description: "Master the art of power and influence with strategic insights that will elevate your personal and professional life."
     },
-    { 
+    {
       id: 3,
-      rating: 4, 
-      text: "Love the variety of books available here. Perfect for my daily reading routine and the quality is top-notch.",
-      name: "Rahul Verma"
+      image: "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=300&h=400&fit=crop",
+      description: "Transform your life one small habit at a time with proven strategies for building good habits and breaking bad ones."
     },
-    { 
+    {
       id: 4,
-      rating: 5, 
-      text: "Outstanding platform with incredible book selection. The reading experience is smooth and enjoyable.",
-      name: "Sneha Reddy"
+      image: "https://images.unsplash.com/photo-1532012197267-da84d127e765?w=300&h=400&fit=crop",
+      description: "Discover powerful principles for personal effectiveness that will help you achieve lasting success in all areas of life."
     },
-    { 
+    {
       id: 5,
-      rating: 4, 
-      text: "Fantastic digital library with great features. Love how easy it is to find and read books on any device.",
-      name: "Vikram Singh"
-    },
-    { 
-      id: 6,
-      rating: 5, 
-      text: "Best e-book platform I've used! Great selection, amazing quality, and the interface is beautifully designed.",
-      name: "Ananya Iyer"
+      image: "https://images.unsplash.com/photo-1553729459-efe14ef6055d?w=300&h=400&fit=crop",
+      description: "Learn how to unlock your potential and achieve remarkable success by embracing a growth-oriented mindset."
     }
-  ]);
+  ];
 
+  const reviews = useSelector(state => state.reviews?.items || [
+    { id: 1, rating: 5, text: "Books are easy to get and the quality is amazing! The reading experience is seamless and the collection is vast.", name: "Aarav Sharma" },
+    { id: 2, rating: 5, text: "Great collection and smooth reading experience. Love the variety and user interface. Perfect for daily reading.", name: "Priya Patel" },
+    { id: 3, rating: 4, text: "Love the variety of books available here. Perfect for my daily reading routine and the quality is top-notch.", name: "Rahul Verma" },
+    { id: 4, rating: 5, text: "Outstanding platform with incredible book selection. The reading experience is smooth and enjoyable.", name: "Sneha Reddy" },
+    { id: 5, rating: 4, text: "Fantastic digital library with great features. Love how easy it is to find and read books on any device.", name: "Vikram Singh" },
+    { id: 6, rating: 5, text: "Best e-book platform I've used! Great selection, amazing quality, and the interface is beautifully designed.", name: "Ananya Iyer" }
+  ]);
+     const { data: booksResponse, isLoading, isError } = useGetAllBooksQuery({
+          page: 1,
+          pageSize: 10,
+        });
   // Duplicate reviews for seamless infinite scroll (same as home page)
   const duplicatedReviews = [...reviews, ...reviews];
-
+  console.log(productId,)
   // Get product data from centralized books data
-  const productData = centralizedBooksData.find(book => book.id === parseInt(productId));
+  const productData = booksResponse?.data?.find(book => book._id === productId);
+
+  const suggestedBooks = booksResponse?.data?.filter(book => 
+    book._id !== productId && 
+    (book.category === productData?.category || book.author === productData?.author)
+  ).slice(0, 6) || [];
 
   // If product not found, redirect to library
   useEffect(() => {
-    if (!productData) {
-      navigate('/library');
+    const interval = setInterval(() => {
+      setCurrentCarouselIndex((prev) => (prev + 1) % carouselBooks.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Carousel navigation
+  const nextSlide = () => {
+    setCurrentCarouselIndex((prev) => (prev + 1) % carouselBooks.length);
+  };
+
+  const prevSlide = () => {
+    setCurrentCarouselIndex((prev) => (prev - 1 + carouselBooks.length) % carouselBooks.length);
+  };
+
+  // Smooth animation for reviews
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    let intervalId;
+    const speed = 1;
+
+    if (!isPaused) {
+      intervalId = setInterval(() => {
+        currentTransformRef.current -= speed;
+        const resetPoint = -(container.scrollWidth / 3);
+        if (currentTransformRef.current <= resetPoint) {
+          currentTransformRef.current = 0;
+        }
+        container.style.transform = `translateX(${currentTransformRef.current}px)`;
+      }, 16);
     }
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [isPaused]);
+
+  useEffect(() => {
+    if (!productData) navigate('/library');
   }, [productData, navigate]);
 
-  // Scroll to top effect
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
 
-  // If no product data, show loading or redirect
   if (!productData) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#2D1B3D] via-[#4A3B5C] to-[#9B7BB8] flex items-center justify-center">
@@ -93,7 +145,6 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
     );
   }
 
-  // Calculate discount percentage dynamically
   const calculateDiscountPercentage = () => {
     if (productData.originalPrice && productData.price) {
       return Math.round(((productData.originalPrice - productData.price) / productData.originalPrice) * 100);
@@ -101,17 +152,16 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
     return 0;
   };
 
-  // Create enhanced product data with default values for missing fields
   const enhancedProductData = {
     ...productData,
-    // Add default values for missing fields
+    inStock: true,
     totalSales: productData.totalSales || Math.floor(Math.random() * 20000) + 5000,
     pages: productData.pages || Math.floor(Math.random() * 400) + 200,
     readingTime: productData.readingTime || "6-8 hours",
     language: productData.language || "English",
     format: productData.format || "PDF, EPUB, MOBI",
     publishDate: productData.publishDate || "Digital Edition 2024",
-    images: productData.images || [productData.image], // Use the main image as default
+    images: productData.images || [productData.image],
     fullDescription: productData.fullDescription || `${productData.description}\n\nThis comprehensive guide offers deep insights and practical strategies that will transform your approach to ${productData.category.toLowerCase()}. Whether you're a beginner or an experienced practitioner, this book provides valuable knowledge and actionable steps to help you achieve your goals.`,
     keyFeatures: productData.keyFeatures || [
       "Comprehensive coverage of essential topics",
@@ -129,177 +179,85 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
       "Best practices and industry standards",
       "Tools and resources for continued learning"
     ],
-    // New structured table of contents with sections and chapters (matching admin structure)
-    tableOfContents: Array.isArray(productData.tableOfContents) && productData.tableOfContents.length > 0 && typeof productData.tableOfContents[0] === 'object' 
-      ? productData.tableOfContents 
+    tableOfContents: Array.isArray(productData.tableOfContents) && productData.tableOfContents.length > 0 && typeof productData.tableOfContents[0] === 'object'
+      ? productData.tableOfContents
       : [
           {
             title: "Getting Started",
-            image: "/images/section1.jpg", // Default section image
+            image: "/images/section1.jpg",
             chapters: [
-              {
-                title: "Introduction to the Course",
-                thumbnail: "/images/chapter1-thumb.jpg",
-                pdf: "/pdfs/chapter1.pdf"
-              },
-              {
-                title: "Setting Up Your Environment",
-                thumbnail: "/images/chapter2-thumb.jpg",
-                pdf: "/pdfs/chapter2.pdf"
-              },
-              {
-                title: "Understanding the Basics",
-                thumbnail: "/images/chapter3-thumb.jpg",
-                pdf: "/pdfs/chapter3.pdf"
-              },
-              {
-                title: "Your First Project",
-                thumbnail: "/images/chapter4-thumb.jpg",
-                pdf: "/pdfs/chapter4.pdf"
-              }
+              { title: "Introduction to the Course", thumbnail: "/images/chapter1-thumb.jpg", pdf: "/pdfs/chapter1.pdf" },
+              { title: "Setting Up Your Environment", thumbnail: "/images/chapter2-thumb.jpg", pdf: "/pdfs/chapter2.pdf" },
+              { title: "Understanding the Basics", thumbnail: "/images/chapter3-thumb.jpg", pdf: "/pdfs/chapter3.pdf" },
+              { title: "Your First Project", thumbnail: "/images/chapter4-thumb.jpg", pdf: "/pdfs/chapter4.pdf" }
             ]
           },
           {
             title: "Core Concepts",
             image: "/images/section2.jpg",
             chapters: [
-              {
-                title: "Fundamental Principles",
-                thumbnail: "/images/chapter5-thumb.jpg",
-                pdf: "/pdfs/chapter5.pdf"
-              },
-              {
-                title: "Key Theories and Models",
-                thumbnail: "/images/chapter6-thumb.jpg",
-                pdf: "/pdfs/chapter6.pdf"
-              },
-              {
-                title: "Essential Techniques",
-                thumbnail: "/images/chapter7-thumb.jpg",
-                pdf: "/pdfs/chapter7.pdf"
-              },
-              {
-                title: "Best Practices",
-                thumbnail: "/images/chapter8-thumb.jpg",
-                pdf: "/pdfs/chapter8.pdf"
-              }
+              { title: "Fundamental Principles", thumbnail: "/images/chapter5-thumb.jpg", pdf: "/pdfs/chapter5.pdf" },
+              { title: "Key Theories and Models", thumbnail: "/images/chapter6-thumb.jpg", pdf: "/pdfs/chapter6.pdf" },
+              { title: "Essential Techniques", thumbnail: "/images/chapter7-thumb.jpg", pdf: "/pdfs/chapter7.pdf" },
+              { title: "Best Practices", thumbnail: "/images/chapter8-thumb.jpg", pdf: "/pdfs/chapter8.pdf" }
             ]
           },
           {
             title: "Advanced Topics",
             image: "/images/section3.jpg",
             chapters: [
-              {
-                title: "Complex Scenarios",
-                thumbnail: "/images/chapter9-thumb.jpg",
-                pdf: "/pdfs/chapter9.pdf"
-              },
-              {
-                title: "Advanced Strategies",
-                thumbnail: "/images/chapter10-thumb.jpg",
-                pdf: "/pdfs/chapter10.pdf"
-              },
-              {
-                title: "Optimization Techniques",
-                thumbnail: "/images/chapter11-thumb.jpg",
-                pdf: "/pdfs/chapter11.pdf"
-              },
-              {
-                title: "Troubleshooting",
-                thumbnail: "/images/chapter12-thumb.jpg",
-                pdf: "/pdfs/chapter12.pdf"
-              }
+              { title: "Complex Scenarios", thumbnail: "/images/chapter9-thumb.jpg", pdf: "/pdfs/chapter9.pdf" },
+              { title: "Advanced Strategies", thumbnail: "/images/chapter10-thumb.jpg", pdf: "/pdfs/chapter10.pdf" },
+              { title: "Optimization Techniques", thumbnail: "/images/chapter11-thumb.jpg", pdf: "/pdfs/chapter11.pdf" },
+              { title: "Troubleshooting", thumbnail: "/images/chapter12-thumb.jpg", pdf: "/pdfs/chapter12.pdf" }
             ]
           },
           {
             title: "Practical Applications",
             image: "/images/section4.jpg",
             chapters: [
-              {
-                title: "Real-World Examples",
-                thumbnail: "/images/chapter13-thumb.jpg",
-                pdf: "/pdfs/chapter13.pdf"
-              },
-              {
-                title: "Case Studies",
-                thumbnail: "/images/chapter14-thumb.jpg",
-                pdf: "/pdfs/chapter14.pdf"
-              },
-              {
-                title: "Implementation Guide",
-                thumbnail: "/images/chapter15-thumb.jpg",
-                pdf: "/pdfs/chapter15.pdf"
-              },
-              {
-                title: "Performance Tips",
-                thumbnail: "/images/chapter16-thumb.jpg",
-                pdf: "/pdfs/chapter16.pdf"
-              }
+              { title: "Real-World Examples", thumbnail: "/images/chapter13-thumb.jpg", pdf: "/pdfs/chapter13.pdf" },
+              { title: "Case Studies", thumbnail: "/images/chapter14-thumb.jpg", pdf: "/pdfs/chapter14.pdf" },
+              { title: "Implementation Guide", thumbnail: "/images/chapter15-thumb.jpg", pdf: "/pdfs/chapter15.pdf" },
+              { title: "Performance Tips", thumbnail: "/images/chapter16-thumb.jpg", pdf: "/pdfs/chapter16.pdf" }
             ]
           },
           {
             title: "Conclusion",
             image: "/images/section5.jpg",
             chapters: [
-              {
-                title: "Summary and Review",
-                thumbnail: "/images/chapter17-thumb.jpg",
-                pdf: "/pdfs/chapter17.pdf"
-              },
-              {
-                title: "Next Steps",
-                thumbnail: "/images/chapter18-thumb.jpg",
-                pdf: "/pdfs/chapter18.pdf"
-              },
-              {
-                title: "Additional Resources",
-                thumbnail: "/images/chapter19-thumb.jpg",
-                pdf: "/pdfs/chapter19.pdf"
-              },
-              {
-                title: "Final Thoughts",
-                thumbnail: "/images/chapter20-thumb.jpg",
-                pdf: "/pdfs/chapter20.pdf"
-              }
+              { title: "Summary and Review", thumbnail: "/images/chapter17-thumb.jpg", pdf: "/pdfs/chapter17.pdf" },
+              { title: "Next Steps", thumbnail: "/images/chapter18-thumb.jpg", pdf: "/pdfs/chapter18.pdf" },
+              { title: "Additional Resources", thumbnail: "/images/chapter19-thumb.jpg", pdf: "/pdfs/chapter19.pdf" },
+              { title: "Final Thoughts", thumbnail: "/images/chapter20-thumb.jpg", pdf: "/pdfs/chapter20.pdf" }
             ]
           }
         ]
   };
 
-  // Helper functions to check if product is in cart/wishlist
   const isInCart = cart.some(item => item.id === enhancedProductData.id);
   const isInWishlist = wishlist.some(item => item.id === enhancedProductData.id);
+  
+  const isSuggestedInCart = (book) => cart.some(item => item.id === book.id);
+  const isSuggestedInWishlist = (book) => wishlist.some(item => item.id === book.id);
 
   const handleAddToCart = () => {
-    if (!enhancedProductData.inStock) return;
-    
-    // Only add to cart if not already in cart
     if (!isInCart) {
       setCartButtonClicked(true);
       setTimeout(() => setCartButtonClicked(false), 1500);
       onAddToCart && onAddToCart(enhancedProductData);
-    }
-    // If already in cart, show message or redirect to cart
-    else {
-      // Show a brief message that item is already in cart
-      setCartButtonClicked(true);
-      setTimeout(() => setCartButtonClicked(false), 1000);
+    } else {
+      navigate('/cart');
     }
   };
 
   const handleAddToWishlist = () => {
-    if (!enhancedProductData.inStock) return;
-    
-    // Only add to wishlist if not already in wishlist
-    if (!isInWishlist) {
-      setWishlistButtonClicked(true);
-      setTimeout(() => setWishlistButtonClicked(false), 2000);
+    setWishlistButtonClicked(true);
+    setTimeout(() => setWishlistButtonClicked(false), 300);
+    if (isInWishlist) {
+      onRemoveFromWishlist && onRemoveFromWishlist(enhancedProductData.id);
+    } else {
       onAddToWishlist && onAddToWishlist(enhancedProductData);
-    }
-    // If already in wishlist, show message
-    else {
-      setWishlistButtonClicked(true);
-      setTimeout(() => setWishlistButtonClicked(false), 1000);
     }
   };
 
@@ -314,27 +272,22 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
     }
   };
 
-  // Handle section expansion for TOC
   const toggleSection = (sectionIndex) => {
-    setExpandedSections(prev => ({
-      ...prev,
-      [sectionIndex]: !prev[sectionIndex]
-    }));
+    setExpandedSections(prev => ({ ...prev, [sectionIndex]: !prev[sectionIndex] }));
   };
 
-  // Handle reviews click to scroll to reviews section
   const handleReviewsClick = () => {
-    reviewsSectionRef.current?.scrollIntoView({ 
-      behavior: 'smooth',
-      block: 'start'
-    });
+    reviewsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  // Handle review form submission
   const handleSubmitReview = () => {
-    if (newReview.text && newReview.name) {
-      // In a real app, you would send this to your API
-      console.log('New review submitted:', newReview);
+    if (newReview.text.trim()) {
+      const review = {
+        id: Date.now(),
+        ...newReview,
+        timestamp: new Date().toISOString()
+      };
+      dispatch({ type: 'reviews/addReview', payload: review });
       setNewReview({ rating: 5, text: '', name: '' });
       setShowReviewForm(false);
     }
@@ -350,230 +303,146 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
     setSelectedChapter(null);
   };
 
+  const handleSuggestedCartAction = (e, book) => {
+    e.stopPropagation();
+    e.preventDefault();
+    
+    if (animatingSuggestedCart[book.id]) return;
+
+    const inCart = isSuggestedInCart(book);
+    
+    if (inCart) {
+      navigate('/cart');
+      return;
+    }
+
+    setAnimatingSuggestedCart(prev => ({ ...prev, [book.id]: true }));
+    setSuggestedCartClicked(prev => ({ ...prev, [book.id]: true }));
+    
+    setTimeout(() => {
+      onAddToCart && onAddToCart(book);
+      setAnimatingSuggestedCart(prev => ({ ...prev, [book.id]: false }));
+      setSuggestedCartClicked(prev => ({ ...prev, [book.id]: false }));
+    }, 1200);
+  };
+
+  const handleSuggestedToggleWishlist = (e, book) => {
+    e.stopPropagation();
+    e.preventDefault();
+    
+    if (animatingSuggestedWishlist[book.id]) return;
+    setAnimatingSuggestedWishlist(prev => ({ ...prev, [book.id]: true }));
+    setSuggestedWishlistClicked(prev => ({ ...prev, [book.id]: true }));
+    setTimeout(() => {
+      if (isSuggestedInWishlist(book)) onRemoveFromWishlist && onRemoveFromWishlist(book.id);
+      else onAddToWishlist && onAddToWishlist(book);
+      setAnimatingSuggestedWishlist(prev => ({ ...prev, [book.id]: false }));
+      setSuggestedWishlistClicked(prev => ({ ...prev, [book.id]: false }));
+    }, 250);
+  };
+
+  const handleSuggestedBookClick = (book) => {
+    navigate(`/product/${book.id}`, { state: { from: 'suggested' } });
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#2D1B3D] via-[#4A3B5C] to-[#9B7BB8] relative">
       {/* Background Pattern */}
       <div className="absolute inset-0 opacity-5">
-        <div className="absolute inset-0" style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.1'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-        }}></div>
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.1'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+          }}
+        ></div>
       </div>
 
-      {/* Button Animation Styles */}
+      {/* Styles */}
       <style jsx>{`
-        .cart-button-animated {
-          position: relative;
-          overflow: hidden;
+        .cart-button-animated { position: relative; overflow: hidden; }
+        .cart-button-animated .cart-icon { position: absolute; z-index: 2; top: 50%; left: -10%; transform: translate(-50%, -50%); opacity: 0; }
+        .cart-button-animated .box-icon { position: absolute; z-index: 3; top: -20%; left: 52%; transform: translate(-50%, -50%); opacity: 0; }
+        .cart-button-animated .cart-text { position: relative; z-index: 3; transition: opacity 0.3s ease; }
+        .cart-button-animated .added-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 3; opacity: 0; }
+        .cart-button-animated.clicked .cart-icon { animation: cartAnimation 1.5s ease-in-out forwards; }
+        .cart-button-animated.clicked .box-icon { animation: boxAnimation 1.5s ease-in-out forwards; }
+        .cart-button-animated.clicked .cart-text { animation: textOut 1.5s ease-in-out forwards; }
+        .cart-button-animated.clicked .added-text { animation: textIn 1.5s ease-in-out forwards; }
+        @keyframes cartAnimation { 0% { left: -10%; opacity: 1; } 40%, 60% { left: 50%; opacity: 1; } 100% { left: 110%; opacity: 0; } }
+        @keyframes boxAnimation { 0%, 40% { top: -20%; opacity: 1; } 60% { top: 40%; left: 52%; opacity: 1; } 100% { top: 40%; left: 112%; opacity: 0; } }
+        @keyframes textOut { 0% { opacity: 1; } 20%, 100% { opacity: 0; } }
+        @keyframes textIn { 0%, 80% { opacity: 0; } 100% { opacity: 1; } }
+
+        .wishlist-button-animated { position: relative; }
+        .wishlist-button-animated .heart-static { transition: transform 0.2s ease; }
+        .wishlist-button-animated.clicked { animation: pop 0.3s ease-out; }
+        .wishlist-button-animated.clicked .heart-static { transform: scale(1.2); }
+        @keyframes pop { 0% { transform: scale(1); } 50% { transform: scale(1.08); } 100% { transform: scale(1); } }
+
+        .card-hover-gold:hover, .card-hover-gold.gold-glow {
+          box-shadow: 0 0 0 2px #ffe9b3, 0 4px 24px 0 #ffe9b3cc, 0 1.5px 8px 0 #fff7c1;
         }
-        
-        .cart-button-animated .cart-icon {
-          position: absolute;
-          z-index: 2;
-          top: 50%;
-          left: -10%;
-          transform: translate(-50%, -50%);
-          opacity: 0;
-        }
-        
-        .cart-button-animated .box-icon {
-          position: absolute;
-          z-index: 3;
-          top: -20%;
-          left: 52%;
-          transform: translate(-50%, -50%);
-          opacity: 0;
-        }
-        
-        .cart-button-animated .cart-text {
-          position: relative;
-          z-index: 3;
-          transition: opacity 0.3s ease;
-        }
-        
-        .cart-button-animated .added-text {
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          z-index: 3;
-          opacity: 0;
-        }
-        
-        .cart-button-animated.clicked .cart-icon {
-          animation: cartAnimation 1.5s ease-in-out forwards;
-        }
-        
-        .cart-button-animated.clicked .box-icon {
-          animation: boxAnimation 1.5s ease-in-out forwards;
-        }
-        
-        .cart-button-animated.clicked .cart-text {
-          animation: textOut 1.5s ease-in-out forwards;
-        }
-        
-        .cart-button-animated.clicked .added-text {
-          animation: textIn 1.5s ease-in-out forwards;
-        }
-        
-        @keyframes cartAnimation {
-          0% { left: -10%; opacity: 1; }
-          40%, 60% { left: 50%; opacity: 1; }
-          100% { left: 110%; opacity: 0; }
-        }
-        
-        @keyframes boxAnimation {
-          0%, 40% { top: -20%; opacity: 1; }
-          60% { top: 40%; left: 52%; opacity: 1; }
-          100% { top: 40%; left: 112%; opacity: 0; }
-        }
-        
-        @keyframes textOut {
-          0% { opacity: 1; }
-          20%, 100% { opacity: 0; }
-        }
-        
-        @keyframes textIn {
-          0%, 80% { opacity: 0; }
-          100% { opacity: 1; }
-        }
-        
-        .wishlist-button-animated {
-          position: relative;
-          overflow: hidden;
-        }
-        
-        .wishlist-button-animated .heart-icon {
-          position: absolute;
-          z-index: 2;
-          top: -20%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          opacity: 0;
-        }
-        
-        .wishlist-button-animated.clicked .heart-icon {
-          animation: heartDrop 2s ease-in-out forwards;
-        }
-        
-        @keyframes heartDrop {
-          0% {
-            top: -20%;
-            opacity: 0;
-            transform: translate(-50%, -50%) scale(0.5);
+        @media (hover: none) and (pointer: coarse) {
+          .card-hover-gold:active {
+            box-shadow: 0 0 0 2px #ffe9b3, 0 4px 24px 0 #ffe9b3cc, 0 1.5px 8px 0 #fff7c1;
           }
-          20% {
-            opacity: 1;
-            transform: translate(-50%, -50%) scale(1);
-          }
-          40% {
-            top: 50%;
-            transform: translate(-50%, -50%) scale(1.2);
-          }
-          60% {
-            top: 50%;
-            transform: translate(-50%, -50%) scale(1) rotate(10deg);
-          }
-          80% {
-            top: 50%;
-            transform: translate(-50%, -50%) scale(1) rotate(-10deg);
-          }
-          100% {
-            top: 50%;
-            opacity: 1;
-            transform: translate(-50%, -50%) scale(1) rotate(0deg);
-          }
+        }
+
+        @keyframes slideIn {
+          from { opacity: 0; transform: translateX(100px); }
+          to { opacity: 1; transform: translateX(0); }
+        }
+
+        @keyframes slideOut {
+          from { opacity: 1; transform: translateX(0); }
+          to { opacity: 0; transform: translateX(-100px); }
+        }
+
+        .carousel-slide-enter {
+          animation: slideIn 0.6s ease-out;
+        }
+
+        @media (max-width: 640px) { 
+          .group:hover { transform: none !important; z-index: initial !important; }
+          .mobile-overview-text { font-size: 0.875rem !important; line-height: 1.4 !important; }
+          .mobile-suggested-card { padding: 0.75rem !important; }
+          .mobile-suggested-image { width: 120px !important; height: 160px !important; }
+          .mobile-suggested-title { font-size: 0.875rem !important; }
+          .mobile-suggested-price { font-size: 1.125rem !important; }
         }
         
         @media (max-width: 400px) {
-          .pt-32 {
-            padding-top: 1.5rem;
-          }
-          .pb-8 {
-            padding-bottom: 1rem;
-          }
-          .w-40 {
-            width: 120px !important;
-          }
-          .h-56 {
-            height: 170px !important;
-          }
-          .w-10 {
-            width: 40px !important;
-          }
-          .h-14 {
-            height: 56px !important;
-          }
-          .w-[30%] {
-            width: 30% !important;
-          }
-          .w-[70%] {
-            width: 70% !important;
-          }
-          .p-4 {
-            padding: 0.75rem !important;
-          }
-          .rounded-xl {
-            border-radius: 0.75rem !important;
-          }
-          .gap-2 {
-            gap: 0.5rem !important;
-          }
-          .mb-4 {
-            margin-bottom: 1rem !important;
-          }
-          .flex-row {
-            flex-direction: row !important;
-          }
-          .flex-col {
-            flex-direction: column !important;
-          }
-          .items-center {
-            align-items: center !important;
-          }
-          .justify-center {
-            justify-content: center !important;
-          }
-          .text-xs {
-            font-size: 0.75rem !important;
-          }
-          .text-base {
-            font-size: 1rem !important;
-          }
-          .font-semibold {
-            font-weight: 600 !important;
-          }
-          .font-bold {
-            font-weight: 700 !important;
-          }
-          .back-to-library-mobile-fix {
-            margin-top: 4rem;
-          }
-          .back-to-library-btn-mobile {
-            margin-left: 0 !important;
-            margin-right: auto !important;
-            display: flex !important;
-          }
-          .main-book-image-mobile-fix {
-            max-width: 230px !important;
-          }
-          .about-section-mobile-fix {
-            font-size: 0.92rem !important;
-            padding: 1rem !important;
-            border-radius: 0.7rem !important;
-          }
-          .text-3xl {
-            font-size: 1.15rem !important;
-          }
-          .text-lg {
-            font-size: 0.98rem !important;
-          }
-          .p-8 {
-            padding: 1rem !important;
-          }
+          .pt-32 { padding-top: 1.5rem; }
+          .pb-8 { padding-bottom: 1rem; }
+          .w-40 { width: 120px !important; }
+          .h-56 { height: 170px !important; }
+          .w-10 { width: 40px !important; }
+          .h-14 { height: 56px !important; }
+          .w-[30%] { width: 30% !important; }
+          .w-[70%] { width: 70% !important; }
+          .p-4 { padding: 0.75rem !important; }
+          .rounded-xl { border-radius: 0.75rem !important; }
+          .gap-2 { gap: 0.5rem !important; }
+          .mb-4 { margin-bottom: 1rem !important; }
+          .flex-row { flex-direction: row !important; }
+          .flex-col { flex-direction: column !important; }
+          .items-center { align-items: center !important; }
+          .justify-center { justify-content: center !important; }
+          .text-xs { font-size: 0.75rem !important; }
+          .text-base { font-size: 1rem !important; }
+          .font-semibold { font-weight: 600 !important; }
+          .font-bold { font-weight: 700 !important; }
+          .back-to-library-mobile-fix { margin-top: 4rem; }
+          .back-to-library-btn-mobile { margin-left: 0 !important; margin-right: auto !important; display: flex !important; }
+          .main-book-image-mobile-fix { max-width: 230px !important; }
+          .about-section-mobile-fix { font-size: 0.92rem !important; padding: 1rem !important; border-radius: 0.7rem !important; }
+          .text-3xl { font-size: 1.15rem !important; }
+          .text-lg { font-size: 0.98rem !important; }
+          .p-8 { padding: 1rem !important; }
         }
       `}</style>
 
-      {/* Navigation - Moved down from navbar */}
+      {/* Back button */}
       <div className="pt-32 pb-8 relative z-10 back-to-library-mobile-fix">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <button
@@ -587,98 +456,67 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
         </div>
       </div>
 
-      {/* Add breadcrumb navigation above product info */}
-      {/* Remove the breadcrumb navigation entirely. Only keep the Back button at the top. */}
-      {/* do not render the <nav> with Home / Library / Book Title ... */}
-
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16 relative z-10">
-        {/* Product Header */}
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 lg:gap-12 mb-20">
-          {/* Left - Book Image (2 columns) */}
+          {/* Left - Book Image */}
           <div className="lg:col-span-2">
             <div className="sticky top-8">
-              {/* Main Book Image */}
               <div className="relative mb-8">
                 <div className="relative w-full max-w-md mx-auto main-book-image-mobile-fix">
-                  {/* Shadow behind book */}
                   <div className="absolute -inset-4 bg-black/20 rounded-3xl blur-2xl transform rotate-1"></div>
-                  {/* Book container */}
                   <div className="relative bg-gradient-to-br from-white to-gray-100 rounded-2xl overflow-hidden shadow-2xl transform hover:scale-105 transition-all duration-500 hover:shadow-3xl">
                     <div className="aspect-[3/4] relative">
-                      <img
-                        src={enhancedProductData.images[selectedImageIndex]}
-                        alt={enhancedProductData.title}
-                        className="w-full h-full object-cover"
-                      />
-                      {/* Overlay gradient */}
+                      <img src={enhancedProductData.images[selectedImageIndex]} alt={enhancedProductData.title} className="w-full h-full object-cover" />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent"></div>
                     </div>
                   </div>
                 </div>
               </div>
-              {/* Thumbnail Images (below main image) */}
+
+              {/* Thumbs */}
               <div className="flex justify-center space-x-2 mt-2">
                 {enhancedProductData.images.map((image, index) => (
                   <button
                     key={index}
                     onClick={() => setSelectedImageIndex(index)}
                     className={`relative w-14 h-16 rounded-lg overflow-hidden transition-all duration-300 transform hover:scale-110 ${
-                      selectedImageIndex === index 
-                        ? 'ring-4 ring-white shadow-xl scale-110' 
-                        : 'ring-2 ring-white/30 hover:ring-white/60 opacity-70 hover:opacity-100'
+                      selectedImageIndex === index ? 'ring-4 ring-white shadow-xl scale-110' : 'ring-2 ring-white/30 hover:ring-white/60 opacity-70 hover:opacity-100'
                     }`}
                   >
-                    <img
-                      src={image}
-                      alt={`${enhancedProductData.title} ${index + 1}`}
-                      className="w-full h-full object-cover"
-                    />
-                    {selectedImageIndex === index && (
-                      <div className="absolute inset-0 bg-white/20"></div>
-                    )}
+                    <img src={image} alt={`${enhancedProductData.title} ${index + 1}`} className="w-full h-full object-cover" />
+                    {selectedImageIndex === index && <div className="absolute inset-0 bg-white/20"></div>}
                   </button>
                 ))}
               </div>
             </div>
           </div>
 
-          {/* Right - Product Info (3 columns) */}
+          {/* Right - Info */}
           <div className="lg:col-span-3 space-y-8">
-            {/* Category Badge */}
             <div className="inline-flex items-center bg-[#9B7BB8] rounded-full px-6 py-3 shadow-lg">
-              <BookOpen className="w-5 h-5 text-[#2D1B3D] mr-3" />
+              <BookOpen className="w-5 h-5 text-[#2D1B3B] mr-3" />
               <span className="text-[#2D1B3D] text-sm font-semibold tracking-wide">{enhancedProductData.category}</span>
             </div>
 
-            {/* Title & Author */}
             <div className="space-y-4">
-              <h1 className="text-4xl lg:text-5xl font-bold text-white leading-tight tracking-tight">
-                {enhancedProductData.title}
-              </h1>
+              <h1 className="text-4xl lg:text-5xl font-bold text-white leading-tight tracking-tight">{enhancedProductData.title}</h1>
               <div className="flex items-center space-x-2">
                 <span className="text-white/60 text-lg">by</span>
                 <span className="text-xl text-white font-semibold">{enhancedProductData.author}</span>
               </div>
             </div>
 
-            {/* Rating & Stats */}
             <div className="flex flex-wrap items-center gap-2 sm:gap-8 text-white/90">
               <div className="flex items-center space-x-2">
                 <div className="flex">
                   {[...Array(5)].map((_, i) => (
-                    <Star 
-                      key={i} 
-                      className={`w-5 h-5 ${i < Math.floor(enhancedProductData.rating) ? 'text-yellow-400 fill-current' : 'text-white/30'}`} 
-                    />
+                    <Star key={i} className={`w-5 h-5 ${i < Math.floor(enhancedProductData.rating) ? 'text-yellow-400 fill-current' : 'text-white/30'}`} />
                   ))}
                 </div>
                 <span className="font-semibold text-lg">{enhancedProductData.rating}</span>
                 <span className="text-white/60">•</span>
-                <button 
-                  onClick={handleReviewsClick}
-                  className="font-medium hover:text-yellow-400 transition-colors duration-300 cursor-pointer underline decoration-dotted"
-                >
+                <button onClick={handleReviewsClick} className="font-medium hover:text-yellow-400 transition-colors duration-300 cursor-pointer underline decoration-dotted">
                   ({reviews.length} reviews)
                 </button>
               </div>
@@ -688,8 +526,8 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
             <div className="bg-[#9B7BB8] rounded-2xl p-6 shadow-lg">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <span className="text-4xl font-bold text-[#2D1B3D]">${enhancedProductData.price}</span>
-                  <span className="text-xl text-[#2D1B3D]/60 line-through">${enhancedProductData.originalPrice}</span>
+                  <span className="text-4xl font-bold text-[#2D1B3D]">₹{enhancedProductData.price}</span>
+                  <span className="text-xl text-[#2D1B3D]/60 line-through">₹{enhancedProductData.originalPrice}</span>
                 </div>
                 <div className="bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-2 rounded-full text-sm font-bold shadow-lg">
                   Save {calculateDiscountPercentage()}% (${enhancedProductData.originalPrice - enhancedProductData.price})
@@ -697,7 +535,7 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
               </div>
             </div>
 
-            {/* Quick Info Cards */}
+            {/* Quick Info */}
             <div className="flex flex-row gap-2 w-full mb-4">
               <div className="bg-[#9B7BB8] rounded-xl p-4 flex flex-col items-center justify-center shadow-lg w-[30%] min-w-[90px]">
                 <Eye className="w-5 h-5 text-[#2D1B3D] mb-1" />
@@ -709,76 +547,59 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
                   <Users className="w-5 h-5 text-[#2D1B3D] mr-2" />
                   <span className="text-xs text-[#2D1B3D] font-semibold">Join Our Community</span>
                 </div>
-                <span className="text-xs text-[#2D1B3D] text-center font-medium">Want to read, discuss, and get exclusive deals? <a href="https://t.me/yourtelegram" target="_blank" rel="noopener noreferrer" className="underline text-blue-700 font-bold">Join our Telegram & Discord!</a></span>
+                <span className="text-xs text-[#2D1B3D] text-center font-medium">
+                  Want to read, discuss, and get exclusive deals?{' '}
+                  <a href="https://t.me/yourtelegram" target="_blank" rel="noopener noreferrer" className="underline text-blue-700 font-bold">
+                    Join our Telegram & Discord!
+                  </a>
+                </span>
               </div>
             </div>
 
             {/* Description */}
             <div className="bg-[#9B7BB8] rounded-2xl p-8 shadow-xl about-section-mobile-fix">
-              <p className="text-[#2D1B3D] text-lg leading-relaxed font-medium">
-                {enhancedProductData.description}
-              </p>
+              <p className="text-[#2D1B3D] text-lg leading-relaxed font-medium">{enhancedProductData.description}</p>
             </div>
 
-            {/* Action Buttons */}
-            <div className="flex flex-row gap-2 w-full mb-4">
+            {/* Actions - Fixed Hover Issue */}
+            <div className="flex flex-row gap-3 w-full mb-4">
               <button
                 onClick={handleAddToCart}
-                disabled={!enhancedProductData.inStock}
-                className={`cart-button-animated ${cartButtonClicked ? 'clicked' : ''} flex-1 py-3 px-4 rounded-xl font-semibold text-base flex items-center justify-center gap-2 transition-all duration-300 hover:scale-105 shadow-xl hover:shadow-2xl ${
-                  isInCart 
-                    ? 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white' 
-                    : !enhancedProductData.inStock
-                      ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
-                    : 'bg-gradient-to-r from-white to-gray-100 hover:from-gray-100 hover:to-white text-[#2D1B3D] shadow-xl'
+                className={`cart-button-animated ${cartButtonClicked ? 'clicked' : ''} flex-1 py-3 px-4 rounded-xl font-semibold text-base flex items-center justify-center gap-2 transition-all duration-300 shadow-xl ${
+                  isInCart
+                    ? 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white hover:shadow-2xl'
+                    : 'bg-gradient-to-r from-white to-gray-100 hover:from-yellow-100 hover:to-yellow-50 text-[#2D1B3D] hover:shadow-2xl'
                 }`}
               >
-                {/* Animation Icons */}
                 <ShoppingCart className="cart-icon w-5 h-5" />
                 <div className="box-icon w-3 h-3 bg-current rounded-sm"></div>
-                
-                {/* Original Content */}
                 <span className="cart-text">
-                  {isInCart ? (
-                    <Check className="w-5 h-5 mr-2 inline" />
-                  ) : (
-                    <ShoppingCart className="w-5 h-5 mr-2 inline" />
-                  )}
-                  {isInCart ? 'In Cart!' : !enhancedProductData.inStock ? 'Out of Stock' : 'Add to Cart'}
+                  {isInCart ? <Check className="w-5 h-5 mr-2 inline" /> : <ShoppingCart className="w-5 h-5 mr-2 inline" />}
+                  {isInCart ? 'Go to Cart' : 'Add to Cart'}
                 </span>
-                
-                {/* Added Text for Animation */}
                 <span className="added-text">
                   <Check className="w-5 h-5 mr-2 inline" />
                   Added!
                 </span>
               </button>
-              
+
               <button
                 onClick={handleAddToWishlist}
-                disabled={!enhancedProductData.inStock}
-                className={`wishlist-button-animated ${wishlistButtonClicked ? 'clicked' : ''} p-3 rounded-xl transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl ${
-                  isInWishlist 
-                    ? 'bg-gradient-to-r from-red-500 to-red-600 text-white' 
-                    : !enhancedProductData.inStock
-                      ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
-                    : 'bg-[#9B7BB8] text-[#2D1B3D] hover:bg-[#8A6AA7]'
+                className={`wishlist-button-animated ${wishlistButtonClicked ? 'clicked' : ''} p-3 rounded-xl transition-all duration-200 shadow-lg ${
+                  isInWishlist
+                    ? 'bg-gradient-to-r from-red-500 to-red-600 text-white hover:shadow-xl'
+                    : 'bg-[#9B7BB8] text-[#2D1B3D] hover:bg-[#8A6AA7] hover:shadow-xl'
                 }`}
                 style={{ minWidth: 0 }}
               >
-                {/* Animation Heart */}
-                <Heart className="heart-icon w-5 h-5" />
-                
-                {/* Original Heart */}
-                <Heart className={`w-5 h-5 ${isInWishlist ? 'fill-current' : ''}`} />
+                <Heart className={`heart-static w-5 h-5 ${isInWishlist ? 'fill-current' : ''}`} />
               </button>
             </div>
           </div>
         </div>
 
-        {/* Detailed Tabs Section */}
+        {/* Tabs */}
         <div className="bg-[#9B7BB8] rounded-3xl p-8 lg:p-12 shadow-2xl">
-          {/* Tab Navigation */}
           <div className="flex flex-wrap justify-center gap-4 mb-12">
             {[
               { id: 'overview', label: 'Overview', icon: Eye },
@@ -789,9 +610,7 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
                 key={id}
                 onClick={() => setActiveTab(id)}
                 className={`flex items-center space-x-3 px-6 py-3 rounded-xl text-sm font-semibold transition-all duration-300 transform hover:scale-105 ${
-                  activeTab === id
-                    ? 'bg-gradient-to-r from-white to-gray-100 text-[#2D1B3D] shadow-xl'
-                    : 'bg-[#2D1B3D] text-white hover:bg-[#3D2A54] shadow-lg hover:shadow-xl'
+                  activeTab === id ? 'bg-gradient-to-r from-white to-gray-100 text-[#2D1B3D] shadow-xl' : 'bg-[#2D1B3D] text-white hover:bg-[#3D2A54] shadow-lg hover:shadow-xl'
                 }`}
               >
                 <Icon className="w-5 h-5" />
@@ -800,102 +619,118 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
             ))}
           </div>
 
-          {/* Tab Content */}
           <div className="text-[#2D1B3D]">
             {activeTab === 'overview' && (
-              <div className="space-y-8">
-                <div className="text-center mb-8">
-                  <h3 className="text-3xl font-bold text-[#2D1B3D] mb-4">Overview</h3>
-                  <div className="w-24 h-1 bg-[#2D1B3D]/60 mx-auto"></div>
-                </div>
-                <div className="bg-[#2D1B3D]/70 backdrop-blur-md border-[#2D1B3D]/30 shadow-xl rounded-2xl p-6 sm:p-8 border">
-                  <p className="text-white/90 leading-relaxed text-lg">
+              <div className="space-y-6">
+                {/* Product Description - Mobile Optimized with Read More */}
+                <div className="px-4 sm:px-6 lg:px-12 mb-6">
+                  <p className={`text-[#2D1B3D] text-sm sm:text-base lg:text-lg leading-relaxed text-center font-medium max-w-5xl mx-auto mobile-overview-text ${
+                    expandedDescription ? '' : 'line-clamp-3 sm:line-clamp-none'
+                  }`}>
                     {enhancedProductData.fullDescription}
                   </p>
+                  
+                  {/* Read More Button - Only on Mobile */}
+                  <div className="block sm:hidden text-center mt-3">
+                    <button
+                      onClick={() => setExpandedDescription(!expandedDescription)}
+                      className="text-[#2D1B3D] font-bold text-sm underline hover:text-[#9B7BB8] transition-colors"
+                    >
+                      {expandedDescription ? 'Read Less' : 'Read More'}
+                    </button>
+                  </div>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="bg-[#2D1B3D]/70 backdrop-blur-md border-[#2D1B3D]/30 shadow-xl rounded-2xl p-8 border">
-                    <h4 className="text-xl font-semibold mb-6 text-white/90">Book Details</h4>
-                    <div className="space-y-4 text-white/90">
-                      <div className="flex justify-between items-center py-2 border-b border-white/20">
-                        <span className="font-medium">Language:</span>
-                        <span>{enhancedProductData.language}</span>
+
+                {/* Stunning Carousel with Enhanced Golden Glow */}
+                <div className="relative bg-[#2D1B3D]/70 backdrop-blur-md border-[#2D1B3D]/30 shadow-xl rounded-2xl overflow-hidden border">
+                  <div className="carousel-slide-enter px-12 sm:px-16 lg:px-20 py-8 sm:py-10 lg:py-12">
+                    <div className="flex flex-col lg:flex-row items-center justify-center gap-6 sm:gap-8 lg:gap-12">
+                      {/* 3D Book Image with Enhanced Golden Glow - No Left Border */}
+                      <div className="flex-shrink-0">
+                        <div className="relative w-44 h-60 sm:w-52 sm:h-72 lg:w-60 lg:h-80">
+                          {/* 3D Shadow Effect */}
+                          <div className="absolute inset-0 bg-black/50 rounded-xl blur-xl transform translate-x-3 translate-y-3"></div>
+                          
+                          {/* Book with Enhanced Golden Glow */}
+                          <div className="relative w-full h-full rounded-xl overflow-hidden shadow-2xl transform hover:scale-105 transition-all duration-500"
+                               style={{
+                                 boxShadow: '0 6px 24px rgba(255, 233, 179, 0.4), 0 10px 48px rgba(255, 233, 179, 0.3), 0 3px 12px rgba(255, 247, 193, 0.35)'
+                               }}>
+                            <img 
+                              src={carouselBooks[currentCarouselIndex].image} 
+                              alt="Book"
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex justify-between items-center py-2 border-b border-white/20">
-                        <span className="font-medium">Format:</span>
-                        <span>{enhancedProductData.format}</span>
-                      </div>
-                      <div className="flex justify-between items-center py-2 border-b border-white/20">
-                        <span className="font-medium">File Size:</span>
-                        <span>{enhancedProductData.fileSize}</span>
-                      </div>
-                      <div className="flex justify-between items-center py-2 border-b border-white/20">
-                        <span className="font-medium">Published:</span>
-                        <span>{enhancedProductData.publishDate}</span>
-                      </div>
-                      <div className="flex justify-between items-center py-2">
-                        <span className="font-medium">Pages:</span>
-                        <span>{enhancedProductData.pages}</span>
+
+                      {/* Book Description - Right Side */}
+                      <div className="flex-1 text-center lg:text-left max-w-2xl">
+                        <p className="text-base sm:text-lg lg:text-xl text-white leading-relaxed font-medium">
+                          {carouselBooks[currentCarouselIndex].description}
+                        </p>
                       </div>
                     </div>
                   </div>
-                  <div className="bg-[#2D1B3D]/70 backdrop-blur-md border-[#2D1B3D]/30 shadow-xl rounded-2xl p-8 border">
-                    <h4 className="text-xl font-semibold mb-6 text-white/90">Community</h4>
-                    <div className="space-y-4 text-white/90">
-                      <div className="flex flex-col items-center py-2 border-b border-white/20">
-                        <span className="font-medium text-center">Want to connect with other readers, get exclusive deals, and join book discussions?</span>
-                        <a href="https://t.me/yourtelegram" target="_blank" rel="noopener noreferrer" className="underline text-[#FFD700] font-bold mt-2">Join our Telegram & Discord community!</a>
-                      </div>
-                      <div className="flex justify-between items-center py-2 border-b border-white/20">
-                        <span className="font-medium">Category:</span>
-                        <span>{enhancedProductData.category}</span>
-                      </div>
-                      <div className="flex justify-between items-center py-2 border-b border-white/20">
-                        <span className="font-medium">Rating:</span>
-                        <span>{enhancedProductData.rating}/5 ({reviews.length} reviews)</span>
-                      </div>
-                    </div>
+
+                  {/* Navigation Buttons */}
+                  <button
+                    onClick={prevSlide}
+                    className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 bg-[#9B7BB8] hover:bg-[#8A6AA7] text-white p-2.5 sm:p-3 rounded-full transition-all duration-300 shadow-xl hover:shadow-2xl hover:scale-110 z-20 border-2 border-white/20"
+                  >
+                    <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
+                  </button>
+                  <button
+                    onClick={nextSlide}
+                    className="absolute right-3 sm:right-4 top-1/2 transform -translate-y-1/2 bg-[#9B7BB8] hover:bg-[#8A6AA7] text-white p-2.5 sm:p-3 rounded-full transition-all duration-300 shadow-xl hover:shadow-2xl hover:scale-110 z-20 border-2 border-white/20"
+                  >
+                    <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6" />
+                  </button>
+
+                  {/* Dots Indicator - Hidden on Mobile */}
+                  <div className="hidden sm:flex justify-center space-x-2 py-4">
+                    {carouselBooks.map((_, index) => (
+                      <button
+                        key={index}
+                        onClick={() => setCurrentCarouselIndex(index)}
+                        className={`transition-all duration-300 rounded-full ${
+                          currentCarouselIndex === index 
+                            ? 'bg-[#9B7BB8] w-8 h-2.5 shadow-lg' 
+                            : 'bg-white/50 hover:bg-white/70 w-2.5 h-2.5'
+                        }`}
+                      />
+                    ))}
                   </div>
                 </div>
               </div>
             )}
 
             {activeTab === 'what-you-learn' && (
-              <div className="space-y-8">
-                <div className="text-center mb-8">
-                  <h3 className="text-3xl font-bold text-[#2D1B3D] mb-4">What You Will Learn</h3>
-                  <div className="w-24 h-1 bg-[#2D1B3D]/60 mx-auto"></div>
-                </div>
-                <div className="space-y-6">
-                  {enhancedProductData.learningObjectives?.map((objective, index) => (
-                    <div key={index} className="bg-[#2D1B3D]/70 backdrop-blur-md border-[#2D1B3D]/30 shadow-xl rounded-2xl p-6 border transition-all duration-300">
-                      <div className="flex items-start space-x-4">
-                        <div className="bg-[#9B7BB8] text-[#2D1B3D] w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0">
-                          {index + 1}
-                        </div>
-                        <p className="text-white/90 leading-relaxed">{objective}</p>
-                      </div>
-                    </div>
-                  )) || [
-                    "Master modern web development frameworks and tools",
-                    "Learn responsive design principles and best practices",
-                    "Understand advanced JavaScript concepts and ES6+ features",
-                    "Build scalable and maintainable applications",
-                    "Implement security best practices in web applications",
-                    "Deploy applications to production environments"
-                  ].map((objective, index) => (
-                    <div key={index} className="bg-[#2D1B3D]/70 backdrop-blur-md border-[#2D1B3D]/30 shadow-xl rounded-2xl p-6 border transition-all duration-300">
-                      <div className="flex items-start space-x-4">
-                        <div className="bg-[#9B7BB8] text-[#2D1B3D] w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0">
-                          {index + 1}
-                        </div>
-                        <p className="text-white/90 leading-relaxed">{objective}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+            <div className="space-y-6 sm:space-y-8">
+              <div className="text-center mb-6 sm:mb-8">
+                <h3 className="text-2xl sm:text-3xl font-bold text-[#2D1B3D] mb-3 sm:mb-4">What You Will Learn</h3>
+                <div className="w-20 sm:w-24 h-1 bg-[#2D1B3D]/60 mx-auto"></div>
               </div>
-            )}
+              <div className="space-y-3 sm:space-y-6">
+                {(enhancedProductData.learningObjectives || [
+                  "Master modern web development frameworks and tools",
+                  "Learn responsive design principles and best practices",
+                  "Understand advanced JavaScript concepts and ES6+ features",
+                  "Build scalable and maintainable applications",
+                  "Implement security best practices in web applications",
+                  "Deploy applications to production environments"
+                ]).map((objective, index) => (
+                  <div key={index} className="bg-[#2D1B3D]/70 backdrop-blur-md border-[#2D1B3D]/30 shadow-xl rounded-xl sm:rounded-2xl p-4 sm:p-6 border transition-all duration-300">
+                    <div className="flex items-start space-x-3 sm:space-x-4">
+                      <div className="bg-[#9B7BB8] text-[#2D1B3D] w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-bold text-xs sm:text-sm flex-shrink-0">{index + 1}</div>
+                      <p className="text-white/90 leading-relaxed text-sm sm:text-base line-clamp-2">{objective}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
             {activeTab === 'contents' && (
               <div className="space-y-8">
@@ -906,11 +741,9 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
                 <div className="space-y-6">
                   {enhancedProductData.tableOfContents.map((section, sectionIndex) => (
                     <div key={sectionIndex} className="group bg-[#2D1B3D]/70 backdrop-blur-md border-[#2D1B3D]/30 shadow-xl rounded-2xl p-6 border transition-all duration-300">
-                      {/* Section Header with Image */}
                       <div className="flex items-center justify-between cursor-pointer" onClick={() => toggleSection(sectionIndex)}>
                         <div className="flex items-center space-x-4">
-                          {/* Section Image - book aspect ratio */}
-                          <div className="w-16 h-24 rounded-lg overflow-hidden bg-gradient-to-br from-white to-gray-100 shadow-lg flex items-center justify-center">
+                          <div className="w-12 h-18 sm:w-16 sm:h-24 rounded-lg overflow-hidden bg-gradient-to-br from-white to-gray-100 shadow-lg flex items-center justify-center">
                             {!imageErrors[`section-${sectionIndex}`] && section.image ? (
                               <img
                                 src={section.image}
@@ -929,13 +762,12 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
                         </div>
                         <ChevronDown className={`w-5 h-5 transition-transform duration-300 text-white/70 ${expandedSections[sectionIndex] ? 'rotate-180' : ''}`} />
                       </div>
-                      {/* Expanded Chapters */}
+
                       {expandedSections[sectionIndex] && (
-                        <div className="pl-20 mt-6 space-y-4">
+                        <div className="pl-4 sm:pl-20 mt-6 space-y-4">
                           {section.chapters.map((chapter, chapterIndex) => (
                             <div key={chapterIndex} className="group bg-[#2D1B3D]/50 backdrop-blur-md border-[#2D1B3D]/20 shadow-lg rounded-2xl p-4 border transition-all duration-300">
-                              <div className="flex items-center space-x-4">
-                                {/* Chapter Thumbnail - book aspect ratio */}
+                              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
                                 <div className="w-10 h-14 rounded-lg overflow-hidden bg-gradient-to-br from-white to-gray-100 shadow-md flex-shrink-0 flex items-center justify-center">
                                   {!imageErrors[`chapter-${sectionIndex}-${chapterIndex}`] && chapter.thumbnail ? (
                                     <img
@@ -951,26 +783,26 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
                                     </div>
                                   )}
                                 </div>
-                                {/* Chapter Info */}
-                                <div className="flex-1 min-w-0">
-                                  <h4 className="text-white/90 text-lg font-semibold leading-relaxed">{chapter.title}</h4>
+
+                                <div className="flex-1 min-w-0 w-full">
+                                  <h4 className="text-white/90 text-base sm:text-lg font-semibold leading-snug break-words">{chapter.title}</h4>
                                   <div className="flex items-center space-x-2 mt-1">
                                     <span className="text-white/60 text-sm">PDF available</span>
                                     <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                                   </div>
                                 </div>
-                                {/* Download/View Button */}
+
                                 {chapter.pdf ? (
                                   <button
                                     onClick={() => handleChapterView(chapter)}
-                                    className="bg-[#9B7BB8] hover:bg-[#8A6AA7] text-[#2D1B3D] px-3 py-2 rounded-lg text-sm font-semibold transition-all duration-300 shadow-lg flex items-center space-x-1"
+                                    className="bg-[#9B7BB8] hover:bg-[#8A6AA7] text-[#2D1B3D] px-3 py-2 rounded-lg text-sm font-semibold transition-all duration-300 shadow-lg flex items-center justify-center space-x-1 w-full sm:w-auto sm:self-auto"
                                   >
                                     <Eye className="w-4 h-4" />
                                     <span>View</span>
                                   </button>
                                 ) : (
                                   <button
-                                    className="bg-gray-400 text-white px-3 py-2 rounded-lg text-sm font-semibold cursor-not-allowed flex items-center space-x-1"
+                                    className="bg-gray-400 text-white px-3 py-2 rounded-lg text-sm font-semibold cursor-not-allowed flex items-center justify-center space-x-1 w-full sm:w-auto sm:self-auto"
                                     disabled
                                     title="PDF not available"
                                   >
@@ -991,18 +823,13 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
           </div>
         </div>
 
-        {/* Reviews Section - Same Scrolling Behavior as Home Page */}
-        <div ref={reviewsSectionRef} className="bg-[#9B7BB8] rounded-3xl p-8 lg:p-12 shadow-2xl mt-20">
-          {/* Header */}
+        {/* Reviews Section */}
+        <div ref={reviewsSectionRef} className="mt-16 py-8 sm:py-12 md:py-16 lg:py-20 relative overflow-hidden">
           <div className="text-center mb-8 sm:mb-16">
-            <h3 className="text-2xl sm:text-4xl lg:text-5xl font-bold mb-4 sm:mb-6 text-[#2D1B3D] px-4">
-              What Our Readers Say
-            </h3>
-            <p className="text-sm sm:text-xl text-[#2D1B3D]/80 max-w-2xl mx-auto mb-6 sm:mb-8 font-medium px-4">
+            <h3 className="text-2xl sm:text-4xl lg:text-5xl font-bold mb-4 sm:mb-6 text-white px-4">What Our Readers Say</h3>
+            <p className="text-sm sm:text-xl text-white/70 max-w-2xl mx-auto mb-6 sm:mb-8 font-medium px-4">
               Join thousands of satisfied readers who have transformed their reading experience
             </p>
-            
-            {/* Add Review Button */}
             <button
               onClick={() => setShowReviewForm(true)}
               className="inline-flex items-center space-x-2 bg-[#2D1B3D] text-white px-4 sm:px-6 py-2 sm:py-3 rounded-full hover:bg-[#3D2A54] transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 font-semibold text-sm sm:text-base"
@@ -1012,46 +839,35 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
             </button>
           </div>
 
-          {/* Continuous Scrolling Reviews Container - Same as Home Page */}
           <div className="relative overflow-hidden" style={{ height: '280px', paddingTop: '20px', paddingBottom: '20px' }}>
-            <div 
-              className="flex gap-4 sm:gap-8 w-max"
-              style={{
-                animation: isPaused ? 'none' : 'scroll 80s linear infinite',
-                transform: 'translateX(0)'
-              }}
+            <div
+              ref={scrollContainerRef}
+              className="flex gap-4 sm:gap-8 w-max transition-all duration-500 ease-out"
               onMouseEnter={() => setIsPaused(true)}
               onMouseLeave={() => setIsPaused(false)}
+              style={{
+                transform: 'translateX(0px)',
+                willChange: 'transform'
+              }}
             >
               {duplicatedReviews.map((review, index) => (
-                <div 
+                <div
                   key={`${review.id}-${index}`}
                   className="bg-[#2D1B3D]/70 backdrop-blur-md border-[#2D1B3D]/30 shadow-xl rounded-2xl p-4 sm:p-8 transition-all duration-300 relative group border w-64 sm:w-80 flex-shrink-0"
                 >
-                  {/* Quote Icon */}
                   <div className="absolute top-3 right-3 sm:top-4 sm:right-4 opacity-30 group-hover:opacity-50 text-white/80 transition-opacity duration-300">
                     <Quote className="w-6 h-6 sm:w-8 sm:h-8" />
                   </div>
-                  
-                  {/* Rating */}
                   <div className="flex justify-center mb-4 sm:mb-6">
                     <div className="flex">
                       {[...Array(5)].map((_, i) => (
-                        <Star 
-                          key={i} 
-                          className={`w-4 h-4 sm:w-6 sm:h-6 ${i < review.rating ? 'text-yellow-400 fill-current' : 'text-white/40'}`} 
-                        />
+                        <Star key={i} className={`w-4 h-4 sm:w-6 sm:h-6 ${i < review.rating ? 'text-yellow-400 fill-current' : 'text-white/40'}`} />
                       ))}
                     </div>
                   </div>
-                  
-                  {/* Review Text */}
-                  <p className="italic leading-relaxed text-sm sm:text-base text-white/90 text-center">
-                    "{review.text}"
-                  </p>
-
+                  <p className="italic leading-relaxed text-sm sm:text-base text-white/90 text-center">"{review.text}"</p>
                   <div className="flex justify-center mt-3">
-                    <span className="text-xs sm:text-sm text-[#FFD700] font-semibold opacity-80 rounded-full px-2 py-0.5 bg-[#2D1B3D]/30" style={{fontFamily: 'cursive'}}>
+                    <span className="text-xs sm:text-sm text-[#FFD700] font-semibold opacity-80 rounded-full px-2 py-0.5 bg-[#2D1B3D]/30" style={{ fontFamily: 'cursive' }}>
                       {review.name}
                     </span>
                   </div>
@@ -1061,64 +877,243 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
           </div>
         </div>
 
+    {/* Suggested Books - Cute & Compact for All Devices */}
+    {suggestedBooks.length > 0 && (
+      <div className="mt-12 md:mt-16 lg:mt-20 py-8 md:py-12 relative">
+        <div className="text-center mb-8 md:mb-12">
+          <div className="inline-flex items-center bg-white/10 backdrop-blur-sm rounded-full px-4 sm:px-6 py-2 sm:py-3 mb-4 sm:mb-6 border border-white/20 shadow-lg">
+            <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-white mr-2" />
+            <span className="text-white font-bold text-sm sm:text-base">You Might Also Like</span>
+          </div>
+          <h3 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-2 sm:mb-4 px-4">Suggested Books</h3>
+          <p className="text-white/60 text-sm sm:text-base lg:text-lg max-w-2xl mx-auto px-4">
+            Handpicked recommendations from our featured collection
+          </p>
+        </div>
+
+        {/* Mobile: Compact Cards */}
+        <div className="block sm:hidden space-y-3 px-4">
+          {suggestedBooks.map((book) => (
+            <div
+              key={book.id}
+              className="cursor-pointer transform transition-all duration-300"
+              style={{
+                boxShadow: hoveredSuggested === book.id 
+                  ? '0 0 0 2px #FFE9B3, 0 6px 24px 0 rgba(255, 233, 179, 0.4), 0 3px 12px 0 rgba(255, 247, 193, 0.35)'
+                  : '0 3px 15px rgba(0,0,0,0.3)',
+                borderRadius: '16px'
+              }}
+              onClick={() => handleSuggestedBookClick(book)}
+              onTouchStart={() => setHoveredSuggested(book.id)}
+              onTouchEnd={() => setHoveredSuggested(null)}
+            >
+              <div className="bg-[#1A0F2E]/90 backdrop-blur-md rounded-2xl p-3 border border-white/20 overflow-hidden">
+                <div className="flex gap-3">
+                  {/* Compact Book Image */}
+                  <div className="relative w-20 h-28 flex-shrink-0 rounded-lg overflow-hidden shadow-lg">
+                    <img src={book.image} alt={book.title} className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent"></div>
+                  </div>
+
+                  {/* Compact Book Info */}
+                  <div className="flex-1 flex flex-col justify-between min-w-0">
+                    <div>
+                      <h4 className="text-sm font-bold text-white line-clamp-2 leading-tight mb-1">
+                        {book.title}
+                      </h4>
+                      <p className="text-white/60 font-medium text-xs mb-1">by {book.author}</p>
+                      
+                      <div className="flex items-center space-x-1 mb-1">
+                        {[...Array(5)].map((_, i) => (
+                          <Star key={i} className={`w-2.5 h-2.5 ${i < Math.floor(book.rating) ? 'text-yellow-400 fill-current' : 'text-white/20'}`} />
+                        ))}
+                        <span className="text-white font-semibold text-xs ml-1">{book.rating}</span>
+                      </div>
+
+                      <div className="flex items-center space-x-1.5 mb-1">
+                        <span className="text-lg font-bold text-white">₹{book.price}</span>
+                        <span className="text-xs text-white/40 line-through">₹{book.originalPrice}</span>
+                      </div>
+                      <div className="text-xs font-bold text-green-400">{book.discount}</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Compact Action Buttons */}
+                <div className="flex gap-2 mt-3">
+                  <button
+                    onClick={(e) => handleSuggestedCartAction(e, book)}
+                    className={`flex-1 py-1.5 px-2 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-md ${
+                      isSuggestedInCart(book)
+                        ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
+                        : 'bg-gradient-to-r from-white to-gray-100 text-[#2D1B3D]'
+                    }`}
+                  >
+                    {isSuggestedInCart(book) ? <Check className="w-3 h-3" /> : <ShoppingCart className="w-3 h-3" />}
+                    <span>{isSuggestedInCart(book) ? 'Cart' : 'Add'}</span>
+                  </button>
+                  <button
+                    onClick={(e) => handleSuggestedToggleWishlist(e, book)}
+                    className={`p-1.5 rounded-lg transition-all shadow-md ${
+                      isSuggestedInWishlist(book)
+                        ? 'bg-gradient-to-r from-red-500 to-pink-600 text-white'
+                        : 'bg-[#9B7BB8] text-white'
+                    }`}
+                  >
+                    <Heart className={`w-3.5 h-3.5 ${isSuggestedInWishlist(book) ? 'fill-current' : ''}`} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Tablet & Desktop: Cute Compact Cards */}
+        <div className="hidden sm:grid grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 max-w-6xl mx-auto px-4">
+          {suggestedBooks.map((book) => (
+            <div
+              key={book.id}
+              className="group cursor-pointer transform transition-all duration-500 hover:scale-105"
+              style={{
+                boxShadow: hoveredSuggested === book.id 
+                  ? '0 0 0 2px #FFE9B3, 0 8px 32px 0 rgba(255, 233, 179, 0.5), 0 4px 16px 0 rgba(255, 247, 193, 0.4)'
+                  : '0 6px 24px rgba(0,0,0,0.4)',
+                borderRadius: '20px',
+                transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)'
+              }}
+              onClick={() => handleSuggestedBookClick(book)}
+              onMouseEnter={() => setHoveredSuggested(book.id)}
+              onMouseLeave={() => setHoveredSuggested(null)}
+            >
+              <div className="relative bg-[#1A0F2E]/85 backdrop-blur-md rounded-[20px] p-5 border border-white/20 overflow-hidden h-full flex flex-col">
+                
+                {/* Compact Book Image */}
+                <div className="relative mb-4 flex justify-center">
+                  <div className="relative w-32 h-44 lg:w-36 lg:h-48 rounded-xl overflow-hidden shadow-2xl transition-all duration-700 group-hover:shadow-3xl">
+                    <img 
+                      src={book.image} 
+                      alt={book.title} 
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
+                  </div>
+                </div>
+
+                {/* Compact Book Info */}
+                <div className="text-center space-y-2 flex-1 flex flex-col">
+                  <h4 className="text-base lg:text-lg font-bold text-white line-clamp-2 leading-tight transition-all duration-300 group-hover:text-[#FFE9B3]">
+                    {book.title}
+                  </h4>
+                  <p className="text-white/60 font-medium text-xs lg:text-sm">by {book.author}</p>
+
+                  <div className="flex items-center justify-center space-x-1 py-1">
+                    <div className="flex">
+                      {[...Array(5)].map((_, i) => (
+                        <Star key={i} className={`w-3 h-3 lg:w-3.5 lg:h-3.5 ${i < Math.floor(book.rating) ? 'text-yellow-400 fill-current' : 'text-white/20'}`} />
+                      ))}
+                    </div>
+                    <span className="text-white font-semibold text-xs lg:text-sm ml-1">{book.rating}</span>
+                  </div>
+
+                  <div className="py-1 flex-1 flex flex-col justify-center">
+                    <div className="flex items-center justify-center space-x-2 mb-1">
+                      <span className="text-xl lg:text-2xl font-bold text-white">₹{book.price}</span>
+                      <span className="text-xs lg:text-sm text-white/40 line-through">₹{book.originalPrice}</span>
+                    </div>
+                    <div className="text-xs lg:text-sm font-bold text-green-400">
+                      {book.discount}
+                    </div>
+                  </div>
+
+                  {/* Compact Action Buttons */}
+                  <div className="flex gap-2 w-full pt-2 mt-auto">
+                    <button
+                      onClick={(e) => handleSuggestedCartAction(e, book)}
+                      disabled={animatingSuggestedCart[book.id]}
+                      className={`cart-button-animated ${suggestedCartClicked[book.id] ? 'clicked' : ''} flex-1 py-2 px-2 rounded-xl font-bold text-xs lg:text-sm flex items-center justify-center gap-1.5 transition-all duration-300 hover:scale-105 shadow-xl ${
+                        isSuggestedInCart(book)
+                          ? 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white'
+                          : 'bg-gradient-to-r from-white to-gray-100 hover:from-yellow-100 hover:to-yellow-50 text-[#2D1B3D]'
+                      }`}
+                    >
+                      {isSuggestedInCart(book) ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
+                          <span className="hidden lg:inline">Go to Cart</span>
+                          <span className="lg:hidden">Cart</span>
+                        </>
+                      ) : (
+                        <>
+                          <ShoppingCart className="cart-icon w-3.5 h-3.5 lg:w-4 lg:h-4" />
+                          <div className="box-icon w-1.5 h-1.5 lg:w-2 lg:h-2 bg-current rounded-sm"></div>
+                          <span className="cart-text">
+                            {animatingSuggestedCart[book.id] ? 'Adding...' : 'Add'}
+                          </span>
+                          <span className="added-text flex items-center gap-1">
+                            <Check className="w-3 h-3" />
+                            Added!
+                          </span>
+                        </>
+                      )}
+                    </button>
+
+                    <button
+                      onClick={(e) => handleSuggestedToggleWishlist(e, book)}
+                      disabled={animatingSuggestedWishlist[book.id]}
+                      className={`wishlist-button-animated ${suggestedWishlistClicked[book.id] ? 'clicked' : ''} p-2 rounded-xl transition-all duration-300 hover:scale-110 shadow-lg ${
+                        isSuggestedInWishlist(book)
+                          ? 'bg-gradient-to-r from-red-500 to-pink-600 text-white'
+                          : 'bg-[#9B7BB8] text-white hover:bg-[#8A6AA7]'
+                      }`}
+                    >
+                      <Heart className={`heart-static w-4 h-4 lg:w-4.5 lg:h-4.5 ${isSuggestedInWishlist(book) ? 'fill-current' : ''}`} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
+
         {/* Review Form Modal */}
         {showReviewForm && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl p-6 sm:p-8 max-w-md w-full mx-4 shadow-2xl relative max-h-[calc(100%-2rem)] overflow-y-auto">
-              <button
-                onClick={() => setShowReviewForm(false)}
-                className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 transition-colors"
-              >
+              <button onClick={() => setShowReviewForm(false)} className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 transition-colors">
                 <X className="w-5 h-5 sm:w-6 sm:h-6" />
               </button>
-              
               <h3 className="text-xl sm:text-2xl font-bold text-[#2D1B3D] mb-4 sm:mb-6 pr-8">Share Your Experience</h3>
-              
               <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-[#2D1B3D] mb-2">Your Name</label>
-                  <input
-                    type="text"
-                    value={newReview.name}
-                    onChange={e => setNewReview({ ...newReview, name: e.target.value })}
-                    className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#9B7BB8] focus:border-transparent transition-all text-sm sm:text-base mb-2"
-                    placeholder="Enter your name..."
-                    maxLength={32}
-                  />
-                </div>
-                
                 <div>
                   <label className="block text-sm font-medium text-[#2D1B3D] mb-2">Rating</label>
                   <div className="flex space-x-1">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <button
-                        key={star}
-                        type="button"
-                        onClick={() => setNewReview({...newReview, rating: star})}
-                        className="text-2xl transition-colors"
-                      >
-                        <Star 
-                          className={`w-5 h-5 sm:w-6 sm:h-6 ${star <= newReview.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
-                        />
+                    {[1, 2, 3, 4, 5].map(star => (
+                      <button key={star} type="button" onClick={() => setNewReview({ ...newReview, rating: star })} className="text-2xl transition-colors">
+                        <Star className={`w-5 h-5 sm:w-6 sm:h-6 ${star <= newReview.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} />
                       </button>
                     ))}
                   </div>
                 </div>
-                
                 <div>
                   <label className="block text-sm font-medium text-[#2D1B3D] mb-2">Your Review</label>
                   <textarea
                     value={newReview.text}
-                    onChange={(e) => setNewReview({...newReview, text: e.target.value})}
+                    onChange={e => setNewReview({ ...newReview, text: e.target.value })}
                     rows={4}
                     className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#9B7BB8] focus:border-transparent transition-all resize-none text-sm sm:text-base"
                     placeholder="Share your experience with our platform..."
+                    maxLength={200}
                   />
+                  <div className="text-right text-xs text-gray-500 mt-1">
+                    {newReview.text.length}/200
+                  </div>
                 </div>
-                
                 <button
                   onClick={handleSubmitReview}
-                  className="w-full bg-[#2D1B3D] text-white py-2 sm:py-3 rounded-lg hover:bg-[#3D2A54] transition-all duration-300 font-medium flex items-center justify-center space-x-2 text-sm sm:text-base"
+                  disabled={!newReview.text.trim()}
+                  className="w-full bg-[#2D1B3D] text-white py-2 sm:py-3 rounded-lg hover:bg-[#3D2A54] transition-all duration-300 font-medium flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
                 >
                   <Send className="w-4 h-4 sm:w-5 sm:h-5" />
                   <span>Submit Review</span>
@@ -1128,19 +1123,14 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
           </div>
         )}
 
-        {/* Chapter Details Modal */}
+        {/* Chapter Modal */}
         {showChapterModal && selectedChapter && (
           <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl p-6 sm:p-8 max-w-md w-full mx-4 shadow-2xl relative max-h-[calc(100%-2rem)] overflow-y-auto">
-              <button
-                onClick={closeChapterModal}
-                className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 transition-colors"
-              >
+              <button onClick={closeChapterModal} className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 transition-colors">
                 <X className="w-5 h-5 sm:w-6 sm:h-6" />
               </button>
-              
               <h3 className="text-xl sm:text-2xl font-bold text-[#2D1B3D] mb-4 sm:mb-6 pr-8">Chapter Details</h3>
-              
               <div className="space-y-4">
                 <div className="flex items-center space-x-4">
                   <div className="w-24 h-32 rounded-lg overflow-hidden bg-gradient-to-br from-white to-gray-100 shadow-md flex-shrink-0 flex items-center justify-center">
@@ -1163,7 +1153,7 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
                     <p className="text-[#2D1B3D]/60 text-sm">PDF available</p>
                   </div>
                 </div>
-                
+
                 <div className="flex justify-end space-x-2">
                   <button
                     onClick={() => {
@@ -1174,10 +1164,7 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
                   >
                     Download PDF
                   </button>
-                  <button
-                    onClick={closeChapterModal}
-                    className="bg-gray-400 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300 shadow-lg"
-                  >
+                  <button onClick={closeChapterModal} className="bg-gray-400 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300 shadow-lg">
                     Close
                   </button>
                 </div>
@@ -1186,115 +1173,8 @@ const ProductSection = ({ cart = [], wishlist = [], onAddToCart, onRemoveFromCar
           </div>
         )}
       </div>
-      {/* Mobile Responsive Styles for 400px */}
-      <style jsx>{`
-        @keyframes scroll {
-          0% {
-            transform: translateX(0);
-          }
-          100% {
-            transform: translateX(-50%);
-          }
-        }
-        
-        @media (max-width: 640px) {
-          .group:hover {
-            transform: none !important;
-            z-index: initial !important;
-          }
-        }
-        
-        @media (max-width: 400px) {
-          .pt-32 {
-            padding-top: 1.5rem;
-          }
-          .pb-8 {
-            padding-bottom: 1rem;
-          }
-          .w-40 {
-            width: 120px !important;
-          }
-          .h-56 {
-            height: 170px !important;
-          }
-          .w-10 {
-            width: 40px !important;
-          }
-          .h-14 {
-            height: 56px !important;
-          }
-          .w-[30%] {
-            width: 30% !important;
-          }
-          .w-[70%] {
-            width: 70% !important;
-          }
-          .p-4 {
-            padding: 0.75rem !important;
-          }
-          .rounded-xl {
-            border-radius: 0.75rem !important;
-          }
-          .gap-2 {
-            gap: 0.5rem !important;
-          }
-          .mb-4 {
-            margin-bottom: 1rem !important;
-          }
-          .flex-row {
-            flex-direction: row !important;
-          }
-          .flex-col {
-            flex-direction: column !important;
-          }
-          .items-center {
-            align-items: center !important;
-          }
-          .justify-center {
-            justify-content: center !important;
-          }
-          .text-xs {
-            font-size: 0.75rem !important;
-          }
-          .text-base {
-            font-size: 1rem !important;
-          }
-          .font-semibold {
-            font-weight: 600 !important;
-          }
-          .font-bold {
-            font-weight: 700 !important;
-          }
-          .back-to-library-mobile-fix {
-            margin-top: 4rem;
-          }
-          .back-to-library-btn-mobile {
-            margin-left: 0 !important;
-            margin-right: auto !important;
-            display: flex !important;
-          }
-          .main-book-image-mobile-fix {
-            max-width: 230px !important;
-          }
-          .about-section-mobile-fix {
-            font-size: 0.92rem !important;
-            padding: 1rem !important;
-            border-radius: 0.7rem !important;
-          }
-          .text-3xl {
-            font-size: 1.15rem !important;
-          }
-          .text-lg {
-            font-size: 0.98rem !important;
-          }
-          .p-8 {
-            padding: 1rem !important;
-          }
-        }
-      `}</style>
     </div>
   );
 };
 
 export default ProductSection;
-
