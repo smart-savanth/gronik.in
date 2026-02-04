@@ -71,18 +71,16 @@ searchBooks: builder.mutation({
     }),
 
     /* ---------------- UPDATE BOOK (EDIT) ---------------- */
-    updateBook: builder.mutation({
-      query: ({ id, body }) => ({
-        url: '/product/saveBook',
-        method: 'POST',
-        data: {
-          ...body,
-          id, // backend uses id to update
-        },
-      }),
-      invalidatesTags: ['Books'],
-    }),
-
+  updateBook: builder.mutation({
+  query: ({ id, body }) => ({
+    url: '/product/saveBook',
+    method: 'POST',
+    data: {
+      ...body,
+      id,
+    },
+  }),
+}),
     /* ---------------- UPLOAD COVER ---------------- */
     uploadCover: builder.mutation({
       query: ({ bookId, slug, data }) => ({
