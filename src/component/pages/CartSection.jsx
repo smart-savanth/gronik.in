@@ -250,7 +250,7 @@ src={displayImage}
   className="absolute inset-0 w-full h-full object-cover scale-[1.03]"
 />
                         <div className="absolute top-2 right-2">
-                          <button
+                          {/* <button
                              onClick={(e) => {
                                 e.stopPropagation();
                                 handleAddWishlist(item);
@@ -258,7 +258,7 @@ src={displayImage}
                             className={`p-1 bg-[#2D1B3D]/80 rounded-full hover:bg-[#3D2A54]/80 transition-colors duration-200 ${wishlist.some(w => w.id === item.id) ? 'animate-pulse' : ''}`}
                           >
                             <Heart className={`w-4 h-4 ${wishlist.some(w => w.id === item.id) ? 'fill-current text-white' : 'text-white'}`} />
-                          </button>
+                          </button> */}
                         </div>
                       </div>
                     </div>
@@ -410,12 +410,12 @@ src={displayImage}
 />
 
                         </div>
-                        <button
+                        {/* <button
                           onClick={() => addToWishlist(item)}
                           className={`absolute -top-0.5 -right-0.5 w-6 h-6 bg-[#2D1B3D]/90 hover:bg-[#3D2A54]/90 rounded-full transition-colors duration-200 shadow-lg flex items-center justify-center ${wishlist.some(w => w.id === item.id) ? 'animate-pulse' : ''}`}
                         >
                           <Heart className={`w-4 h-4 ${wishlist.some(w => w.id === item.id) ? 'fill-current text-white' : 'text-white hover:text-gray-200'}`} />
-                        </button>
+                        </button> */}
                       </div>
 
                       {/* Product Details */}
