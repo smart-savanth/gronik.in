@@ -1,109 +1,51 @@
-import React, { useState, useRef ,useEffect} from 'react';
-import { useNavigate } from 'react-router-dom';
-import { User, Mail, Phone, Edit, Save, X, BookOpen, ShoppingCart, LogOut, Heart, Settings, Camera, Trash2, Lock } from 'lucide-react';
-import { useSelector, useDispatch } from 'react-redux';
-import { setUser,logout } from '../../slices/userAuthSlice';
-import { getUserById,updateUser ,updateUserStatus} from '../../utils/userServices';
-const DEFAULT_AVATAR = '';
+import React, { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  User,
+  Mail,
+  Phone,
+  Edit,
+  Save,
+  X,
+  BookOpen,
+  ShoppingCart,
+  LogOut,
+  Heart,
+  Settings,
+  Camera,
+  Trash2,
+  Lock,
+} from "lucide-react";
+import { useSelector, useDispatch } from "react-redux";
+import { setUser, logout } from "../../slices/userAuthSlice";
+import {
+  getUserById,
+  updateUser,
+  updateUserStatus,
+} from "../../utils/userServices";
+const DEFAULT_AVATAR = "";
 
 const ProfileSection = () => {
   const navigate = useNavigate();
   // Simulate login method: 'email' or 'mobile'
-  const [loginMethod] = useState('email'); // Change to 'mobile' to test mobile login
+  const [loginMethod] = useState("email"); // Change to 'mobile' to test mobile login
   const { user, token } = useSelector((state) => state.userAuth);
   const dispatch = useDispatch();
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState(user || {});
-  const [imagePreview, setImagePreview] = useState(user?.profileImage || '');
+  const [imagePreview, setImagePreview] = useState(user?.profileImage || "");
   const fileInputRef = useRef(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [userDetails, setUserDetails] = useState(null);
+  const [uploadError, setUploadError] = useState("");
 
- const handleEdit = async () => {
-  try {
-    if (!user?.guid) {
-      console.error("No user GUID found");
-      return;
-    }
-
-    const response = await getUserById(user.guid);
-    const fetchedUser = response.data.data;
-
-    setEditData({
-      guid: fetchedUser.guid,
-      full_name: fetchedUser.full_name,
-      role_name: fetchedUser.role_name,
-    });
-
-    setImagePreview(fetchedUser.profileImage || "");
-
-    setIsEditing(true);
-  } catch (error) {
-    console.error("Error fetching user details:", error);
-  }
-};
-
-  
-  useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        if (user?.guid) {
-          const response = await getUserById(user.guid);
-          setUserDetails(response.data.data); 
-        } 
-      } catch (error) {
-        console.error("Error fetching user details:", error);
-      }
-    };
-
-    fetchUser();
-  }, [user]);
-const handleSave = async () => {
-  try {
-    if (!editData?.guid) {
-      console.error("No user GUID found");
-      return;
-    }
-
-    const payload = {
-      guid: editData.guid,
-      role_name: editData.role_name,
-      full_name: editData.full_name,
-    };
-
-    // Call API
-    await updateUser(editData.guid, payload);
-
-    // Optionally refetch user data from backend to get updated record
-    const refreshed = await getUserById(editData.guid);
-    const updatedUser = refreshed.data.data;
-
-    // Update Redux store so rest of app sees latest info
-    dispatch(setUser(updatedUser));
-
-    // Update local state (for immediate UI feedback)
-    setUserDetails(updatedUser);
-    setIsEditing(false);
-
-  } catch (error) {
-    console.error("Error updating user:", error);
-  }
-};
-
-
-  const handleCancel = () => {
-    setEditData(user || {});
-    setImagePreview(user?.profileImage || '');
-    setIsEditing(false);
-  };
-
-  const handleInputChange = (field, value) => {
-    setEditData(prev => ({ ...prev, [field]: value }));
-  };
+  const [selectedFile, setSelectedFile] = useState(null);
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      setSelectedFile(file); // 🔥 store file for upload
+
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result);
@@ -112,40 +54,172 @@ const handleSave = async () => {
     }
   };
 
+  const handleEdit = async () => {
+    try {
+      if (!user?.guid) {
+        console.error("No user GUID found");
+        return;
+      }
+
+      const response = await getUserById(user.guid);
+      const fetchedUser = response.data.data;
+
+      setEditData({
+        guid: fetchedUser.guid,
+        full_name: fetchedUser.full_name,
+        role_name: fetchedUser.role_name,
+      });
+
+      setImagePreview(
+        fetchedUser.profileImage
+          ? `${process.env.REACT_APP_BASE_URL}/${fetchedUser.profileImage}`
+          : "",
+      );
+
+      setIsEditing(true);
+    } catch (error) {
+      console.error("Error fetching user details:", error);
+    }
+  };
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        if (user?.guid) {
+          console.log("Fetching profile for GUID:", user.guid);
+
+          const response = await getUserById(user.guid);
+          console.log("Full API response:", response);
+
+          const fetched = response.data.data;
+          console.log("Profile data received:", fetched);
+
+          setUserDetails(fetched);
+
+          setImagePreview(
+  fetched.profile_url
+    ? `${process.env.REACT_APP_BASE_URL}${fetched.profile_url}`
+    : ""
+);
+        }
+      } catch (error) {
+        console.error("Error fetching user details:", error);
+      }
+    };
+
+    fetchUser();
+  }, [user]);
+
+  const handleSave = async () => {
+    try {
+      if (!editData?.guid) return;
+
+      const payload = {
+        guid: editData.guid,
+        role_name: editData.role_name,
+        full_name: editData.full_name,
+      };
+
+      await updateUser(editData.guid, payload);
+
+      // 🔥 Upload image if changed
+      if (selectedFile) {
+        await uploadProfilePicture();
+      }
+
+      const refreshed = await getUserById(editData.guid);
+      const updatedUser = refreshed.data.data;
+
+      dispatch(setUser(updatedUser));
+      setUserDetails(updatedUser);
+
+      setIsEditing(false);
+      setSelectedFile(null);
+    } catch (error) {
+      console.error("Error updating user:", error);
+    }
+  };
+
+  const handleCancel = () => {
+    setEditData(user || {});
+    setImagePreview(user?.profileImage || "");
+    setIsEditing(false);
+  };
+
+  const handleInputChange = (field, value) => {
+    setEditData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const uploadProfilePicture = async () => {
+    if (!selectedFile || !user?.guid) return;
+
+    setUploadError(""); // clear previous error
+
+    const formData = new FormData();
+    formData.append("profile_picture", selectedFile);
+
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/user/${user.guid}/upload-profile-picture`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
+        },
+      );
+
+      const result = await response.json();
+
+      console.log("Upload response:", result);
+
+      if (!response.ok) {
+        throw new Error(result?.msg || "Upload failed");
+      }
+
+      console.log("Upload successful");
+    } catch (error) {
+      console.error("Upload error:", error);
+      setUploadError(error.message || "Upload failed");
+      throw error; // rethrow so handleSave knows it failed
+    }
+  };
+
   const openFilePicker = () => {
     if (fileInputRef.current) fileInputRef.current.click();
   };
 
-const handleLogout = () => {
-  if (window.confirm('Are you sure you want to logout?')) {
-    dispatch(logout());  
-    navigate('/login');
-  }
-};
+  const handleLogout = () => {
+    if (window.confirm("Are you sure you want to logout?")) {
+      dispatch(logout());
+      navigate("/login");
+    }
+  };
 
   const handleDeleteAccount = () => {
     setShowDeleteConfirm(true);
   };
   const confirmDeleteAccount = async () => {
-  try {
-    setShowDeleteConfirm(false);
+    try {
+      setShowDeleteConfirm(false);
 
-    if (!user?.guid) {
-      console.error("No user GUID found!");
-      return;
+      if (!user?.guid) {
+        console.error("No user GUID found!");
+        return;
+      }
+
+      // ✅ Hit API to delete/block account
+      await updateUserStatus(user.guid);
+
+      // Optionally clear redux/localstorage
+      dispatch(setUser(null));
+
+      navigate("/login");
+    } catch (error) {
+      console.error("Error deleting account:", error);
     }
-
-    // ✅ Hit API to delete/block account
-    await updateUserStatus(user.guid);
-
-    // Optionally clear redux/localstorage
-    dispatch(setUser(null));;
-
-    navigate("/login");
-  } catch (error) {
-    console.error("Error deleting account:", error);
-  }
-};
+  };
   const cancelDeleteAccount = () => {
     setShowDeleteConfirm(false);
   };
@@ -159,9 +233,16 @@ const handleLogout = () => {
             <div className="flex flex-col sm:flex-row items-center sm:space-x-4 mb-6 space-y-4 sm:space-y-0">
               {/* Profile Avatar */}
               <div className="relative flex-shrink-0 mx-auto sm:mx-0">
-                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#9B7BB8] to-[#7A5A97] flex items-center justify-center shadow-lg overflow-hidden cursor-pointer group" onClick={isEditing ? openFilePicker : undefined}>
+                <div
+                  className="w-20 h-20 rounded-full bg-gradient-to-br from-[#9B7BB8] to-[#7A5A97] flex items-center justify-center shadow-lg overflow-hidden cursor-pointer group"
+                  onClick={isEditing ? openFilePicker : undefined}
+                >
                   {imagePreview ? (
-                    <img src={imagePreview} alt="Profile" className="w-full h-full object-cover" />
+                    <img
+                      src={imagePreview}
+                      alt="Profile"
+                      className="w-full h-full object-cover"
+                    />
                   ) : (
                     <User className="w-10 h-10 text-white" />
                   )}
@@ -180,15 +261,22 @@ const handleLogout = () => {
                     onChange={handleImageChange}
                   />
                 )}
+                {uploadError && (
+                  <div className="mt-3 p-3 bg-red-500/20 border border-red-500/40 rounded-xl text-red-400 text-sm">
+                    {uploadError}
+                  </div>
+                )}
               </div>
               {/* Profile Title & Edit Button */}
               <div className="flex-1 w-full">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h1 className="text-2xl font-bold text-white mb-1">{isEditing ? 'Edit Profile' : 'My Profile'}</h1>
+                    <h1 className="text-2xl font-bold text-white mb-1">
+                      {isEditing ? "Edit Profile" : "My Profile"}
+                    </h1>
                   </div>
                   {!isEditing ? (
-                    <button 
+                    <button
                       onClick={handleEdit}
                       className="bg-gradient-to-r from-[#9B7BB8] to-[#8A6AA7] text-white px-4 py-2 rounded-full hover:shadow-lg transition-all duration-300 flex items-center space-x-2 text-sm font-medium transform hover:scale-105"
                     >
@@ -197,13 +285,13 @@ const handleLogout = () => {
                     </button>
                   ) : (
                     <div className="flex space-x-2">
-                      <button 
+                      <button
                         onClick={handleSave}
                         className="bg-green-500 text-white rounded-full hover:bg-green-600 transition-all duration-200 shadow-lg transform hover:scale-105 flex items-center justify-center w-10 h-10"
                       >
                         <Save className="w-4 h-4" />
                       </button>
-                      <button 
+                      <button
                         onClick={handleCancel}
                         className="bg-red-500 text-white rounded-full hover:bg-red-600 transition-all duration-200 shadow-lg transform hover:scale-105 flex items-center justify-center w-10 h-10"
                       >
@@ -214,22 +302,28 @@ const handleLogout = () => {
                 </div>
                 {/* Name Field - EDITABLE */}
                 <div className="mt-4">
-                  <p className="text-xs text-white/60 uppercase tracking-wide font-medium mb-1">Name</p>
+                  <p className="text-xs text-white/60 uppercase tracking-wide font-medium mb-1">
+                    Name
+                  </p>
                   {isEditing ? (
                     <input
                       type="text"
                       value={editData.full_name}
-                      onChange={e => handleInputChange('full_name', e.target.value)}
+                      onChange={(e) =>
+                        handleInputChange("full_name", e.target.value)
+                      }
                       className="w-full bg-[#9B7BB8]/20 text-white p-2 rounded-lg border border-[#9B7BB8]/30 focus:outline-none focus:ring-2 focus:ring-[#9B7BB8] transition-all duration-200 text-sm placeholder-white/50"
                       placeholder="Enter your full name"
                     />
                   ) : (
-                    <p className="text-white font-medium text-sm truncate">{userDetails?.full_name}</p>
+                    <p className="text-white font-medium text-sm truncate">
+                      {userDetails?.full_name}
+                    </p>
                   )}
                 </div>
               </div>
             </div>
-            
+
             {/* Contact Information - READ ONLY */}
             <div className="space-y-4 mt-4">
               {/* Email Field - NON-EDITABLE */}
@@ -237,15 +331,14 @@ const handleLogout = () => {
                 <div className="w-10 h-10 rounded-full bg-[#9B7BB8]/30 flex items-center justify-center">
                   <Mail className="w-5 h-5 text-[#9B7BB8]" />
                 </div>
-                            <div className="flex-1 min-w-0">
-                <p className="text-xs text-white/60 uppercase tracking-wide font-medium mb-1">
-                  Email Address
-                </p>
-                <p className="text-white font-medium text-sm truncate">
-                  {userDetails?.email}
-                </p>
-              </div>
-
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-white/60 uppercase tracking-wide font-medium mb-1">
+                    Email Address
+                  </p>
+                  <p className="text-white font-medium text-sm truncate">
+                    {userDetails?.email}
+                  </p>
+                </div>
               </div>
 
               {/* Mobile Field - NON-EDITABLE */}
@@ -253,15 +346,14 @@ const handleLogout = () => {
                 <div className="w-10 h-10 rounded-full bg-[#9B7BB8]/30 flex items-center justify-center">
                   <Phone className="w-5 h-5 text-[#9B7BB8]" />
                 </div>
-                          <div className="flex-1 min-w-0">
-                <p className="text-xs text-white/60 uppercase tracking-wide font-medium mb-1">
-                  Mobile Number
-                </p>
-                <p className="text-white font-medium text-sm truncate">
-                  {userDetails?.countryCode} {userDetails?.mobile}
-                </p>
-              </div>
-
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-white/60 uppercase tracking-wide font-medium mb-1">
+                    Mobile Number
+                  </p>
+                  <p className="text-white font-medium text-sm truncate">
+                    {userDetails?.countryCode} {userDetails?.mobile}
+                  </p>
+                </div>
               </div>
             </div>
 
@@ -273,9 +365,12 @@ const handleLogout = () => {
                     <span className="text-xs text-blue-400">ℹ</span>
                   </div>
                   <div>
-                    <p className="text-sm text-blue-400 font-medium">Security Note</p>
+                    <p className="text-sm text-blue-400 font-medium">
+                      Security Note
+                    </p>
                     <p className="text-xs text-blue-300/80 mt-1">
-                      Only your name and profile picture can be updated. Email and mobile number are protected for account security.
+                      Only your name and profile picture can be updated. Email
+                      and mobile number are protected for account security.
                     </p>
                   </div>
                 </div>
@@ -294,21 +389,23 @@ const handleLogout = () => {
               Quick Actions
             </h3>
             <div className="grid grid-cols-1 gap-3">
-              <button 
-                onClick={() => navigate('/order-history')}
+              <button
+                onClick={() => navigate("/order-history")}
                 className="flex items-center space-x-4 p-4 rounded-2xl hover:bg-[#9B7BB8]/20 transition-all duration-300 group border border-transparent hover:border-[#9B7BB8]/30"
               >
                 <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#9B7BB8]/20 to-[#8A6AA7]/20 flex items-center justify-center group-hover:from-[#9B7BB8]/30 group-hover:to-[#8A6AA7]/30 transition-all duration-300">
                   <ShoppingCart className="w-6 h-6 text-[#9B7BB8]" />
                 </div>
                 <div className="flex-1 text-left">
-                  <p className="font-semibold text-white text-sm">Order History</p>
+                  <p className="font-semibold text-white text-sm">
+                    Order History
+                  </p>
                   <p className="text-xs text-white/60">Track your purchases</p>
                 </div>
               </button>
             </div>
-            <button 
-              className="w-full flex items-center justify-center space-x-3 p-4 rounded-2xl bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 transition-all duration-300 text-white font-semibold mt-6 shadow-lg transform hover:scale-[1.02]" 
+            <button
+              className="w-full flex items-center justify-center space-x-3 p-4 rounded-2xl bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 transition-all duration-300 text-white font-semibold mt-6 shadow-lg transform hover:scale-[1.02]"
               onClick={handleLogout}
             >
               <LogOut className="w-5 h-5" />
@@ -329,17 +426,22 @@ const handleLogout = () => {
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
             <div className="bg-white rounded-2xl p-8 max-w-xs w-full text-center shadow-2xl">
               <Trash2 className="w-10 h-10 text-red-500 mx-auto mb-4" />
-              <h2 className="text-xl font-bold text-[#2D1B3D] mb-2">Delete Account?</h2>
-              <p className="text-[#2D1B3D]/80 mb-6">This action cannot be undone. Are you sure you want to delete your account?</p>
+              <h2 className="text-xl font-bold text-[#2D1B3D] mb-2">
+                Delete Account?
+              </h2>
+              <p className="text-[#2D1B3D]/80 mb-6">
+                This action cannot be undone. Are you sure you want to delete
+                your account?
+              </p>
               <div className="flex gap-4 justify-center">
-                <button 
-                  onClick={confirmDeleteAccount} 
+                <button
+                  onClick={confirmDeleteAccount}
                   className="px-6 py-2 rounded-lg bg-red-500 text-white font-bold hover:bg-red-600 transition"
                 >
                   Yes, Delete
                 </button>
-                <button 
-                  onClick={cancelDeleteAccount} 
+                <button
+                  onClick={cancelDeleteAccount}
                   className="px-6 py-2 rounded-lg bg-gray-200 text-[#2D1B3D] font-bold hover:bg-gray-300 transition"
                 >
                   Cancel
