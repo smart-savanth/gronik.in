@@ -43,15 +43,13 @@ searchBooks: builder.mutation({
 }),
 
     /* ---------------- GET ALL BOOKS ---------------- */
-    getAllBooks: builder.query({
-      query: ({ page = 1, pageSize = 10 }) => ({
-        url: '/product/getAllBooks',
-        method: 'POST',
-        data: { page, pageSize },
-      }),
-      providesTags: ['Books'],
-    }),
-
+getAllBooks: builder.query({
+  query: ({ page = 1, pageSize = 10, user_id }) => ({
+    url: "/product/getAllBooks",
+    method: "POST",
+    data: { page, pageSize, user_id }   // ✅ use data not body
+  })
+}),
     /* ---------------- GET BOOK BY ID ---------------- */
     getBookById: builder.query({
       query: (bookId) => ({
