@@ -311,38 +311,59 @@ useEffect(() => {
 
   <>
     {/* Breadcrumb */}
-    <div className="flex items-center justify-between mb-4">
-  {/* Breadcrumb */}
-<div className="flex items-center gap-2 text-white/70 text-sm">
-  <button
-  onClick={() => {
-    setCurrentBook(null);
-    setCurrentSection(null);
-  }}
-  className="hover:text-white"
->
-  My Library
-</button>
+<div className="flex items-center justify-between mb-4">
 
-  <span>/</span>
+  {/* Left Side: Back + Breadcrumb */}
+  <div className="flex items-center gap-3 text-white/70 text-sm">
 
-  <button onClick={() => setCurrentSection(null)} className="hover:text-white">
-    {currentBook.title}
-  </button>
+    {/* Back Button */}
+    <button
+      onClick={() => {
+        if (currentSection) {
+          setCurrentSection(null);
+        } else if (currentBook) {
+          setCurrentBook(null);
+        } else {
+          navigate("/library");
+        }
+      }}
+      className="flex items-center gap-1 bg-white/40 hover:bg-white/20 px-3 py-1.5 rounded-lg text-black transition text-lg"
+    >
+      ←
+    </button>
 
-  {currentSection && (
-    <>
+    {/* Breadcrumb */}
+    <div className="flex items-center gap-2">
+      <button
+        onClick={() => {
+          setCurrentBook(null);
+          setCurrentSection(null);
+        }}
+        className="hover:text-white"
+      >
+        My Library
+      </button>
+
       <span>/</span>
-      <span className="text-white font-medium">
-        {currentSection.title}
-      </span>
-    </>
-  )}
-</div>
 
+      <button
+        onClick={() => setCurrentSection(null)}
+        className="hover:text-white"
+      >
+        {currentBook.title}
+      </button>
 
-  {/* Section view toggle */}
- 
+      {currentSection && (
+        <>
+          <span>/</span>
+          <span className="text-white font-medium">
+            {currentSection.title}
+          </span>
+        </>
+      )}
+    </div>
+
+  </div>
 
 </div>
 

@@ -19,6 +19,7 @@ const OrdersManagement = () => {
   page: 1,
   pageSize: 10,
 });
+console.log(data);
 
 const orders = (data?.data || []).map(order => ({
   id: order.guid,
@@ -34,14 +35,21 @@ const orders = (data?.data || []).map(order => ({
     : '—',
 }));
 
-  const filteredOrders = orders.filter(order => {
-    const matchesSearch =
-      order.customer.toLowerCase().includes(search.toLowerCase()) ||
-      order.book.toLowerCase().includes(search.toLowerCase()) ||
-      order.id.toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+const filteredOrders = orders.filter(order => {
+  const query = search.toLowerCase();
+
+  const matchesSearch =
+    (order.customer && order.customer.toLowerCase().includes(query)) ||
+    (order.book && order.book.toLowerCase().includes(query)) ||
+    (order.id && order.id.toLowerCase().includes(query)) ||
+    (order.date && order.date.toLowerCase().includes(query)) ||
+    (order.amount && order.amount.toLowerCase().includes(query));
+
+  const matchesStatus =
+    statusFilter === "all" || order.status === statusFilter;
+
+  return matchesSearch && matchesStatus;
+});
 
   const handleExportOrders = () => {
     const csvContent = "data:text/csv;charset=utf-8," + 

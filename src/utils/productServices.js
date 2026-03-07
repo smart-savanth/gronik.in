@@ -36,11 +36,14 @@ export const productApi = createApi({
     // ------------------------
     // GET BOOK BY ID
     // ------------------------
-    getBookById: builder.query({
-  query: (bookId) => `/product/getBookById/${bookId}`,
+getBookById: builder.query({
+  query: ({ bookId, user_id }) => ({
+    url: `/product/getBookById/${bookId}`,
+    method: "GET",
+    params: user_id ? { user_id } : undefined,
+  }),
   transformResponse: (response) => response?.data || null,
 }),
-
     // ------------------------
     // UPLOAD CHAPTERS / SECTIONS / COVER (ASSETS)
     // ------------------------

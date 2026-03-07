@@ -488,7 +488,12 @@ const verifySignupOtp = async () => {
 
       
             {currentStep === 'signup' && (
-              <div className="space-y-4">
+              <form className="space-y-4"
+               onSubmit={(e) => {
+    e.preventDefault();
+    handleSignup();
+  }}
+              >
                 <div>
                   <label className="block text-xs font-medium text-white/80 mb-2">FULL NAME</label>
                   <input
@@ -696,7 +701,7 @@ const verifySignupOtp = async () => {
 
 
                 <button
-                  onClick={handleSignup}
+                  type='sumbit'
                   disabled={isLoading || !whatsappConsent}
                   className="w-full bg-gradient-to-r from-[#FFD700]/90 to-[#9B7BB8]/80 text-[#2D1B3D] font-semibold py-3 px-6 rounded-xl transition-all duration-200 flex items-center justify-center space-x-2 mt-6 gold-glow-cta disabled:opacity-50 disabled:cursor-not-allowed"
                 >
@@ -714,11 +719,16 @@ const verifySignupOtp = async () => {
                 </button>
 
                 
-              </div>
+              </form>
             )}
 
             {currentStep === 'login' && (
-              <div className="space-y-4">
+              <form className="space-y-4"
+             onSubmit={(e) => {
+      e.preventDefault();
+      handleLogin();
+    }} 
+              >
                 <div>
   <label className="block text-xs font-medium text-white/80 mb-2">PHONE NUMBER</label>
 
@@ -805,7 +815,7 @@ const verifySignupOtp = async () => {
                 </div>
 
                 <button
-                  onClick={handleLogin}
+                  type='sumbit'
                   disabled={isLoading}
                   className="w-full bg-gradient-to-r from-[#FFD700]/90 to-[#9B7BB8]/80 text-[#2D1B3D] font-semibold py-3 px-6 rounded-xl transition-all duration-200 flex items-center justify-center space-x-2 mt-6 gold-glow-cta disabled:opacity-50 disabled:cursor-not-allowed"
                 >
@@ -820,7 +830,7 @@ const verifySignupOtp = async () => {
                 </button>
 
                
-              </div>
+              </form>
             )}
 
           

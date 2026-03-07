@@ -715,7 +715,7 @@ const floatingLogoVisible =
                 </div>
 
 {/* Icons */}
-<IconWithTooltip label="my library">
+<IconWithTooltip label="My Library">
 <Link
 to="/my-library"
 className="relative p-2 rounded-lg  transition-transform duration-200 hover:-translate-y-2"
@@ -723,7 +723,7 @@ className="relative p-2 rounded-lg  transition-transform duration-200 hover:-tra
 <BookOpen className="w-5 h-5 text-gronik-light" />          
 </Link>
 </IconWithTooltip>
-<IconWithTooltip label="wishlist">
+<IconWithTooltip label="Wishlist">
 <Link
   to="/wishlist"
   className="relative p-2 rounded-lg  transition-transform duration-200 hover:-translate-y-2"
@@ -749,7 +749,7 @@ className="relative p-2 rounded-lg  transition-transform duration-200 hover:-tra
   )}
 </Link>
 </IconWithTooltip>
-<IconWithTooltip label="profile">
+<IconWithTooltip label="Profile">
 <Link
   to={user ? "/profile" : "/login"}
   className="relative p-2 rounded-lg  transition-transform duration-200 hover:-translate-y-2"

@@ -53,13 +53,13 @@ const AdminDashboard = () => {
     const orders = ordersData?.data || [];
     const transactions = transactionsData?.data || [];
     const users = usersData?.data || [];
-
+    console.log(transactions);
+    
     // Calculate total sales from transactions
-    const totalSales = transactions.reduce((sum, txn) => {
-      // Amount is in paise, convert to rupees
-      const amountInRupees = (txn.amount || 0) / 100;
-      return sum + amountInRupees;
-    }, 0);
+   const totalSales = transactions.reduce((sum, txn) => {
+  const amount = Number(txn.paid_amount || txn.expected_amount || 0);
+  return sum + amount;
+}, 0);
 
     // Calculate active users (users with is_active === true)
     const activeUsers = users.filter(user => user.is_active === true).length;

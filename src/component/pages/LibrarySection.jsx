@@ -599,16 +599,40 @@ console.log("IS ERROR:", isError);
 
                         <>
                           {/* NORMAL CART BUTTON */}
-                          <button
-                            onClick={(e) => handleCartAction(e, book)}
-                            disabled={animatingCart[book.id]}
-                            className={`flex-1 py-3 rounded-xl font-semibold text-base 
-        transition-all duration-300 hover:scale-105 shadow-xl ${
-          isInCart(book) ? "bg-blue-600 text-white" : "bg-white text-[#2D1B3D]"
-        }`}
-                          >
-                            {isInCart(book) ? "Go to Cart" : "Add to Cart"}
-                          </button>
+                         <button
+  onClick={(e) => handleCartAction(e, book)}
+  disabled={animatingCart[book.id]}
+  className={`
+    cart-button-animated
+    ${cartButtonClicked[book.id] ? "clicked" : ""}
+    flex-1 py-3 rounded-xl font-semibold text-base
+    flex items-center justify-center gap-2
+    transition-all duration-300 shadow-xl
+    ${
+      isInCart(book)
+        ? "bg-gradient-to-r from-green-500 to-green-600 text-white"
+        : "bg-gradient-to-r from-white to-gray-100 text-[#2D1B3D]"
+    }
+  `}
+>
+  {/* Animated cart icon */}
+  <ShoppingCart className="cart-icon w-4 h-4" />
+
+  {/* Animated box icon */}
+  <div className="box-icon w-2 h-2 bg-current rounded-sm"></div>
+
+  {/* Fixed width text container to prevent flicker */}
+  <div className="relative w-[120px] h-[22px] flex items-center justify-center">
+    <span className="cart-text absolute inset-0 flex items-center justify-center">
+      {isInCart(book) ? "Go to Cart" : "Add to Cart"}
+    </span>
+
+    <span className="added-text absolute inset-0 flex items-center justify-center">
+      <Check className="w-4 h-4 mr-1" />
+      Added!
+    </span>
+  </div>
+</button>
 
                           {/* WISHLIST */}
                           <button

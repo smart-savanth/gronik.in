@@ -17,17 +17,19 @@ const { data, isLoading, isError } = useGetAllTransactionsQuery({
   page: 1,
   pageSize: 10,
 });
+console.log(data);
+
 const transactions = (data?.data || []).map((txn) => ({
   id: txn.guid,
-  orderId: txn.payment_gateway_id,
-  customer: txn.user_id.slice(0, 8) + '…',
+  orderId: txn.payment_gateway_id || '—',
+  customer: txn.user_id ? txn.user_id.slice(0, 8) + '…' : '—',
   email: '—',
-  amount: `₹${txn.amount}`,
-  method: txn.payment_mode,
+  amount: `₹${txn.paid_amount || txn.expected_amount || 0}`,
+  method: txn.payment_mode || '—',
   cardLast4: null,
-  status: txn.status,
+  status: txn.status || 'pending',
   date: txn.created_at
-    ? new Date(txn.created_at).toISOString().split('T')[0]
+    ? new Date(txn.created_at).toLocaleDateString()
     : '—',
 }));
 
