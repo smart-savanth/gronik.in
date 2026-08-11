@@ -96,107 +96,84 @@ const [error, setError] = useState(null);
  const user = useSelector(state => state.userAuth.user);
   const userId = user?.guid;
 
-  const dummyBooks = [
-  {
-    id: "1",
-    title: "React Mastery",
-    author: "Dheeraj N",
-    image: "https://picsum.photos/300/450?random=1",
-    progress: 65,
-    pages: 320,
-    format: "PDF",
-    fileSize: "8 MB",
-    description: "Complete guide to React with hooks and best practices.",
-    tags: ["React", "Frontend", "JavaScript"],
 
-    sections: [
-      {
-        id: "s1",
-        title: "Introduction",
-        pages: 30,
-        chapters: [
-          {
-            _id: "c1",
-            title: "What is React?",
-            pages: 10,
-            image: "https://picsum.photos/200/300?random=11"
-          },
-          {
-            _id: "c2",
-            title: "Why React?",
-            pages: 20,
-            image: "https://picsum.photos/200/300?random=12"
-          }
-        ]
-      },
-      {
-        id: "s2",
-        title: "Core Concepts",
-        pages: 100,
-        chapters: [
-          {
-            _id: "c3",
-            title: "Components",
-            pages: 40,
-            image: "https://picsum.photos/200/300?random=13"
-          },
-          {
-            _id: "c4",
-            title: "Hooks",
-            pages: 60,
-            image: "https://picsum.photos/200/300?random=14"
-          }
-        ]
-      }
-    ]
-  },
-
-  {
-    id: "2",
-    title: "JavaScript Deep Dive",
-    author: "Kyle Simpson",
-    image: "https://picsum.photos/300/450?random=2",
-    progress: 30,
-    pages: 280,
-    format: "EPUB",
-    fileSize: "6 MB",
-    description: "Advanced JavaScript concepts explained deeply.",
-    tags: ["JavaScript", "Programming"],
-
-    sections: [
-      {
-        id: "s3",
-        title: "Basics Refresher",
-        pages: 60,
-        chapters: [
-          {
-            _id: "c5",
-            title: "Scopes",
-            pages: 30,
-            image: "https://picsum.photos/200/300?random=15"
-          },
-          {
-            _id: "c6",
-            title: "Closures",
-            pages: 30,
-            image: "https://picsum.photos/200/300?random=16"
-          }
-        ]
-      }
-    ]
-  }
-];
 
 useEffect(() => {
-  setLoading(true);
+  if (!userId) return;
 
-  // Simulate API delay
-  setTimeout(() => {
-    setBooks(dummyBooks);
-    setLoading(false);
-  }, 800);
+  const fetchLibrary = async () => {
+    try {
+      setLoading(true);
+      setError(null);
 
-}, []);
+      // 1️⃣ Get user library
+      const libraryRes = await fetch(
+        `https://dev-api.gronik.in/library/getUserLibrary`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            user_Id: userId,
+            page: 1,
+            pageSize: 50,
+          }),
+        }
+      );
+
+      const libraryJson = await libraryRes.json();
+
+      if (!libraryJson.success) {
+        throw new Error("Failed to fetch library");
+      }
+
+      const libraryItems = libraryJson.data || [];
+
+      // 2️⃣ Fetch each book by product_id
+      const bookPromises = libraryItems.map(item =>
+        fetch(
+          `https://dev-api.gronik.in/product/getBookById/${item.product_id}`
+        ).then(res => res.json())
+      );
+
+      const bookResponses = await Promise.all(bookPromises);
+
+      // 3️⃣ Transform to UI format
+      const formattedBooks = bookResponses
+        .filter(res => res.success)
+        .map(res => {
+          const book = res.data;
+
+          return {
+            id: book._id,
+            title: book.title,
+            author: book.author,
+            image: book.coverImageUrl
+              ? `https://dev-api.gronik.in/${book.coverImageUrl}`
+              : "",
+            progress: 0, // You can later calculate reading progress
+            pages: book.totalPages,
+            format: "Digital",
+            fileSize: "--",
+            description: book.overview,
+            tags: [book.category],
+            sections: book.sections || [],
+          };
+        });
+
+      setBooks(formattedBooks);
+
+    } catch (err) {
+      console.error(err);
+      setError("Failed to load library");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchLibrary();
+}, [userId]);
 
 
 //  useEffect(() => {
@@ -334,38 +311,59 @@ useEffect(() => {
 
   <>
     {/* Breadcrumb */}
-    <div className="flex items-center justify-between mb-4">
-  {/* Breadcrumb */}
-<div className="flex items-center gap-2 text-white/70 text-sm">
-  <button
-  onClick={() => {
-    setCurrentBook(null);
-    setCurrentSection(null);
-  }}
-  className="hover:text-white"
->
-  My Library
-</button>
+<div className="flex items-center justify-between mb-4">
 
-  <span>/</span>
+  {/* Left Side: Back + Breadcrumb */}
+  <div className="flex items-center gap-3 text-white/70 text-sm">
 
-  <button onClick={() => setCurrentSection(null)} className="hover:text-white">
-    {currentBook.title}
-  </button>
+    {/* Back Button */}
+    <button
+      onClick={() => {
+        if (currentSection) {
+          setCurrentSection(null);
+        } else if (currentBook) {
+          setCurrentBook(null);
+        } else {
+          navigate("/library");
+        }
+      }}
+      className="flex items-center gap-1 bg-white/40 hover:bg-white/20 px-3 py-1.5 rounded-lg text-black transition text-lg"
+    >
+      ←
+    </button>
 
-  {currentSection && (
-    <>
+    {/* Breadcrumb */}
+    <div className="flex items-center gap-2">
+      <button
+        onClick={() => {
+          setCurrentBook(null);
+          setCurrentSection(null);
+        }}
+        className="hover:text-white"
+      >
+        My Library
+      </button>
+
       <span>/</span>
-      <span className="text-white font-medium">
-        {currentSection.title}
-      </span>
-    </>
-  )}
-</div>
 
+      <button
+        onClick={() => setCurrentSection(null)}
+        className="hover:text-white"
+      >
+        {currentBook.title}
+      </button>
 
-  {/* Section view toggle */}
- 
+      {currentSection && (
+        <>
+          <span>/</span>
+          <span className="text-white font-medium">
+            {currentSection.title}
+          </span>
+        </>
+      )}
+    </div>
+
+  </div>
 
 </div>
 
@@ -423,9 +421,9 @@ useEffect(() => {
                     </div>
                     {/* Progress Percentage */}
                     <div className="absolute top-4 right-4 bg-black/70 text-white text-sm px-3 py-2 rounded-lg">
-                      <span className={`font-bold ${getProgressColor(selectedBook.progress)}`}>
+                      {/*<span className={`font-bold ${getProgressColor(selectedBook.progress)}`}>
                         {selectedBook.progress}% Complete
-                      </span>
+                      </span>**/}
                     </div>
                   </div>
                 </div>
@@ -547,33 +545,59 @@ const GridView = ({ books, onSelect }) => {
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6 p-6">
       {books.map(book => (
         <button
-          key={book.id}
-          onClick={() => onSelect(book)}
-          className="bg-[#3A2450] rounded-xl p-3 text-left hover:bg-[#4A2F66] transition"
-        >
-          <div className="relative">
-            <div className="w-full aspect-[210/297] rounded-lg bg-black/20 overflow-hidden">
-              <img
-                src={book.image}
-                alt={book.title}
-                className="w-full h-full object-cover"
-              />
-            </div>
+  key={book.id}
+  onClick={() => onSelect(book)}
+  className="
+    bg-[#3A2450]
+    rounded-2xl
+    p-4
+    hover:bg-[#4A2F66]
+    transition
+    flex
+    flex-col
+    items-center
+    w-full
+  "
+>
+  {/* Image */}
+  <div className="relative w-full flex justify-center">
+    <div
+      className="
+        relative
+        w-full
+        max-w-[160px]
+        aspect-[2/3]
+        rounded-lg
+        overflow-hidden
+        shadow-xl
+        bg-black
+      "
+    >
+      <img
+        src={book.image}
+        alt={book.title}
+        className="absolute inset-0 w-full h-full object-cover scale-[1.02]"
+        draggable="false"
+      />
+    </div>
 
-            <div className="absolute bottom-1 right-1 bg-black/70 text-white text-xs px-2 py-0.5 rounded">
-              {book.progress}%
-            </div>
-          </div>
+    {/* Progress Badge
+    <div className="absolute bottom-2 right-6 bg-black/70 text-white text-xs px-2 py-0.5 rounded">
+      {book.progress}%
+    </div> */}
+  </div>
 
-          <div className="mt-3">
-            <h3 className="text-white font-semibold text-sm line-clamp-2">
-              {book.title}
-            </h3>
-            <p className="text-white/60 text-xs mt-1">
-              {book.author}
-            </p>
-          </div>
-        </button>
+  {/* Text */}
+  <div className="mt-4 text-center w-full">
+    <h3 className="text-white font-semibold text-sm line-clamp-2">
+      {book.title}
+    </h3>
+    <p className="text-white/60 text-xs mt-1">
+      {book.author}
+    </p>
+  </div>
+</button>
+
       ))}
     </div>
   );

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useSelector } from 'react-redux';
 import AdminLayout from './Adminlayout';
 import { useUpdateBookWithCarousalMutation } from '../../utils/productServices';
 import {
@@ -28,6 +29,7 @@ import {
   FileText,
   Image as ImageIcon
 } from 'lucide-react';
+
 const logFormData = (label, formData) => {
   console.group(`🧾 ${label}`);
   for (let pair of formData.entries()) {
@@ -38,15 +40,34 @@ const logFormData = (label, formData) => {
 
 const categories = ['All', 'Self Development', 'Technology', 'Business', 'Science', 'Health'];
 
+
+  
+
 // DUMMY DATA
 
 const BooksManagement = () => {
-  
+
+
+   const user = useSelector(state => state.userAuth.user);
+const ADMIN_ID = user?.guid;
+  const BASE_URL = process.env.REACT_APP_BASE_URL;
+  const getImageUrl = (path) => {
+  if (!path) return "/placeholder.png";
+
+  // Already full URL (cloudinary, s3 etc)
+  if (path.startsWith("http")) return path;
+
+  // Ensure slash between base and path
+  return `${BASE_URL}/${path.replace(/^\/+/, "")}`;
+};
+
   const { data, isLoading } = useGetAllBooksQuery({ page: 1, pageSize: 50 });
 const [updateBook] = useUpdateBookMutation();
 const [deleteBook] = useDeleteBookMutation();
 
 const books = data?.data || [];
+console.log(books);
+
 
   const [uploadAssets] = useUploadAssetsMutation();
   const [uploadCarousel] = useUploadCarouselMutation();
@@ -77,6 +98,8 @@ const [customCategory, setCustomCategory] = useState('');
   const [deletingBookId, setDeletingBookId] = useState(null);
   const [isUploadingSection, setIsUploadingSection] = useState({});
   const [isLoadingEdit, setIsLoadingEdit] = useState(false);
+  const [editLoaded, setEditLoaded] = useState(false);
+
   
 const [basicInfo, setBasicInfo] = useState({
   title: '',
@@ -150,49 +173,77 @@ setBasicInfo({
 
 
 const openEditModal = async (bookId) => {
+
+  setIsEdit(true);
+  setShowAddEditModal(true);
+  setCurrentPhase(1);
+
+  setEditLoaded(false); // IMPORTANT
   setIsLoadingEdit(true);
+
   try {
+
     const res = await fetch(
       `${process.env.REACT_APP_BASE_URL}/product/getBookById/${bookId}`
     );
+
     const json = await res.json();
     const book = json.data;
 
+    if (!book) throw new Error("Book not found");
+
+    setCreatedBook({
+      id: book._id,
+      slug: book.slug,
+    });
+
+    // Fill form
     setBasicInfo({
-      title: book.title,
-      author: book.author,
-      category: book.category,
-      price: book.final_price,
-      originalPrice: book.original_price,
-      pages: book.totalPages,
-      isFeatured: book.featured,
-      isHero: book.hero,
+      title: book.title ?? '',
+      author: book.author ?? '',
+      category: book.category ?? '',
+      price: book.final_price ?? '',
+      originalPrice: book.original_price ?? '',
+      pages: book.totalPages ?? 0,
+      isFeatured: !!book.featured,
+      isHero: !!book.hero,
       coverImageFile: null,
     });
 
-    setOverviewDescription(book.description || '');
-    setOneLineDescription(book.one_line_description || '');
-    setLearningPoints(book.what_you_will_learn || []);
-    setSections(book.sections || []);
+    setOverviewDescription(book.description ?? '');
+    setOneLineDescription(book.one_line_description ?? '');
+    setLearningPoints(book.what_you_will_learn?.length ? book.what_you_will_learn : ['']);
+    setSections(book.sections ?? []);
     setModalBook(book);
-    setIsEdit(true);
-    setShowAddEditModal(true);
-    setCurrentPhase(1);
+
+    setEditLoaded(true); // ✅ MARK READY
+
   } catch (err) {
     console.error(err);
-    alert('Failed to load book');
+    alert("Failed to load book");
+    closeAddEditModal();
   } finally {
     setIsLoadingEdit(false);
   }
 };
 
+
+
+
   const closeAddEditModal = () => {
-    setShowAddEditModal(false);
-    setModalBook(null);
-    setCurrentPhase(1);
-    setPriceError('');
-    setIsSubmitting(false);
-  };
+  setShowAddEditModal(false);
+  setModalBook(null);
+  setCurrentPhase(1);
+  setPriceError('');
+  setIsSubmitting(false);
+  setIsEdit(false);
+
+  setCreatedBook({   // ✅ ADD THIS
+    id: null,
+    slug: null
+  });
+};
+
 
   const openViewModal = (book) => {
     setModalBook(book);
@@ -251,7 +302,8 @@ const handleCoverImageChange = (e) => {
     e.preventDefault();
     
     // ONLY validate description when going FROM phase 2 TO phase 3
-    if (overviewDescription.length < 50) {
+   if (!isEdit && overviewDescription.length < 50) {
+
       alert('Description must be at least 50 characters');
       return;
     }
@@ -633,28 +685,47 @@ const handleFinalSubmit = async (e) => {
                 </tr>
               ) : (
                 filteredBooks.map(book => (
-                  <tr key={book.id} className="hover:bg-white/5 transition-colors">
+                  <tr key={book._id} className="hover:bg-white/5 transition-colors">
                     <td className="px-4 py-3">
                       {book.pdf ? (
                         <div className="flex items-center justify-center h-14">
                           <FileText className="w-8 h-8 text-[#9B7BB8]" title="PDF Book" />
                         </div>
                       ) : (
-                        <img src={book.image} alt={book.title} className="w-10 h-14 object-cover rounded-lg border border-white/10" />
+   <img
+  src={getImageUrl(book.coverImageUrl)}
+  alt={book.title}
+  className="w-10 h-14 object-cover rounded-lg border border-white/10"
+/>
                       )}
                     </td>
                     <td className="px-4 py-3 text-white font-medium">{book.title}</td>
                     <td className="px-4 py-3 text-white/80">{book.author}</td>
                     <td className="px-4 py-3 text-white/80">{book.category}</td>
-                    <td className="px-4 py-3 text-white/80">₹{book.price.toFixed(2)}</td>
-                    <td className="px-4 py-3 text-white/80">{book.pages}</td>
-                    <td className="px-4 py-3 text-white/80">{book.publishedDate}</td>
-                    <td className="px-4 py-3">{book.isFeatured ? <Star className="w-4 h-4 text-yellow-400" title="Featured" /> : '-'}</td>
-                    <td className="px-4 py-3">{book.isHero ? <Zap className="w-4 h-4 text-blue-400" title="Hero" /> : '-'}</td>
+                    <td className="px-4 py-3 text-white/80">₹{Number(book.final_price || 0).toFixed(2)}</td>
+   <td className="px-4 py-3 text-white/80">
+  {Number(book.rating) > 0 ? `${Number(book.rating)} ⭐` : '—'}
+</td>
+
+<td className="px-4 py-3">
+  {(book.featured === true || book.featured === "true" || book.featured === 1) ? (
+    <Star className="w-4 h-4 text-yellow-400" />
+  ) : (
+    '-'
+  )}
+</td>
+
+<td className="px-4 py-3">
+  {(book.hero === true || book.hero === "true" || book.hero === 1) ? (
+    <Zap className="w-4 h-4 text-blue-400" />
+  ) : (
+    '-'
+  )}
+</td>
                     <td className="px-4 py-3 flex items-center space-x-2">
                       <button onClick={() => openViewModal(book)} className="p-2 rounded-lg hover:bg-white/10 text-white/60 hover:text-white transition-colors" title="View"><Eye className="w-4 h-4" /></button>
-                      <button onClick={() => openEditModal(book)} className="p-2 rounded-lg hover:bg-blue-500/20 text-blue-400 hover:text-blue-300 transition-colors" title="Edit"><Edit className="w-4 h-4" /></button>
-                      <button onClick={() => handleDelete(book)} className="p-2 rounded-lg hover:bg-red-500/20 text-red-400 hover:text-red-300 transition-colors" title="Delete"><Trash2 className="w-4 h-4" /></button>
+                      {/* <button onClick={() => openEditModal(book._id)} className="p-2 rounded-lg hover:bg-blue-500/20 text-blue-400 hover:text-blue-300 transition-colors" title="Edit"><Edit className="w-4 h-4" /></button>
+                      <button onClick={() => handleDelete(book)} className="p-2 rounded-lg hover:bg-red-500/20 text-red-400 hover:text-red-300 transition-colors" title="Delete"><Trash2 className="w-4 h-4" /></button> */}
                     </td>
                   </tr>
                 ))
@@ -672,9 +743,14 @@ const handleFinalSubmit = async (e) => {
               </button>
               
               <div className="flex gap-6 mb-6 pb-6 border-b border-white/10">
-                <div className="w-32 h-44 bg-gradient-to-br from-[#9B7BB8] to-[#8A6AA7] rounded-lg flex items-center justify-center text-white font-bold text-2xl flex-shrink-0">
-                  {modalBook.mainImagePdfName ? 'PDF' : modalBook.title.charAt(0)}
-                </div>
+{isEdit && modalBook?.coverImageUrl && !basicInfo.coverImageFile && (
+  <img
+    src={getImageUrl(modalBook.coverImageUrl)}
+    className="w-20 h-28 object-cover rounded mt-2 border"
+    alt="Current cover"
+  />
+)}
+
                 <div className="flex-1 space-y-2">
                   <h2 className="text-3xl font-bold text-white">{modalBook.title}</h2>
                   <p className="text-white/80 text-lg">by {modalBook.author || 'Auto-generated'}</p>
@@ -682,13 +758,13 @@ const handleFinalSubmit = async (e) => {
                     <span className="px-3 py-1 bg-[#9B7BB8] text-white rounded-full text-sm font-semibold">
                       {modalBook.category}
                     </span>
-                    {modalBook.isFeatured && (
+                    {modalBook.featured && (
                       <span className="flex items-center gap-1 px-3 py-1 bg-yellow-500/20 text-yellow-400 rounded-full text-sm font-semibold">
                         <Star className="w-4 h-4 fill-current" />
                         Featured
                       </span>
                     )}
-                    {modalBook.isHero && (
+                    {modalBook.hero && (
                       <span className="flex items-center gap-1 px-3 py-1 bg-blue-500/20 text-blue-400 rounded-full text-sm font-semibold">
                         <Zap className="w-4 h-4" />
                         Hero
@@ -699,9 +775,9 @@ const handleFinalSubmit = async (e) => {
                     <div>
                       <p className="text-white/50 text-xs">Price</p>
                       <p className="text-white font-bold text-xl">
-                        ${modalBook.price} 
-                        {modalBook.originalPrice && (
-                          <span className="line-through text-white/40 text-sm ml-2">${modalBook.originalPrice}</span>
+                        ₹{modalBook.final_price}
+                        {modalBook.original_price && (
+                          <span className="line-through text-white/40 text-sm ml-2">${modalBook.original_price}</span>
                         )}
                       </p>
                     </div>
@@ -711,7 +787,7 @@ const handleFinalSubmit = async (e) => {
                     </div>
                     <div>
                       <p className="text-white/50 text-xs">Pages</p>
-                      <p className="text-white font-semibold">{modalBook.pages}</p>
+                      <p className="text-white font-semibold">{modalBook.totalPages}</p>
                     </div>
                     <div>
                       <p className="text-white/50 text-xs">Main Cover</p>
@@ -768,14 +844,14 @@ const handleFinalSubmit = async (e) => {
                   </div>
                 )}
 
-                {modalBook.learningPoints && modalBook.learningPoints.length > 0 && (
+                {modalBook.what_you_will_learn && modalBook.what_you_will_learn.length > 0 && (
                   <div className="bg-[#9B7BB8]/10 rounded-lg p-4 mt-2">
                     <h3 className="text-white font-bold text-lg mb-3 flex items-center gap-2">
                       <BookOpen className="w-5 h-5" />
                       What You'll Learn:
                     </h3>
                     <ul className="space-y-2">
-                      {modalBook.learningPoints.map((point, idx) => (
+                      {modalBook.what_you_will_learn.map((point, idx) => (
                         <li key={idx} className="flex items-start gap-2 text-white/80 text-sm">
                           <span className="text-[#9B7BB8] font-bold mt-0.5">•</span>
                           <span>{point}</span>
@@ -876,22 +952,22 @@ const handleFinalSubmit = async (e) => {
               </h2>
 
               {/* PHASE 1 - BASIC INFO */}
-              {currentPhase === 1 && (
+             {currentPhase === 1 && (!isEdit || editLoaded) && (
                 <form
   onSubmit={async (e) => {
     e.preventDefault();
 
     if (isSubmitting) return;
 
-    if (!basicInfo.title || !basicInfo.category || !basicInfo.price) {
+    if (!basicInfo.title || !basicInfo.price) {
       alert('Please fill required fields');
       return;
     }
 
-    if (!basicInfo.coverImageFile) {
-      alert('Cover image is required');
-      return;
-    }
+   if (!isEdit && !basicInfo.coverImageFile) {
+  alert('Cover image is required');
+  return;
+}
 
     setIsSubmitting(true);
     try {
@@ -908,12 +984,14 @@ const handleFinalSubmit = async (e) => {
     category: basicInfo.category,
     featured: basicInfo.isFeatured,
     hero: basicInfo.isHero,
-    belongs_to: '453a352b-5972-487b-9296-d4ba2ae78ed0',
+    belongs_to: ADMIN_ID,
     totalPages: Number(basicInfo.pages) || 0,
     isActive: true,
   };
 
-  if (isEdit) {
+// ---------- EDIT MODE ----------
+if (modalBook) {
+
   await updateBook({
     id: modalBook._id,
     body: {
@@ -929,17 +1007,18 @@ const handleFinalSubmit = async (e) => {
       hero: basicInfo.isHero,
       totalPages: Number(basicInfo.pages),
       isActive: true,
+      belongs_to: modalBook.belongs_to
     },
   }).unwrap();
 
   alert('✅ Book updated successfully');
   closeAddEditModal();
-  return; // ⛔ stop add flow
+  return;
 }
 
+// ---------- CREATE MODE ----------
+const res = await saveBook(payload).unwrap();
 
-
-  const res = await saveBook(payload).unwrap();
 
 
 
@@ -962,18 +1041,19 @@ if (!bookId || !slug) {
 }
 
 
-  // 2️⃣ UPLOAD COVER IMAGE
+// Upload cover ONLY if new image selected
+if (basicInfo.coverImageFile) {
+
   const formData = new FormData();
   formData.append('coverImage', basicInfo.coverImageFile);
 
-
-logFormData('COVER IMAGE FORM DATA', formData);
-
-  const uploadRes = await uploadCover({
+  await uploadCover({
     bookId,
     slug,
     data: formData,
   }).unwrap();
+
+}
 
 
 
@@ -1038,7 +1118,7 @@ logFormData('COVER IMAGE FORM DATA', formData);
     className="w-full bg-[#9B7BB8]/10 text-white p-2 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-sm"
     placeholder="Learn React from beginner to expert"
     maxLength={120}
-    required
+    required={!isEdit}
   />
 </div>
 
@@ -1050,16 +1130,17 @@ logFormData('COVER IMAGE FORM DATA', formData);
                     </h3>
                     <div>
                       <label className="block text-white/70 mb-2 text-sm">Main Description (50-200 characters)</label>
-                      <textarea 
-                        value={overviewDescription} 
-                        onChange={e => setOverviewDescription(e.target.value)} 
-                        className="w-full bg-[#2D1B3D]/30 text-white p-3 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-sm" 
-                        rows={4}
-                        placeholder="Transform your mindset and unlock the secrets to wealth and success..."
-                        minLength={50}
-                        maxLength={200}
-                        required
-                      />
+                  <textarea 
+  value={overviewDescription}
+  onChange={e => setOverviewDescription(e.target.value)}
+  className="w-full bg-[#2D1B3D]/30 text-white p-3 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-sm"
+  rows={4}
+  placeholder="Transform your mindset and unlock the secrets to wealth and success..."
+  minLength={isEdit ? undefined : 50}
+  maxLength={isEdit ? undefined : 200}
+  required={!isEdit}
+/>
+
                       <div className="flex justify-between items-center mt-2">
                         <span className={`text-xs ${
                           overviewDescription.length < 50 ? 'text-red-400' : 
@@ -1136,7 +1217,7 @@ logFormData('COVER IMAGE FORM DATA', formData);
       }
     }}
     className="w-full bg-[#2D1B3D] text-white p-2 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-sm"
-    required
+    required={!isEdit}
   >
     <option value="">Select Category</option>
 
@@ -1161,7 +1242,7 @@ logFormData('COVER IMAGE FORM DATA', formData);
       placeholder="Enter new category"
       className="flex-1 bg-[#2D1B3D] text-white p-2 rounded-lg border border-[#9B7BB8]/30 focus:outline-none text-sm"
       autoFocus
-      required
+      required={!isEdit}
     />
 
     <button
@@ -1169,7 +1250,7 @@ logFormData('COVER IMAGE FORM DATA', formData);
       onClick={() => {
         setIsCustomCategory(false);
         setCustomCategory('');
-        handleBasicInfoChange('category', '');
+         if (!isEdit) handleBasicInfoChange('category', '');
       }}
       className="px-3 rounded-lg bg-[#9B7BB8]/20 text-white hover:bg-[#9B7BB8]/40 transition"
       title="Cancel"
@@ -1275,7 +1356,11 @@ logFormData('COVER IMAGE FORM DATA', formData);
                       disabled={isSubmitting}
                       className="flex items-center space-x-2 px-6 py-2 bg-[#9B7BB8] text-white rounded-lg hover:bg-[#8A6AA7] transition-colors text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      <span>{isSubmitting ? 'Saving...' : 'Next: Overview & Carousel'}</span>
+                     <span>
+ {isSubmitting 
+   ? 'Saving...' 
+   : isEdit ? 'Save Changes' : 'Next: Overview & Carousel'}
+</span>
                       {!isSubmitting && <ArrowRight className="w-4 h-4" />}
                     </button>
                   </div>

@@ -3,6 +3,7 @@ import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { ShoppingBag, CheckCircle, Smile } from "lucide-react";
 
+
 /* ================= STEPS CONFIG ================= */
 const steps = [
   { label: "Cart", path: "/cart", icon: ShoppingBag },
@@ -10,7 +11,7 @@ const steps = [
   { label: "Success", path: "/checkout/success", icon: Smile },
 ];
 
-const CheckoutLayout = () => {
+const CheckoutLayout = ({cart}) => {
   const location = useLocation();
   const navigate = useNavigate();
   const user = useSelector((state) => state.userAuth.user);
@@ -18,13 +19,22 @@ const CheckoutLayout = () => {
 
   // Authentication check - redirect to login if not authenticated
   // Skip for success/failed pages as they don't require active session
-  useEffect(() => {
-    const isSuccessOrFailed = location.pathname.includes("/success") || location.pathname.includes("/failed");
-    if (!userId && !isSuccessOrFailed) {
-      const currentPath = location.pathname + location.search;
-      navigate(`/login?redirect=${encodeURIComponent(currentPath)}`, { replace: true });
-    }
-  }, [userId, navigate, location]);
+  const authLoading = useSelector(state => state.userAuth.loading);
+
+useEffect(() => {
+
+  if (authLoading) return;
+
+  const isSuccessOrFailed =
+    location.pathname.includes("/success") ||
+    location.pathname.includes("/failed");
+
+  if (!userId && !isSuccessOrFailed) {
+    navigate("/login", { replace: true });
+  }
+
+}, [userId, authLoading, location.pathname, navigate]);
+
 
   /* ================= STEP DETECTION (FIXED) ================= */
   const currentStep = (() => {
@@ -99,7 +109,7 @@ const CheckoutLayout = () => {
       {/* ================= PAGE CONTENT (FULL WIDTH CARD) ================= */}
       <div className="w-full flex justify-center px-4">
         <div className="w-full max-w-3xl">
-          <Outlet />
+          <Outlet context={{ cart }} />
         </div>
       </div>
 

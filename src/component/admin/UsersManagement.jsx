@@ -2,6 +2,10 @@ import React, { useState,useEffect } from 'react';
 import { Search, Edit, Trash2, Eye, X, Save, Plus, Download, Mail, Phone, Calendar, ChevronDown } from 'lucide-react';
 import AdminLayout from './Adminlayout';
 import {getAllUsers ,updateUser,getUserById,blockUser} from '../../utils/userServices';
+import { useGetAllBooksQuery } from '../../utils/booksService';
+import { useSelector } from "react-redux";
+
+
 
 
 const statusColors = {
@@ -29,6 +33,14 @@ const UsersManagement = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [activeTab, setActiveTab] = useState("details"); 
+const [bookSearch, setBookSearch] = useState("");
+const [debouncedBookSearch, setDebouncedBookSearch] = useState("");
+const [booksList, setBooksList] = useState([]);
+const [selectedBooks, setSelectedBooks] = useState([]);
+const [isBookDropdownOpen, setIsBookDropdownOpen] = useState(false);
+
+const { user } = useSelector((state) => state.userAuth);
 
   const [newUser, setNewUser] = useState({
     name: '',
@@ -55,6 +67,23 @@ const UsersManagement = () => {
   //   return matchesSearch && matchesStatus && matchesRole;
   // });
 
+const { data: booksResponse, isFetching } = useGetAllBooksQuery(
+  {
+    page: 1,
+    pageSize: 10,
+    searchString: debouncedBookSearch
+  },
+  {
+    skip: !isBookDropdownOpen
+  }
+);
+useEffect(() => {
+  if (booksResponse?.data) {
+    setBooksList(booksResponse.data);
+  }
+}, [booksResponse]);
+
+
   useEffect(() => {
   const handler = setTimeout(() => {
     setDebouncedSearch(search);
@@ -64,6 +93,15 @@ const UsersManagement = () => {
     clearTimeout(handler);
   };
 }, [search]);
+
+useEffect(() => {
+  const handler = setTimeout(() => {
+    setDebouncedBookSearch(bookSearch);
+  }, 400);
+
+  return () => clearTimeout(handler);
+}, [bookSearch]);
+
 
 useEffect(() => {
   const fetchUsers = async () => {
@@ -83,6 +121,8 @@ useEffect(() => {
       }
 
       const response = await getAllUsers(payload);
+      console.log(response.data.data);
+      
       setUsers(response.data.data);
     } catch (error) {
       console.error("Error fetching users:", error);
@@ -360,7 +400,7 @@ const getFilterStatusLabel = (filterStatus) => {
             </thead>
             <tbody className="divide-y divide-white/10">
               {users.map((user, index) => (
-                <tr key={user.id} className="hover:bg-white/5 transition-all duration-300">
+                <tr key={user.guid} className="hover:bg-white/5 transition-all duration-300">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center space-x-3">
                       <div className="relative">
@@ -373,7 +413,7 @@ const getFilterStatusLabel = (filterStatus) => {
                       </div>
                       <div>
                         <p className="text-white font-semibold">{user.name}</p>
-                        <p className="text-white/60 text-sm">ID: {user.id}</p>
+                        <p className="text-white/60 text-sm">ID: {user.guid}</p>
                       </div>
                     </div>
                   </td>
@@ -460,91 +500,215 @@ const getFilterStatusLabel = (filterStatus) => {
             }}
           />
         )}
+{/* View User Modal */}
+{isViewModalOpen && selectedUser && (
+  <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div className="bg-[#2D1B3D]/95 backdrop-blur-md rounded-2xl border border-white/20 max-w-3xl w-full max-h-[calc(100%-2rem)] overflow-y-auto">
 
-        {/* View User Modal */}
-        {isViewModalOpen && selectedUser && (
-          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-[#2D1B3D]/95 backdrop-blur-md rounded-2xl border border-white/20 max-w-2xl w-full max-h-[calc(100%-2rem)] overflow-y-auto">
-              <div className="sticky top-0 bg-[#2D1B3D]/95 backdrop-blur-md border-b border-white/10 px-6 py-4 flex items-center justify-between">
-                <h3 className="text-xl font-bold text-white">User Details</h3>
-                <button
-                  onClick={() => setIsViewModalOpen(false)}
-                  className="p-2 hover:bg-white/10 rounded-lg transition-colors duration-200"
-                >
-                  <X className="w-5 h-5 text-white" />
-                </button>
+      {/* Header */}
+      <div className="sticky top-0 bg-[#2D1B3D]/95 border-b border-white/10 px-6 py-4 flex items-center justify-between">
+        <h3 className="text-xl font-bold text-white">User Details</h3>
+        <button
+          onClick={() => setIsViewModalOpen(false)}
+          className="p-2 hover:bg-white/10 rounded-lg"
+        >
+          <X className="w-5 h-5 text-white" />
+        </button>
+      </div>
+
+      <div className="p-6">
+
+        {/* Tabs */}
+        <div className="flex space-x-6 border-b border-white/20 mb-6">
+          <button
+            onClick={() => setActiveTab("details")}
+            className={`pb-2 ${
+              activeTab === "details"
+                ? "border-b-2 border-white text-white"
+                : "text-white/60"
+            }`}
+          >
+            Details
+          </button>
+
+          <button
+            onClick={() => setActiveTab("grant")}
+            className={`pb-2 ${
+              activeTab === "grant"
+                ? "border-b-2 border-white text-white"
+                : "text-white/60"
+            }`}
+          >
+            Grant Products
+          </button>
+        </div>
+
+        {/* ================= DETAILS TAB ================= */}
+        {activeTab === "details" && (
+          <>
+            <div className="flex items-center space-x-4 mb-6">
+              <div className="relative">
+                <img
+                  src={
+                    selectedUser.profile_url
+                      ? `${process.env.REACT_APP_BASE_URL}${selectedUser.profile_url}`
+                      : ""
+                  }
+
+                  alt={selectedUser.full_name}
+                  className="w-20 h-20 rounded-full object-cover border-4 border-white/20"
+                />
               </div>
-              <div className="p-6 space-y-6">
-                <div className="flex items-center space-x-4">
-                  <div className="relative">
-                    <img 
-                      src={selectedUser.avatar} 
-                      alt={selectedUser.name}
-                      className="w-20 h-20 rounded-full object-cover border-4 border-white/20"
-                    />
-                    <div className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-4 border-[#2D1B3D] ${selectedUser.status === 'active' ? 'bg-green-400' : 'bg-red-400'}`} />
-                  </div>
-                  <div>
-                    <h4 className="text-2xl font-bold text-white">{selectedUser.full_name}</h4>
-                    <p className="text-white/70">User ID: {selectedUser.id}</p>
-                    <div className="flex items-center space-x-2 mt-2">
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium border ${roleColors[selectedUser.role_name]}`}>
-                        {selectedUser.role_name}
-                      </span>
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium border ${statusColors[selectedUser.status]}`}>
-                        {selectedUser.status}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <h5 className="text-lg font-semibold text-white border-b border-white/20 pb-2">Contact Information</h5>
-                    <div className="space-y-3">
-                      <div className="flex items-center space-x-3">
-                        <Mail className="w-5 h-5 text-white/40" />
-                        <span className="text-white/80">{selectedUser.email}</span>
-                      </div>
-                      <div className="flex items-center space-x-3">
-                        <Phone className="w-5 h-5 text-white/40" />
-                        <span className="text-white/80">{selectedUser.mobile}</span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-4">
-                    <h5 className="text-lg font-semibold text-white border-b border-white/20 pb-2">Account Activity</h5>
-                    <div className="space-y-3">
-                      <div className="flex items-center space-x-3">
-                        <Calendar className="w-5 h-5 text-white/40" />
-                        <span className="text-white/80">Joined: {formatDate(selectedUser.created_at)}</span>
-                      </div>
-                      <div className="flex items-center space-x-3">
-                        <Eye className="w-5 h-5 text-white/40" />
-                        <span className="text-white/80">Last Login: {formatDate(selectedUser.updated_at)}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="bg-white/5 rounded-xl p-4">
-                  <h5 className="text-lg font-semibold text-white mb-3">Purchase Statistics</h5>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="text-center">
-                      <p className="text-2xl font-bold text-white">{selectedUser.orders}</p>
-                      <p className="text-white/60 text-sm">Total Orders</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-2xl font-bold text-white">₹{selectedUser.totalSpent}</p>
-                      <p className="text-white/60 text-sm">Total Spent</p>
-                    </div>
-                  </div>
-                </div>
+              <div>
+                <h4 className="text-2xl font-bold text-white">
+                  {selectedUser.full_name}
+                </h4>
+                <p className="text-white/70">
+                  User ID: {selectedUser.guid}
+                </p>
               </div>
             </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <h5 className="text-white font-semibold mb-2">
+                  Contact Information
+                </h5>
+                <p className="text-white/70 text-sm">
+                  Email: {selectedUser.email}
+                </p>
+                <p className="text-white/70 text-sm">
+                  Mobile: {selectedUser.mobile}
+                </p>
+              </div>
+
+              <div>
+                <h5 className="text-white font-semibold mb-2">
+                  Account Activity
+                </h5>
+                <p className="text-white/70 text-sm">
+                  Joined: {formatDate(selectedUser.created_at)}
+                </p>
+                <p className="text-white/70 text-sm">
+                  Updated: {formatDate(selectedUser.updated_at)}
+                </p>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* ================= GRANT TAB ================= */}
+        {activeTab === "grant" && (
+          <div className="space-y-4">
+
+            {/* Search */}
+            <input
+              type="text"
+              value={bookSearch}
+              onChange={(e) => {
+                setBookSearch(e.target.value);
+                setIsBookDropdownOpen(true);
+              }}
+              placeholder="Search books..."
+              className="w-full px-4 py-2 rounded-lg bg-[#1A0F26] text-white border border-white/10"
+            />
+
+            {/* Dropdown */}
+            {isBookDropdownOpen && booksList.length > 0 && (
+              <div className="max-h-60 overflow-y-auto bg-[#1A0F26] rounded-lg border border-white/10 p-2">
+                {booksList.map((book) => (
+                  <label
+                    key={book._id}
+                    className="flex items-center space-x-2 p-2 hover:bg-white/5 rounded cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedBooks.some(
+                        (b) => b._id === book._id
+                      )}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedBooks((prev) => [...prev, book]);
+                        } else {
+                          setSelectedBooks((prev) =>
+                            prev.filter(
+                              (b) => b._id !== book._id
+                            )
+                          );
+                        }
+                      }}
+                    />
+                    <span className="text-white text-sm">
+                      {book.title}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            )}
+
+            {/* Selected Books Chips */}
+            <div className="flex flex-wrap gap-2">
+              {selectedBooks.map((book) => (
+                <div
+                  key={book._id}
+                  className="flex items-center space-x-2 bg-purple-500/20 text-white px-3 py-1 rounded-full text-sm"
+                >
+                  <span>{book.title}</span>
+                  <button
+                    onClick={() =>
+                      setSelectedBooks((prev) =>
+                        prev.filter((b) => b._id !== book._id)
+                      )
+                    }
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            {/* Grant Button */}
+            <button
+              onClick={async () => {
+                try {
+                  await fetch(
+                    `${process.env.REACT_APP_BASE_URL}/library/adminGrantAccess`,
+                    {
+                      method: "POST",
+                      headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${localStorage.getItem("jwt")}`,
+                      },
+                      body: JSON.stringify({
+                        user_id: selectedUser.guid,
+                         admin_id: user.guid,
+                        product_details: selectedBooks.map(
+                          (b) => b._id
+                        ),
+                      }),
+                    }
+                  );
+
+                  alert("Access granted successfully");
+                  setSelectedBooks([]);
+                } catch (err) {
+                  console.error(err);
+                  alert("Grant failed");
+                }
+              }}
+              className="bg-green-500 px-4 py-2 rounded-lg text-white"
+            >
+              Grant Access
+            </button>
+
           </div>
         )}
+
+      </div>
+    </div>
+  </div>
+)}
+
 
         {/* Edit User Modal */}
         {isEditModalOpen && editingUser && (

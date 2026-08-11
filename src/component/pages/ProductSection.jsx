@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef, Fragment } from 'react';
+import React, { useState, useEffect, useRef, Fragment, useMemo } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
-import { ArrowLeft, ShoppingCart, Heart, Star, Eye, Users, Check, BookOpen, ChevronDown, Quote, Plus, X, Send, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
-import { useGetBookByIdQuery, useGetAllBooksQuery } from '../../utils/productServices';
+import { ArrowLeft, ShoppingCart, Heart, Star, Eye, Users, Check, BookOpen, ChevronDown, Quote, Plus, X, Send, Sparkles, ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react';
+import { useGetBookByIdQuery } from '../../utils/productServices';
+import { useGetAllBooksQuery } from '../../utils/booksService';
 import ProductReviews from '../layout/ProductReviews';
 
 
@@ -104,7 +105,10 @@ const carousels = ensureArray(raw.carousels)
   .filter(c => c.image);
 
 // keep images array ONLY for thumbnails
-const images = carousels.map(c => c.image);
+const images = [
+  image,
+  ...carousels.map(c => c.image).filter(img => img !== image)
+];
 
 
 
@@ -224,6 +228,7 @@ return {
   tableOfContents: normalizedToC,
   learningObjectives,
   inStock: raw.inStock ?? true,
+  isPurchased: raw.isPurchased ?? false,
   totalSales: raw.totalSales || Math.floor(Math.random() * 20000) + 5000,
 };
 
@@ -233,21 +238,29 @@ return {
   // Carousel data
  
     
-const { data: booksResponse } = useGetAllBooksQuery({
-  page: 1,
-  pageSize: 10,
-});
+const { user } = useSelector((state) => state.userAuth);
+
+  const { data: booksResponse } = useGetAllBooksQuery(
+    user?.guid
+      ? { page: 1, pageSize: 1000, user_id: user.guid }
+      : { page: 1, pageSize: 1000 },
+  );
 
 
-const { data: productData, isLoading } = useGetBookByIdQuery(productId);
+const { data: productData, isLoading } = useGetBookByIdQuery(
+  user?.guid
+    ? { bookId: productId, user_id: user.guid }
+    : { bookId: productId }
+);
 
+console.log("RAW PRODUCT DATA:", productData);
 
 
 
   
   // Get product data from centralized books data
- 
-  const enhancedProductData = normalizeProduct(productData, productId);
+ const product = Array.isArray(productData) ? productData[0] : productData;
+const enhancedProductData = normalizeProduct(product, productId);
   useEffect(() => {
   if (!enhancedProductData?.tableOfContents?.length) return;
 
@@ -260,7 +273,7 @@ const { data: productData, isLoading } = useGetBookByIdQuery(productId);
 }, [enhancedProductData?.tableOfContents?.length]);
 
 
-console.log(enhancedProductData)
+
 const carouselItems = enhancedProductData?.carousels || [];
 const carouselImages = carouselItems.map(c => c.image);
 
@@ -271,10 +284,19 @@ const carouselImages = carouselItems.map(c => c.image);
     String(book._id) !== String(productId) &&
     (book.category === productData?.category || book.author === productData?.author)
   ).slice(0, 6) || [];
+const isSuggestedPurchased = (book) => {
+  return book.isPurchased === true;
+};
+const finalSuggestedBooks = useMemo(() => {
+  return suggestedBooks.map(book => {
+    const normalized = normalizeProduct(book, book._id);
 
-const finalSuggestedBooks = suggestedBooks.map(book =>
-  normalizeProduct(book, book._id)
-);
+    return {
+      ...normalized,
+      isPurchased: book.isPurchased ?? false,
+    };
+  });
+}, [suggestedBooks]);
 
 
 
@@ -476,7 +498,8 @@ const handleSuggestedBookClick = (book) => {
 
 
 const currentCarousel = carouselItems[currentCarouselIndex];
-console.log(currentCarousel)
+
+console.log("IS PURCHASED:", enhancedProductData?.isPurchased);
   return (
     <div className="-mt-16 min-h-screen bg-gradient-to-br from-[#2D1B3D] via-[#4A3B5C] to-[#9B7BB8] relative">
       {/* Background Pattern */}
@@ -619,42 +642,85 @@ console.log(currentCarousel)
           <div className="lg:col-span-2">
             <div className="sticky top-8">
               <div className="relative mb-8">
-                <div className="relative w-full max-w-md mx-auto main-book-image-mobile-fix">
-                  <div className="absolute -inset-4 bg-black/20 rounded-3xl blur-2xl transform rotate-1"></div>
-                  <div className="relative bg-gradient-to-br from-white to-gray-100 rounded-2xl overflow-hidden shadow-2xl transform hover:scale-105 transition-all duration-500 hover:shadow-3xl">
-                    <div className="aspect-[3/4] relative">
-                     <img
-                        src={
-                            enhancedProductData.images?.length
-                              ? enhancedProductData.images[selectedImageIndex]
-                              : enhancedProductData.image
-                          }
-                        alt={enhancedProductData.title}
-                        className="w-full h-full object-cover"
-                      />
+                
+                 
+                
+<div className="relative w-full max-w-md mx-auto aspect-[3/4]">
 
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent"></div>
-                    </div>
-                  </div>
-                </div>
+  {/* ================= PAPER PAGES EDGE ================= */}
+  <div
+    className="absolute inset-y-3 right-[-12px] w-[20px] rounded-r-xl z-10"
+    style={{
+      background: `
+        repeating-linear-gradient(
+  to right,
+  #9c9c9c,
+  #f7f7f7 1.5px,
+  #e3e3e3 2.5px,
+  #ffffff 4px
+)
+      `,
+      boxShadow: `
+        inset -4px 0 6px rgba(0,0,0,0.35),
+        4px 0 10px rgba(0,0,0,0.45)
+      `
+    }}
+  />
+
+  {/* ================= PAGE DEPTH SHADOW ================= */}
+  <div className="absolute inset-y-6 right-[-20px] w-[8px] bg-black/40 blur-md z-0" />
+
+  {/* ================= HARD COVER ================= */}
+  <div
+    className="
+      relative
+      w-full h-full
+      rounded-2xl
+      overflow-hidden
+      bg-black
+      shadow-[0_20px_60px_rgba(0,0,0,0.7)]
+      isolate
+      z-20
+    "
+  >
+
+    {/* Spine Shadow */}
+    <div className="absolute inset-y-0 left-0 w-[12px] bg-gradient-to-r from-black/60 to-transparent z-30" />
+
+    {/* Gloss Light */}
+    <div className="absolute inset-0 bg-gradient-to-tr from-white/10 via-transparent to-transparent z-30 pointer-events-none" />
+
+    {/* Book Cover Image */}
+    <img
+      src={
+        enhancedProductData.images?.length
+          ? enhancedProductData.images[selectedImageIndex]
+          : enhancedProductData.image
+      }
+      alt={enhancedProductData.title}
+      loading="lazy"
+      draggable="false"
+      className="
+        absolute inset-0
+        w-full h-full
+        object-cover
+        scale-[1.03]
+      "
+    />
+
+  </div>
+
+</div>
+
+
+
+
+
+           
               </div>
 
               {/* Thumbs */}
-              <div className="flex justify-center space-x-2 mt-2">
-                {enhancedProductData.images.length > 0 &&
-  enhancedProductData.images.map((image, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setSelectedImageIndex(index)}
-                    className={`relative w-14 h-16 rounded-lg overflow-hidden transition-all duration-300 transform hover:scale-110 ${
-                      selectedImageIndex === index ? 'ring-4 ring-white shadow-xl scale-110' : 'ring-2 ring-white/30 hover:ring-white/60 opacity-70 hover:opacity-100'
-                    }`}
-                  >
-                    <img src={image} alt={`${enhancedProductData.title} ${index + 1}`} className="w-full h-full object-cover" />
-                    {selectedImageIndex === index && <div className="absolute inset-0 bg-white/20"></div>}
-                  </button>
-                ))}
-              </div>
+            
             </div>
           </div>
 
@@ -728,41 +794,54 @@ console.log(currentCarousel)
             </div>
 
             {/* Actions - Fixed Hover Issue */}
-            <div className="flex flex-row gap-3 w-full mb-4">
-              <button
-                onClick={handleAddToCart}
-                className={`cart-button-animated ${cartButtonClicked ? 'clicked' : ''} flex-1 py-3 px-4 rounded-xl font-semibold text-base flex items-center justify-center gap-2 transition-all duration-300 shadow-xl ${
-                 isInCart
-  ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:shadow-[0_0_18px_4px_rgba(255,215,0,0.6)] transition-shadow duration-300'
-  : 'bg-gradient-to-r from-white to-gray-100 text-[#2D1B3D] hover:shadow-[0_0_18px_4px_rgba(255,215,0,0.75)] transition-shadow duration-300'
+           <div className="flex flex-row gap-3 w-full mb-4">
 
+  {enhancedProductData.isPurchased ? (
 
-                }`}
-              >
-                <ShoppingCart className="cart-icon w-5 h-5" />
-                <div className="box-icon w-3 h-3 bg-current rounded-sm"></div>
-                <span className="cart-text">
-                  {isInCart ? <Check className="w-5 h-5 mr-2 inline" /> : <ShoppingCart className="w-5 h-5 mr-2 inline" />}
-                  {isInCart ? 'Go to Cart' : 'Add to Cart'}
-                </span>
-                <span className="added-text">
-                  <Check className="w-5 h-5 mr-2 inline" />
-                  Added!
-                </span>
-              </button>
+    <>
+      <button
+        onClick={() => navigate("/my-library")}
+        className="flex-1 py-3 px-4 rounded-xl font-semibold text-base 
+        bg-gradient-to-r from-purple-500 to-purple-600 
+        text-white shadow-xl hover:shadow-2xl transition-all"
+      >
+        View in Library
+      </button>
 
-              <button
-                onClick={handleAddToWishlist}
-                className={`wishlist-button-animated ${wishlistButtonClicked ? 'clicked' : ''} p-3 rounded-xl transition-all duration-200 shadow-lg ${
-                  isInWishlist
-                    ? 'bg-gradient-to-r from-red-500 to-red-600 text-white hover:shadow-xl'
-                    : 'bg-[#9B7BB8] text-[#2D1B3D] hover:bg-[#8A6AA7] hover:shadow-xl'
-                }`}
-                style={{ minWidth: 0 }}
-              >
-                <Heart className={`heart-static w-5 h-5 ${isInWishlist ? 'fill-current' : ''}`} />
-              </button>
-            </div>
+    </>
+
+  ) : (
+
+    <>
+      <button
+        onClick={handleAddToCart}
+        className={`cart-button-animated ${
+          cartButtonClicked ? 'clicked' : ''
+        } flex-1 py-3 px-4 rounded-xl font-semibold text-base flex items-center justify-center gap-2 transition-all duration-300 shadow-xl ${
+          isInCart
+            ? 'bg-gradient-to-r from-green-500 to-green-600 text-white'
+            : 'bg-gradient-to-r from-white to-gray-100 text-[#2D1B3D]'
+        }`}
+      >
+        {isInCart ? "Go to Cart" : "Add to Cart"}
+      </button>
+
+      <button
+        onClick={handleAddToWishlist}
+        className={`p-3 rounded-xl transition-all duration-200 shadow-lg ${
+          isInWishlist
+            ? 'bg-gradient-to-r from-red-500 to-red-600 text-white'
+            : 'bg-[#9B7BB8] text-[#2D1B3D]'
+        }`}
+      >
+        <Heart className={`w-5 h-5 ${isInWishlist ? 'fill-current' : ''}`} />
+      </button>
+    </>
+
+  )}
+
+</div>
+
           </div>
         </div>
 
@@ -820,16 +899,27 @@ console.log(currentCarousel)
                           <div className="absolute inset-0 bg-black/50 rounded-xl blur-xl transform translate-x-3 translate-y-3"></div>
                           
                           {/* Book with Enhanced Golden Glow */}
-                          <div className="relative w-full h-full rounded-xl overflow-hidden shadow-2xl transform hover:scale-105 transition-all duration-500"
-                               style={{
-                                 boxShadow: '0 6px 24px rgba(255, 233, 179, 0.4), 0 10px 48px rgba(255, 233, 179, 0.3), 0 3px 12px rgba(255, 247, 193, 0.35)'
-                               }}>
-                            <img 
-                             src={currentCarousel?.image}
-                              alt="Book"
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
+                          <div
+  className="relative w-full h-full rounded-xl overflow-hidden shadow-2xl transform hover:scale-105 transition-all duration-500"
+  style={{
+    boxShadow:
+      "0 6px 24px rgba(255, 233, 179, 0.4), 0 10px 48px rgba(255, 233, 179, 0.3), 0 3px 12px rgba(255, 247, 193, 0.35)"
+  }}
+>
+  <img
+    src={currentCarousel?.image}
+    alt="Book"
+    loading="lazy"
+    draggable="false"
+    className="
+      absolute inset-0
+      w-full h-full
+      object-cover
+      scale-[1.02]
+    "
+  />
+</div>
+
                         </div>
                       </div>
 
@@ -1028,6 +1118,7 @@ console.log(currentCarousel)
  {finalSuggestedBooks.map((book, index) => {
   const isInCartLocal = isSuggestedInCart(book);
   const isInWishlistLocal = isSuggestedInWishlist(book);
+  const isPurchasedLocal = isSuggestedPurchased(book);
   const cartClicked = suggestedCartClicked[book.id];
   const wishlistClicked = suggestedWishlistClicked[book.id];
   const animCart = animatingSuggestedCart[book.id];
@@ -1075,11 +1166,35 @@ console.log(currentCarousel)
         </div>
 
         {/* IMAGE (EXACTLY LIKE LIBRARY) */}
-        <div className="mb-2 sm:mb-3 lg:mb-4 flex justify-center mt-4">
-          <div className="relative w-20 h-28 sm:w-24 sm:h-32 lg:w-48 lg:h-64 rounded-lg lg:rounded-xl overflow-hidden shadow-2xl">
-            <img src={book.image} alt={book.title} className="w-full h-full object-cover" />
-          </div>
-        </div>
+     <div className="mb-2 sm:mb-3 lg:mb-4 flex justify-center mt-4">
+  <div
+    className="
+      relative
+      w-20 h-28
+      sm:w-24 sm:h-32
+      lg:w-48 lg:h-64
+      rounded-lg lg:rounded-xl
+      overflow-hidden
+      shadow-2xl
+      bg-black
+      isolate
+    "
+  >
+    <img
+      src={book.image}
+      alt={book.title}
+      loading="lazy"
+      draggable="false"
+      className="
+        absolute inset-0
+        w-full h-full
+        object-cover
+        scale-[1.03]
+      "
+    />
+  </div>
+</div>
+
 
         {/* TITLE + AUTHOR */}
         <div className="text-center flex-1 flex flex-col justify-between">
@@ -1121,58 +1236,88 @@ console.log(currentCarousel)
           </div>
 
           {/* ACTION BUTTONS — SAME STYLE AS LIBRARY */}
-          <div className="flex flex-row gap-2 w-full mb-2">
-            {/* Add to Cart */}
-            <button
-  onClick={(e) => handleSuggestedCartAction(e, book)}
-  disabled={animCart}
-  className={`
-    cart-button-animated ${cartClicked ? "clicked" : ""}
-    flex-1 py-2 rounded-xl font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 
-    transition-all duration-300 hover:scale-105 shadow-xl
-    ${
-      isInCartLocal
-        ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white"
-        : "bg-gradient-to-r from-white to-gray-100 text-[#2D1B3D]"
-    }
-  `}
->
-  {/* animated cart icon */}
-  <ShoppingCart className="cart-icon w-4 h-4" />
+        <div className="flex flex-row gap-2 w-full mb-2">
 
-  {/* animated box icon */}
-  <div className="box-icon w-2 h-2 bg-current rounded-sm"></div>
+{isPurchasedLocal ? (
 
-  {/* default text */}
-  <span className="cart-text">
-    {isInCartLocal ? "Go to Cart" : "Add to Cart"}
-  </span>
+  <>
+    {/* View in Library */}
+    <button
+      onClick={(e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        navigate("/my-library");
+      }}
+      className="flex-1 py-2 rounded-xl font-semibold text-xs sm:text-sm 
+      bg-gradient-to-r from-purple-500 to-purple-600 
+      text-white shadow-xl hover:scale-105 transition-all"
+    >
+      View in Library
+    </button>
 
-  {/* animated “Added!” text */}
-  <span className="added-text">
-    <Check className="w-4 h-4 inline mr-1" /> Added!
-  </span>
-</button>
+    {/* Open Product Page */}
+    <button
+      onClick={(e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        navigate(`/product/${book.id}`);
+      }}
+      className="p-2 rounded-xl bg-[#9B7BB8] text-[#2D1B3D] 
+      hover:scale-105 transition-all shadow-lg"
+    >
+      <ExternalLink className="w-4 h-4" />
+    </button>
+  </>
 
+) : (
 
-            {/* Wishlist */}
-            <button
-              onClick={(e) => handleSuggestedToggleWishlist(e, book)}
-              disabled={animWish}
-              className={`
-                wishlist-button-animated ${wishlistClicked ? "clicked" : ""}
-                p-2 rounded-xl transition-all duration-200 hover:scale-105 shadow-lg
-                ${
-                  isInWishlistLocal
-                    ? "bg-gradient-to-r from-red-500 to-red-600 text-white"
-                    : "bg-[#9B7BB8] text-[#2D1B3D]"
-                }
-              `}
-              style={{ minWidth: 0 }}
-            >
-              <Heart className={`w-4 h-4 ${isInWishlistLocal ? "fill-current" : ""}`} />
-            </button>
-          </div>
+    <>
+      <button
+        onClick={(e) => handleSuggestedCartAction(e, book)}
+        disabled={animCart}
+        className={`
+          cart-button-animated ${cartClicked ? "clicked" : ""}
+          flex-1 py-2 rounded-xl font-semibold text-xs sm:text-sm 
+          flex items-center justify-center gap-2 
+          transition-all duration-300 hover:scale-105 shadow-xl
+          ${
+            isInCartLocal
+              ? 'bg-gradient-to-r from-green-500 to-green-600 text-white'
+              : 'bg-gradient-to-r from-white to-gray-100 text-[#2D1B3D]'
+          }
+        `}
+      >
+        <ShoppingCart className="cart-icon w-4 h-4" />
+        <div className="box-icon w-2 h-2 bg-current rounded-sm"></div>
+
+        <span className="cart-text">
+          {isInCartLocal ? "Go to Cart" : "Add to Cart"}
+        </span>
+
+        <span className="added-text">
+          <Check className="w-4 h-4 inline mr-1" /> Added!
+        </span>
+      </button>
+
+      <button
+        onClick={(e) => handleSuggestedToggleWishlist(e, book)}
+        disabled={animWish}
+        className={`
+          wishlist-button-animated ${wishlistClicked ? "clicked" : ""}
+          p-2 rounded-xl transition-all duration-200 hover:scale-105 shadow-lg
+          ${
+            isInWishlistLocal
+              ? "bg-gradient-to-r from-red-500 to-red-600 text-white"
+              : "bg-[#9B7BB8] text-[#2D1B3D]"
+          }
+        `}
+      >
+        <Heart className={`w-4 h-4 ${isInWishlistLocal ? "fill-current" : ""}`} />
+      </button>
+    </>
+  )}
+
+</div>
         </div>
       </div>
     </div>

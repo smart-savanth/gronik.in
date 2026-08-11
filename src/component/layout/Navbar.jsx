@@ -9,7 +9,7 @@ import { useSearchBooksMutation } from '../../utils/booksService';
 
 
 const Navbar = ({ cartCount = 0, wishlistCount = 0,isAdminRoute }) => {
-  const [searchBooks] = useSearchBooksMutation();
+ 
 
   const [whyButtonHover, setWhyButtonHover] = useState(false);
 
@@ -89,7 +89,12 @@ const cartItems = useSelector((state) => state.cart.items);
   // Handle click outside to close suggestions
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (searchRef.current && !searchRef.current.contains(event.target)) {
+     if (
+  searchRef.current &&
+  !searchRef.current.contains(event.target) &&
+  suggestionsRef.current &&
+  !suggestionsRef.current.contains(event.target)
+) {
         setShowSuggestions(false);
         setIsSearchFocused(false);
         setSelectedSuggestionIndex(-1);
@@ -139,43 +144,43 @@ useEffect(() => {
   };
 }, [isMobile]);
 
+useEffect(() => {
+  console.log("Suggestions state updated:", suggestions);
+}, [suggestions]);
 
   // --- SEARCH LOGIC ---
-const generateSuggestions = async (query) => {
+const generateSuggestions = (query) => {
   if (!query.trim() || query.length < 2) {
     setSuggestions([]);
     setShowSuggestions(false);
     return;
   }
 
-  try {
-    const res = await searchBooks({
-      page: 1,
-      pageSize: 8,
-      searchString: query
-    }).unwrap();
+  const booksArray = booksResponse?.data || [];
 
-    const books = res?.data || [];
+  const filtered = booksArray.filter(book =>
+    book.title?.toLowerCase().includes(query.toLowerCase()) ||
+    book.author?.toLowerCase().includes(query.toLowerCase()) ||
+    book.category?.toLowerCase().includes(query.toLowerCase())
+  );
 
-    const mapped = books.map(book => ({
-      type: "book",
-      text: book.title || book.book_name,
-      author: book.author || book.author_name,
-      category: book.category || "Book",
-      image: book.coverImageUrl || book.image,
-      id: book._id,
-    }));
+  const mapped = filtered.slice(0, 8).map(book => ({
+    type: "book",
+    text: book.title,
+    author: book.author,
+    category: book.category,
+    image: book.coverImageUrl
+      ? `${process.env.REACT_APP_BASE_URL}/${book.coverImageUrl.replace(/^\/+/, "")}`
+      : null,
+    id: book._id,
+  }));
 
-    setSuggestions(mapped);
-    setShowSuggestions(mapped.length > 0);
-    setSelectedSuggestionIndex(-1);
-
-  } catch (err) {
-    console.error("Search failed:", err);
-    setSuggestions([]);
-    setShowSuggestions(false);
-  }
+  setSuggestions(mapped);
+  setShowSuggestions(mapped.length > 0);
+  setSelectedSuggestionIndex(-1);
 };
+
+
 
 
   const handleSearchChange = (value) => {
@@ -187,7 +192,7 @@ const generateSuggestions = async (query) => {
     
     searchTimeoutRef.current = setTimeout(() => {
       generateSuggestions(value);
-    }, 200);
+    }, 300);
   };
 
   const scrollToSection = (sectionId) => {
@@ -337,10 +342,65 @@ const floatingLogoVisible =
           </button>
         )}
         
-        {showSuggestions && suggestions.length > 0 && !isMobileVersion && (
-          // ChevronDown button/icon for visual cue (not needed for functionality)
-          <ChevronDown className="absolute right-7 top-1/2 -translate-y-1/2 w-2.5 h-2.5 text-gronik-light/60" />
-        )}
+       {showSuggestions && (
+  <div
+    ref={suggestionsRef}
+    className="
+      absolute top-full left-0 right-0
+      bg-gronik-primary/95
+      backdrop-blur-xl
+      rounded-b-xl
+      shadow-2xl
+      z-[9999]
+      max-h-80
+      overflow-y-auto
+      border border-gronik-secondary/30
+      animate-fadeIn
+    "
+  >
+    {suggestions.length === 0 ? (
+      <div className="px-4 py-3 text-sm text-gray-500">
+        No results found
+      </div>
+    ) : (
+      suggestions.map((suggestion, index) => (
+        <div
+          key={index}
+          onClick={() => handleSearchSubmit(suggestion)}
+          className="
+    flex items-center gap-3
+    px-4 py-3
+    cursor-pointer
+    transition-all duration-200
+    border-b border-gronik-secondary/20
+    hover:bg-gronik-accent/10
+  "
+        >
+          {suggestion.image ? (
+            <img
+              src={suggestion.image}
+              alt={suggestion.text}
+              className="w-8 h-10 object-cover rounded"
+            />
+          ) : (
+            <BookOpen className="w-5 h-5 text-[#9B7BB8]" />
+          )}
+
+          <div>
+            <p className="text-xs text-gronik-light/60">
+
+              {suggestion.text}
+            </p>
+            <p className="text-xs text-gray-500">
+              {suggestion.category}
+            </p>
+          </div>
+        </div>
+      ))
+    )}
+  </div>
+)}
+
       </div>
 
       {/* Search Suggestions Dropdown */}
@@ -655,7 +715,7 @@ const floatingLogoVisible =
                 </div>
 
 {/* Icons */}
-<IconWithTooltip label="my library">
+<IconWithTooltip label="My Library">
 <Link
 to="/my-library"
 className="relative p-2 rounded-lg  transition-transform duration-200 hover:-translate-y-2"
@@ -663,7 +723,7 @@ className="relative p-2 rounded-lg  transition-transform duration-200 hover:-tra
 <BookOpen className="w-5 h-5 text-gronik-light" />          
 </Link>
 </IconWithTooltip>
-<IconWithTooltip label="wishlist">
+<IconWithTooltip label="Wishlist">
 <Link
   to="/wishlist"
   className="relative p-2 rounded-lg  transition-transform duration-200 hover:-translate-y-2"
@@ -689,7 +749,7 @@ className="relative p-2 rounded-lg  transition-transform duration-200 hover:-tra
   )}
 </Link>
 </IconWithTooltip>
-<IconWithTooltip label="profile">
+<IconWithTooltip label="Profile">
 <Link
   to={user ? "/profile" : "/login"}
   className="relative p-2 rounded-lg  transition-transform duration-200 hover:-translate-y-2"

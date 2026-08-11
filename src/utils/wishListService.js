@@ -109,3 +109,14 @@ export const moveWishlistItemsToCart = async ({ userId, productIds }) => {
 
   return response.data;
 };
+
+export const getWishlistByUserId = async (userId) => {
+  if (!userId) {
+    throw new Error("User ID is required");
+  }
+
+  const response = await api.get(`/wishlist/getListByUserId/${userId}`);
+
+  return response.data;
+};
+
